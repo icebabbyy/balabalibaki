@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import Header from "@/components/Header";
@@ -16,7 +15,10 @@ interface WishlistProduct {
   category: string;
   image: string;
   sku: string;
-  status: string;
+  "status TEXT DEFAULT": string;
+  description: string;
+  options: any;
+  shipment_date: string;
 }
 
 const Wishlist = () => {
