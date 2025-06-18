@@ -5,14 +5,10 @@ import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import { Star, Heart, ShoppingCart, TrendingUp, Package, Zap } from "lucide-react";
-import Autoplay from "embla-carousel-autoplay";
-import { useBanners } from "@/hooks/useBanners";
+import { Star, Heart, ShoppingCart, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
-  const { banners, loading } = useBanners();
   const [categories, setCategories] = useState<any[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   
@@ -78,107 +74,52 @@ const Index = () => {
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      {/* Hero Banner Carousel */}
-      <div className="relative">
-        {loading ? (
-          <div className="h-[400px] bg-gray-200 animate-pulse flex items-center justify-center">
-            <p className="text-gray-500">กำลังโหลดแบนเนอร์...</p>
-          </div>
-        ) : banners && banners.length > 0 ? (
-          <Carousel
-            plugins={[Autoplay({ delay: 4000 })]}
-            className="w-full"
-          >
-            <CarouselContent>
-              {banners.map((banner) => (
-                <CarouselItem key={banner.id}>
-                  <div className="relative h-[400px] overflow-hidden">
-                    <img
-                      src={banner.image_url}
-                      alt={`Banner ${banner.id}`}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-                      <div className="text-center text-white max-w-2xl px-4">
-                        <h1 className="text-4xl font-bold mb-4">ยินดีต้อนรับสู่ Lucky Shop</h1>
-                        <p className="text-xl mb-6">ร้านขายของสะสม ฟิกเกอร์ และของเล่นคุณภาพ</p>
-                        <Link to="/categories">
-                          <Button 
-                            size="lg" 
-                            style={{ backgroundColor: '#956ec3' }}
-                            className="hover:opacity-90"
-                          >
-                            เริ่มช้อปปิ้ง
-                          </Button>
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-            <CarouselPrevious className="left-4" />
-            <CarouselNext className="right-4" />
-          </Carousel>
-        ) : (
-          // Default banner when no banners are configured
-          <div className="relative h-[400px] overflow-hidden">
-            <div 
-              className="w-full h-full"
-              style={{ background: 'linear-gradient(135deg, #956ec3 0%, #a576c9 100%)' }}
-            >
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center text-white max-w-2xl px-4">
-                  <h1 className="text-4xl font-bold mb-4">ยินดีต้อนรับสู่ Lucky Shop</h1>
-                  <p className="text-xl mb-6">ร้านขายของสะสม ฟิกเกอร์ และของเล่นคุณภาพ</p>
-                  <Link to="/categories">
-                    <Button 
-                      size="lg" 
-                      className="bg-white text-purple-600 hover:bg-gray-100"
-                    >
-                      เริ่มช้อปปิ้ง
-                    </Button>
-                  </Link>
-                </div>
-              </div>
+      {/* Hero Banner - Smaller Size */}
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div 
+          className="relative h-[300px] rounded-lg overflow-hidden mb-12"
+          style={{ background: 'linear-gradient(135deg, #956ec3 0%, #a576c9 100%)' }}
+        >
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="text-center text-white max-w-2xl px-4">
+              <h1 className="text-3xl font-bold mb-4">ยินดีต้อนรับสู่ Lucky Shop</h1>
+              <p className="text-lg mb-6">ร้านขายของสะสม ฟิกเกอร์ และของเล่นคุณภาพ</p>
+              <Link to="/categories">
+                <Button 
+                  size="lg" 
+                  className="bg-white text-purple-600 hover:bg-gray-100"
+                >
+                  เริ่มช้อปปิ้ง
+                </Button>
+              </Link>
             </div>
           </div>
-        )}
-      </div>
+        </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-12">
-        {/* Categories Section */}
+        {/* Categories Section - Original Design */}
         <section className="mb-12">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">หมวดหมู่สินค้า</h2>
           
           {categoriesLoading ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {[...Array(6)].map((_, i) => (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[...Array(3)].map((_, i) => (
                 <div key={i} className="animate-pulse">
-                  <div className="bg-gray-200 rounded-lg h-24 mb-2"></div>
+                  <div className="bg-gray-200 rounded-lg h-32 mb-2"></div>
                   <div className="bg-gray-200 rounded h-4"></div>
                 </div>
               ))}
             </div>
           ) : categories && categories.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {categories.map((category) => (
-                <Link 
-                  key={category.id} 
-                  to={`/categories?category=${encodeURIComponent(category.name)}`}
-                  className="group"
-                >
-                  <div className="bg-white rounded-lg p-4 text-center hover:shadow-md transition-shadow duration-300 border">
-                    <div 
-                      className="w-12 h-12 mx-auto mb-3 rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: '#956ec3' }}
-                    >
-                      <Package className="h-6 w-6 text-white" />
-                    </div>
-                    <h3 className="text-sm font-medium text-gray-900 group-hover:text-purple-600">
-                      {category.name}
-                    </h3>
-                  </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {categories.slice(0, 3).map((category) => (
+                <Link key={category.id} to={`/categories?category=${encodeURIComponent(category.name)}`}>
+                  <Card className="hover:shadow-lg transition-shadow duration-300 cursor-pointer">
+                    <CardContent className="p-6 text-center">
+                      <Package className="h-12 w-12 mx-auto mb-4" style={{ color: '#956ec3' }} />
+                      <h3 className="text-xl font-semibold mb-2">{category.name}</h3>
+                      <p className="text-gray-600">ดูสินค้าทั้งหมด</p>
+                    </CardContent>
+                  </Card>
                 </Link>
               ))}
             </div>

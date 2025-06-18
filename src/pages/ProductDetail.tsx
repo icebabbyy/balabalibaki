@@ -15,7 +15,6 @@ const ProductDetail = () => {
   const { toast } = useToast();
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
-  const [selectedOptions, setSelectedOptions] = useState<{[key: string]: string}>({});
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const { user, signOut } = useAuth();
@@ -67,15 +66,7 @@ const ProductDetail = () => {
 
   const handleBuyNow = () => {
     if (!product) return;
-    // Navigate to payment page with product info
     window.location.href = `/payment?product=${product.id}&quantity=${quantity}`;
-  };
-
-  const handleOptionChange = (optionName: string, value: string) => {
-    setSelectedOptions(prev => ({
-      ...prev,
-      [optionName]: value
-    }));
   };
 
   if (loading) {
@@ -99,9 +90,6 @@ const ProductDetail = () => {
       </div>
     );
   }
-
-  // Parse options if it exists
-  const productOptions = product.options ? (typeof product.options === 'string' ? JSON.parse(product.options) : product.options) : {};
 
   // Create multiple images array (for now using the same image)
   const productImages = [
@@ -166,7 +154,6 @@ const ProductDetail = () => {
                       }`}
                     />
                   ))}
-                  <span className="text-gray-600 ml-2">(124 รีวิว)</span>
                 </div>
                 <Badge variant="secondary">{product.category}</Badge>
               </div>
@@ -187,55 +174,6 @@ const ProductDetail = () => {
               <div>
                 <h3 className="text-lg font-semibold mb-2">รายละเอียดสินค้า</h3>
                 <p className="text-gray-700 leading-relaxed">{product.description}</p>
-              </div>
-            )}
-
-            {/* Product Options */}
-            {Object.keys(productOptions).length > 0 && (
-              <div>
-                <h3 className="text-lg font-semibold mb-4">ตัวเลือกสินค้า</h3>
-                <div className="space-y-4">
-                  {Object.entries(productOptions).map(([optionName, optionValues]) => (
-                    <div key={optionName}>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        {optionName}
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        {Array.isArray(optionValues) ? 
-                          optionValues.map((value: any, index: number) => (
-                            <button
-                              key={index}
-                              onClick={() => handleOptionChange(optionName, typeof value === 'object' ? value.name : value)}
-                              className={`px-3 py-2 border rounded-lg text-sm font-medium transition-colors ${
-                                selectedOptions[optionName] === (typeof value === 'object' ? value.name : value)
-                                  ? 'border-purple-500 bg-purple-50 text-purple-600'
-                                  : 'border-gray-300 hover:border-gray-400'
-                              }`}
-                            >
-                              {typeof value === 'object' ? value.name : value}
-                            </button>
-                          )) :
-                          typeof optionValues === 'object' ?
-                            Object.entries(optionValues).map(([key, val]) => (
-                              <button
-                                key={key}
-                                onClick={() => handleOptionChange(optionName, key)}
-                                className={`px-3 py-2 border rounded-lg text-sm font-medium transition-colors ${
-                                  selectedOptions[optionName] === key
-                                    ? 'border-purple-500 bg-purple-50 text-purple-600'
-                                    : 'border-gray-300 hover:border-gray-400'
-                                }`}
-                              >
-                                {key}
-                              </button>
-                            )) : (
-                              <span className="text-gray-500">ไม่มีตัวเลือก</span>
-                            )
-                        }
-                      </div>
-                    </div>
-                  ))}
-                </div>
               </div>
             )}
 
