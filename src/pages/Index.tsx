@@ -72,7 +72,7 @@ const Index = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-purple-100">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
           <p className="text-purple-600 font-medium">กำลังโหลด...</p>
@@ -82,10 +82,10 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-purple-100">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-purple-600 text-white shadow-lg">
-        <div className="container mx-auto px-4 py-4">
+      <header className="bg-purple-600 text-white shadow-lg sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-8">
               <h1 className="text-2xl font-bold">Lucky Shop</h1>
@@ -119,15 +119,15 @@ const Index = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
-        {/* Banner Carousel */}
+      <main className="max-w-7xl mx-auto px-4 py-8">
+        {/* Banner Carousel - Medium Size */}
         {banners.length > 0 && (
           <section className="mb-12">
-            <Carousel className="w-full max-w-4xl mx-auto">
+            <Carousel className="w-full max-w-5xl mx-auto">
               <CarouselContent>
                 {banners.map((banner, index) => (
                   <CarouselItem key={index}>
-                    <div className="relative h-64 md:h-80 overflow-hidden rounded-lg">
+                    <div className="relative h-48 md:h-64 overflow-hidden rounded-lg">
                       <div
                         className="w-full h-full bg-cover bg-center flex items-center justify-center"
                         style={{
@@ -135,8 +135,8 @@ const Index = () => {
                         }}
                       >
                         <div className="text-center text-white">
-                          <h2 className="text-3xl md:text-5xl font-bold mb-4">ของขวัญพิเศษ</h2>
-                          <p className="text-lg md:text-xl mb-6">สำหรับคนที่คุณรัก</p>
+                          <h2 className="text-2xl md:text-4xl font-bold mb-4">ของขวัญพิเศษ</h2>
+                          <p className="text-md md:text-lg mb-6">สำหรับคนที่คุณรัก</p>
                           <Button className="bg-purple-500 hover:bg-purple-400 text-white px-6 py-2 rounded-full">
                             เลือกของขวัญ
                           </Button>
@@ -159,15 +159,15 @@ const Index = () => {
             <p className="text-lg text-purple-600">เลือกซื้อได้ตามหมวดหมู่ที่คุณสนใจ</p>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
+          <div className="grid grid-cols-3 md:grid-cols-6 lg:grid-cols-8 gap-4 mb-8">
             {categories.map((category) => (
               <Link key={category.id} to={`/categories?category=${encodeURIComponent(category.name)}`}>
                 <Card className="group hover:shadow-lg transition-all duration-300 border-purple-200 hover:border-purple-400 cursor-pointer">
-                  <CardContent className="p-4 text-center">
-                    <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:bg-purple-200 transition-colors">
-                      <span className="text-2xl">📦</span>
+                  <CardContent className="p-3 text-center">
+                    <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:bg-purple-200 transition-colors">
+                      <span className="text-lg">📦</span>
                     </div>
-                    <h3 className="font-semibold text-gray-800 group-hover:text-purple-600 transition-colors">
+                    <h3 className="font-medium text-sm text-gray-800 group-hover:text-purple-600 transition-colors">
                       {category.name}
                     </h3>
                   </CardContent>
@@ -180,41 +180,49 @@ const Index = () => {
         {/* New Products */}
         <section className="mb-12">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-purple-800">สินค้ามาใหม่</h2>
+            <h2 className="text-xl font-bold text-gray-800">สินค้ามาใหม่</h2>
             <Link to="/categories?filter=new">
-              <Button variant="outline" className="border-purple-300 text-purple-600 hover:bg-purple-50">
+              <Button variant="outline" size="sm" className="border-purple-300 text-purple-600 hover:bg-purple-50">
                 ดูทั้งหมด
               </Button>
             </Link>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             {newProducts.map((product) => (
-              <Card key={product.id} className="group hover:shadow-xl transition-all duration-300 border-purple-100 hover:border-purple-300">
+              <Card key={product.id} className="group hover:shadow-lg transition-all duration-300 border-gray-200 hover:border-purple-300">
                 <div className="relative overflow-hidden rounded-t-lg">
-                  <img
-                    src={product.image || '/placeholder.svg'}
-                    alt={product.name}
-                    className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
+                  <Link to={`/product/${product.id}`}>
+                    <img
+                      src={product.image || '/placeholder.svg'}
+                      alt={product.name}
+                      className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </Link>
                   <span className="absolute top-2 left-2 bg-green-500 text-white px-2 py-1 rounded text-xs font-medium">
                     ใหม่
                   </span>
                 </div>
-                <CardContent className="p-4">
-                  <h4 className="font-semibold text-gray-800 mb-2 line-clamp-2 group-hover:text-purple-600 transition-colors">
-                    {product.name}
-                  </h4>
-                  <p className="text-2xl font-bold text-purple-600 mb-3">
+                <CardContent className="p-3">
+                  <Link to={`/product/${product.id}`}>
+                    <h4 className="font-medium text-gray-800 mb-1 text-sm line-clamp-2 group-hover:text-purple-600 transition-colors">
+                      {product.name}
+                    </h4>
+                  </Link>
+                  <p className="text-lg font-bold text-purple-600 mb-2">
                     ฿{product.selling_price?.toLocaleString()}
                   </p>
                   
-                  <div className="space-y-2">
+                  <div className="space-y-1">
                     <Link to={`/product/${product.id}`}>
-                      <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white">
-                        ดูรายละเอียด
+                      <Button size="sm" className="w-full bg-purple-600 hover:bg-purple-700 text-white text-xs">
+                        ซื้อเดี๋ยวนี้
                       </Button>
                     </Link>
+                    <Button variant="outline" size="sm" className="w-full border-purple-300 text-purple-600 hover:bg-purple-50 text-xs">
+                      <ShoppingCart className="h-3 w-3 mr-1" />
+                      เพิ่มลงตะกร้า
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -225,41 +233,49 @@ const Index = () => {
         {/* Best Sellers */}
         <section className="mb-12">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-purple-800">สินค้าขายดี</h2>
+            <h2 className="text-xl font-bold text-gray-800">สินค้าขายดี</h2>
             <Link to="/categories?filter=bestseller">
-              <Button variant="outline" className="border-purple-300 text-purple-600 hover:bg-purple-50">
+              <Button variant="outline" size="sm" className="border-purple-300 text-purple-600 hover:bg-purple-50">
                 ดูทั้งหมด
               </Button>
             </Link>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             {bestSellers.map((product) => (
-              <Card key={product.id} className="group hover:shadow-xl transition-all duration-300 border-purple-100 hover:border-purple-300">
+              <Card key={product.id} className="group hover:shadow-lg transition-all duration-300 border-gray-200 hover:border-purple-300">
                 <div className="relative overflow-hidden rounded-t-lg">
-                  <img
-                    src={product.image || '/placeholder.svg'}
-                    alt={product.name}
-                    className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
+                  <Link to={`/product/${product.id}`}>
+                    <img
+                      src={product.image || '/placeholder.svg'}
+                      alt={product.name}
+                      className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </Link>
                   <span className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded text-xs font-medium">
                     ขายดี
                   </span>
                 </div>
-                <CardContent className="p-4">
-                  <h4 className="font-semibold text-gray-800 mb-2 line-clamp-2 group-hover:text-purple-600 transition-colors">
-                    {product.name}
-                  </h4>
-                  <p className="text-2xl font-bold text-purple-600 mb-3">
+                <CardContent className="p-3">
+                  <Link to={`/product/${product.id}`}>
+                    <h4 className="font-medium text-gray-800 mb-1 text-sm line-clamp-2 group-hover:text-purple-600 transition-colors">
+                      {product.name}
+                    </h4>
+                  </Link>
+                  <p className="text-lg font-bold text-purple-600 mb-2">
                     ฿{product.selling_price?.toLocaleString()}
                   </p>
                   
-                  <div className="space-y-2">
+                  <div className="space-y-1">
                     <Link to={`/product/${product.id}`}>
-                      <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white">
-                        ดูรายละเอียด
+                      <Button size="sm" className="w-full bg-purple-600 hover:bg-purple-700 text-white text-xs">
+                        ซื้อเดี๋ยวนี้
                       </Button>
                     </Link>
+                    <Button variant="outline" size="sm" className="w-full border-purple-300 text-purple-600 hover:bg-purple-50 text-xs">
+                      <ShoppingCart className="h-3 w-3 mr-1" />
+                      เพิ่มลงตะกร้า
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -274,47 +290,51 @@ const Index = () => {
           if (categoryProducts.length === 0) return null;
 
           return (
-            <section key={category.id} className="mb-16">
-              <div className="flex items-center justify-between mb-8">
-                <h3 className="text-2xl font-bold text-purple-800">{category.name}</h3>
+            <section key={category.id} className="mb-12">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-gray-800">{category.name}</h3>
                 <Link to={`/categories?category=${encodeURIComponent(category.name)}`}>
-                  <Button variant="outline" className="border-purple-300 text-purple-600 hover:bg-purple-50">
+                  <Button variant="outline" size="sm" className="border-purple-300 text-purple-600 hover:bg-purple-50">
                     ดูทั้งหมด
                   </Button>
                 </Link>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 {categoryProducts.map((product) => (
-                  <Card key={product.id} className="group hover:shadow-xl transition-all duration-300 border-purple-100 hover:border-purple-300">
+                  <Card key={product.id} className="group hover:shadow-lg transition-all duration-300 border-gray-200 hover:border-purple-300">
                     <div className="relative overflow-hidden rounded-t-lg">
-                      <img
-                        src={product.image || '/placeholder.svg'}
-                        alt={product.name}
-                        className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
+                      <Link to={`/product/${product.id}`}>
+                        <img
+                          src={product.image || '/placeholder.svg'}
+                          alt={product.name}
+                          className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      </Link>
                       {product.status && (
                         <span className="absolute top-2 left-2 bg-purple-500 text-white px-2 py-1 rounded text-xs font-medium">
                           {product.status}
                         </span>
                       )}
                     </div>
-                    <CardContent className="p-4">
-                      <h4 className="font-semibold text-gray-800 mb-2 line-clamp-2 group-hover:text-purple-600 transition-colors">
-                        {product.name}
-                      </h4>
-                      <p className="text-2xl font-bold text-purple-600 mb-3">
+                    <CardContent className="p-3">
+                      <Link to={`/product/${product.id}`}>
+                        <h4 className="font-medium text-gray-800 mb-1 text-sm line-clamp-2 group-hover:text-purple-600 transition-colors">
+                          {product.name}
+                        </h4>
+                      </Link>
+                      <p className="text-lg font-bold text-purple-600 mb-2">
                         ฿{product.selling_price?.toLocaleString()}
                       </p>
                       
-                      <div className="space-y-2">
+                      <div className="space-y-1">
                         <Link to={`/product/${product.id}`}>
-                          <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white">
-                            ดูรายละเอียด
+                          <Button size="sm" className="w-full bg-purple-600 hover:bg-purple-700 text-white text-xs">
+                            ซื้อเดี๋ยวนี้
                           </Button>
                         </Link>
-                        <Button variant="outline" className="w-full border-purple-300 text-purple-600 hover:bg-purple-50">
-                          <ShoppingCart className="h-4 w-4 mr-2" />
+                        <Button variant="outline" size="sm" className="w-full border-purple-300 text-purple-600 hover:bg-purple-50 text-xs">
+                          <ShoppingCart className="h-3 w-3 mr-1" />
                           เพิ่มลงตะกร้า
                         </Button>
                       </div>

@@ -49,7 +49,7 @@ const ProductDetail = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-purple-100">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
           <p className="text-purple-600 font-medium">กำลังโหลด...</p>
@@ -60,7 +60,7 @@ const ProductDetail = () => {
 
   if (!product) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-purple-100">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <p className="text-gray-600 mb-4">ไม่พบสินค้าที่คุณต้องการ</p>
           <Link to="/">
@@ -71,13 +71,23 @@ const ProductDetail = () => {
     );
   }
 
-  const options = product.options ? JSON.parse(product.options) : {};
+  let options = {};
+  try {
+    if (product.options && typeof product.options === 'string') {
+      options = JSON.parse(product.options);
+    } else if (product.options && typeof product.options === 'object') {
+      options = product.options;
+    }
+  } catch (error) {
+    console.error('Error parsing options:', error);
+    options = {};
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-purple-100">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-purple-600 text-white shadow-lg">
-        <div className="container mx-auto px-4 py-4">
+      <header className="bg-purple-600 text-white shadow-lg sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center space-x-4">
             <Link to="/">
               <Button variant="ghost" size="icon" className="text-white hover:bg-purple-700">
@@ -89,15 +99,15 @@ const ProductDetail = () => {
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Product Image */}
+          {/* Product Images */}
           <div className="space-y-4">
             <div className="relative">
               <img
                 src={product.image || '/placeholder.svg'}
                 alt={product.name}
-                className="w-full h-96 object-cover rounded-lg shadow-lg"
+                className="w-full h-80 md:h-96 object-cover rounded-lg shadow-lg"
               />
               {product.status && (
                 <Badge className="absolute top-4 left-4 bg-purple-500 text-white">
@@ -105,13 +115,26 @@ const ProductDetail = () => {
                 </Badge>
               )}
             </div>
+            
+            {/* Placeholder for additional product images */}
+            <div className="grid grid-cols-4 gap-2">
+              {[1, 2, 3, 4].map((index) => (
+                <div key={index} className="aspect-square bg-gray-200 rounded-lg flex items-center justify-center">
+                  <img
+                    src={product.image || '/placeholder.svg'}
+                    alt={`${product.name} ${index}`}
+                    className="w-full h-full object-cover rounded-lg opacity-50"
+                  />
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Product Info */}
           <div className="space-y-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-800 mb-2">{product.name}</h1>
-              <p className="text-4xl font-bold text-purple-600 mb-4">
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">{product.name}</h1>
+              <p className="text-3xl md:text-4xl font-bold text-purple-600 mb-4">
                 ฿{product.selling_price?.toLocaleString()}
               </p>
               {product.description && (
@@ -203,7 +226,7 @@ const ProductDetail = () => {
                 className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 text-lg font-semibold"
                 size="lg"
               >
-                ซื้อเลย
+                ซื้อเดี๋ยวนี้
               </Button>
               <Button
                 onClick={handleAddToCart}
