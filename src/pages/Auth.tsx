@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -64,8 +65,9 @@ const Auth = () => {
         email,
         password,
         options: {
+          emailRedirectTo: `${window.location.origin}/`,
           data: {
-            role: email === 'admin@luckyshop.com' ? 'admin' : 'user'
+            role: 'user' // ทุกคนเริ่มต้นเป็น user
           }
         }
       });
@@ -125,9 +127,22 @@ const Auth = () => {
             </CardHeader>
             <CardContent>
               <p className="mb-4">สวัสดี, {user.email}</p>
-              <Button onClick={handleSignOut} className="w-full">
-                ออกจากระบบ
-              </Button>
+              <div className="space-y-2">
+                <Button 
+                  onClick={() => navigate('/profile')} 
+                  className="w-full" 
+                  style={{ backgroundColor: '#956ec3' }}
+                >
+                  จัดการโปรไฟล์
+                </Button>
+                <Button 
+                  onClick={handleSignOut} 
+                  variant="outline" 
+                  className="w-full"
+                >
+                  ออกจากระบบ
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -181,6 +196,7 @@ const Auth = () => {
                       type="submit" 
                       className="w-full" 
                       disabled={loading}
+                      style={{ backgroundColor: '#956ec3' }}
                     >
                       {loading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
                     </Button>
@@ -225,15 +241,11 @@ const Auth = () => {
                       type="submit" 
                       className="w-full" 
                       disabled={loading}
+                      style={{ backgroundColor: '#956ec3' }}
                     >
                       {loading ? 'กำลังสมัครสมาชิก...' : 'สมัครสมาชิก'}
                     </Button>
                   </form>
-                  <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                    <p className="text-sm text-blue-700">
-                      <strong>สำหรับแอดมิน:</strong> ใช้อีเมล admin@luckyshop.com
-                    </p>
-                  </div>
                 </CardContent>
               </Card>
             </TabsContent>

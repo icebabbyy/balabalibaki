@@ -35,8 +35,9 @@ const AuthDebug = () => {
         email,
         password,
         options: {
+          emailRedirectTo: `${window.location.origin}/`,
           data: {
-            role: email === 'admin@luckyshop.com' ? 'admin' : 'user'
+            role: 'user' // ทุกคนเริ่มต้นเป็น user
           }
         }
       });
@@ -101,10 +102,19 @@ const AuthDebug = () => {
           onChange={(e) => setPassword(e.target.value)}
           minLength={6}
         />
-        <Button onClick={testSignUp} disabled={loading} className="w-full">
+        <Button 
+          onClick={testSignUp} 
+          disabled={loading} 
+          className="w-full"
+          style={{ backgroundColor: '#956ec3' }}
+        >
           {loading ? 'Testing...' : 'Test Sign Up'}
         </Button>
-        <Button onClick={checkProfiles} variant="outline" className="w-full">
+        <Button 
+          onClick={checkProfiles} 
+          variant="outline" 
+          className="w-full"
+        >
           Check Profiles
         </Button>
         {message && (
