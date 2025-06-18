@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -67,7 +66,7 @@ const Index = () => {
   };
 
   const getProductsByCategory = (categoryName) => {
-    return products.filter(product =>产品.category === categoryName).slice(0, 5);
+    return products.filter(product => product.category === categoryName).slice(0, 5);
   };
 
   if (loading) {
