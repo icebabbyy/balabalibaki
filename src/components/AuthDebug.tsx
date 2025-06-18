@@ -15,6 +15,19 @@ const AuthDebug = () => {
     setLoading(true);
     setMessage('');
     
+    // Validate inputs
+    if (!email) {
+      setMessage('กรุณากรอกอีเมล');
+      setLoading(false);
+      return;
+    }
+    
+    if (!password || password.length < 6) {
+      setMessage('กรุณากรอกรหัสผ่านอย่างน้อย 6 ตัวอักษร');
+      setLoading(false);
+      return;
+    }
+    
     try {
       console.log('Attempting to sign up with:', { email });
       
@@ -83,9 +96,10 @@ const AuthDebug = () => {
         />
         <Input
           type="password"
-          placeholder="Password"
+          placeholder="Password (อย่างน้อย 6 ตัวอักษร)"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          minLength={6}
         />
         <Button onClick={testSignUp} disabled={loading} className="w-full">
           {loading ? 'Testing...' : 'Test Sign Up'}

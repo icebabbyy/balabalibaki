@@ -14,6 +14,7 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState(null);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -35,9 +36,29 @@ const Auth = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+  const validateForm = () => {
+    if (!email) {
+      setError('กรุณากรอกอีเมล');
+      return false;
+    }
+    if (!password) {
+      setError('กรุณากรอกรหัสผ่าน');
+      return false;
+    }
+    if (password.length < 6) {
+      setError('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');
+      return false;
+    }
+    setError('');
+    return true;
+  };
+
   const handleSignUp = async (e) => {
     e.preventDefault();
+    if (!validateForm()) return;
+    
     setLoading(true);
+    setError('');
 
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -51,12 +72,13 @@ const Auth = () => {
       });
 
       if (error) {
-        alert(`Error: ${error.message}`);
+        setError(`เกิดข้อผิดพลาด: ${error.message}`);
       } else {
+        setError('');
         alert('สมัครสมาชิกสำเร็จ! กรุณาตรวจสอบอีเมลเพื่อยืนยันบัญชี');
       }
     } catch (error) {
-      alert(`Error: ${error.message}`);
+      setError(`เกิดข้อผิดพลาดที่ไม่คาดคิด: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -64,7 +86,13 @@ const Auth = () => {
 
   const handleSignIn = async (e) => {
     e.preventDefault();
+    if (!email || !password) {
+      setError('กรุณากรอกอีเมลและรหัสผ่าน');
+      return;
+    }
+    
     setLoading(true);
+    setError('');
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -73,10 +101,10 @@ const Auth = () => {
       });
 
       if (error) {
-        alert(`Error: ${error.message}`);
+        setError(`เกิดข้อผิดพลาด: ${error.message}`);
       }
     } catch (error) {
-      alert(`Error: ${error.message}`);
+      setError(`เกิดข้อผิดพลาดที่ไม่คาดคิด: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -122,29 +150,39 @@ const Auth = () => {
             <TabsContent value="signin">
               <Card>
                 <CardHeader>
-                  <CardTitle>เข้าสู่ระบบ</CardTitle>
+                  <CardTitle className="text-center text-xl font-bold">เข้าสู่ระบบ</CardTitle>
+                  <p className="text-center text-gray-600">เข้าสู่ระบบเพื่อเริ่มช้อปปิ้ง</p>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleSignIn} className="space-y-4">
-                    <Input
-                      type="email"
-                      placeholder="อีเมล"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                    <Input
-                      type="password"
-                      placeholder="รหัสผ่าน"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
+                    <div>
+                      <label className="block text-sm font-medium mb-1">อีเมล</label>
+                      <Input
+                        type="email"
+                        placeholder="กรุณากรอกอีเมล"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">รหัสผ่าน</label>
+                      <Input
+                        type="password"
+                        placeholder="กรุณากรอกรหัสผ่าน"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                      />
+                    </div>
+                    {error && (
+                      <div className="text-red-500 text-sm text-center">{error}</div>
+                    )}
                     <Button 
                       type="submit" 
-                      className="w-full" 
+                      className="w-full text-white" 
                       disabled={loading}
-                      style={{ backgroundColor: '#956ec3' }}
+                      style={{ backgroundColor: '#6B46C1' }}
                     >
                       {loading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
                     </Button>
@@ -156,36 +194,48 @@ const Auth = () => {
             <TabsContent value="signup">
               <Card>
                 <CardHeader>
-                  <CardTitle>สมัครสมาชิก</CardTitle>
+                  <CardTitle className="text-center text-xl font-bold">สมัครสมาชิก</CardTitle>
+                  <p className="text-center text-gray-600">สร้างบัญชีใหม่เพื่อเริ่มช้อปปิ้ง</p>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleSignUp} className="space-y-4">
-                    <Input
-                      type="email"
-                      placeholder="อีเมล"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                    <Input
-                      type="password"
-                      placeholder="รหัสผ่าน (อย่างน้อย 6 ตัวอักษร)"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      minLength={6}
-                    />
+                    <div>
+                      <label className="block text-sm font-medium mb-1">อีเมล</label>
+                      <Input
+                        type="email"
+                        placeholder="กรุณากรอกอีเมล"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">รหัสผ่าน</label>
+                      <Input
+                        type="password"
+                        placeholder="อย่างน้อย 6 ตัวอักษร"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        minLength={6}
+                      />
+                    </div>
+                    {error && (
+                      <div className="text-red-500 text-sm text-center">{error}</div>
+                    )}
                     <Button 
                       type="submit" 
-                      className="w-full" 
+                      className="w-full text-white" 
                       disabled={loading}
-                      style={{ backgroundColor: '#956ec3' }}
+                      style={{ backgroundColor: '#6B46C1' }}
                     >
                       {loading ? 'กำลังสมัครสมาชิก...' : 'สมัครสมาชิก'}
                     </Button>
                   </form>
-                  <div className="mt-4 text-sm text-gray-600">
-                    <p>สำหรับแอดมิน: ใช้อีเมล admin@luckyshop.com</p>
+                  <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                    <p className="text-sm text-blue-700">
+                      <strong>สำหรับแอดมิน:</strong> ใช้อีเมล admin@luckyshop.com
+                    </p>
                   </div>
                 </CardContent>
               </Card>
