@@ -5,18 +5,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Package, Truck, CheckCircle, Clock, AlertCircle, ExternalLink } from "lucide-react";
+import { Search, Package, Truck, CheckCircle, Clock, AlertCircle, ExternalLink, User } from "lucide-react";
 
 const OrderStatus = () => {
-  const [orderNumber, setOrderNumber] = useState('');
-  const [searchResult, setSearchResult] = useState(null);
+  const [username, setUsername] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
   const [ordersData, setOrdersData] = useState([]);
   const [loading, setLoading] = useState(false);
 
   // Google Sheets API integration
   const SHEET_ID = '1eVQgmf07HGO5x6T0CLXwFrkMLDF5QWPqV1C4TcfZHz4';
   const SHEET_NAME = 'Sheet1';
-  const API_KEY = 'AIzaSyBH8-your-api-key'; // User needs to add their API key
+  const API_KEY = 'AIzaSyDvv1tcIlOg5zKozoO2M_TYi-Bpaji1DSw';
 
   useEffect(() => {
     fetchOrdersFromGoogleSheets();
@@ -25,24 +25,52 @@ const OrderStatus = () => {
   const fetchOrdersFromGoogleSheets = async () => {
     try {
       setLoading(true);
-      // For demo purposes, using mock data since API key is needed
-      const mockSheetData = [
-        {
-          orderNumber: 'SPXTH04722225606',
-          customerName: 'Wishyoulucky',
-          productName: 'Infinity Studio - Gwen Statue Limited Edition หารเสื้อ 3 ตัว Zoe:S 💜 กล่องสุ่มฟิวโร่ Kuromi The Witch\'s Feast (ยกบ๊อก 8ลิม) Sanrio TOPTOY 💜',
-          status: 'ชำระเงินแล้ว',
-          price: '฿1',
-          sku: '1',
-          quantity: '1',
-          shippingCost: '฿0',
-          trackingNumber: 'SPXTH04722225606',
-          orderDate: 'today',
-          progress: '0% เสร็จสิ้น',
-          statusColor: 'purple'
+      const response = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}?key=${API_KEY}`
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        const rows = data.values;
+        
+        if (rows && rows.length > 1) {
+          // Skip header row and map data
+          const orders = rows.slice(1).map((row, index) => ({
+            orderNumber: row[0] || `ORDER-${index + 1}`,
+            customerName: row[1] || 'ไม่ระบุ',
+            productName: row[2] || 'ไม่ระบุสินค้า',
+            status: row[3] || 'รอชำระเงิน',
+            price: row[4] || '฿0',
+            sku: row[5] || '-',
+            quantity: row[6] || '1',
+            shippingCost: row[7] || '฿0',
+            trackingNumber: row[8] || '',
+            orderDate: row[9] || 'today',
+            progress: row[10] || '0% เสร็จสิ้น',
+            statusColor: row[3] === 'ชำระเงินแล้ว' ? 'purple' : 'default'
+          }));
+          setOrdersData(orders);
         }
-      ];
-      setOrdersData(mockSheetData);
+      } else {
+        console.error('Failed to fetch from Google Sheets');
+        // Fallback to mock data
+        setOrdersData([
+          {
+            orderNumber: 'SPXTH04722225606',
+            customerName: 'Wishyoulucky',
+            productName: 'Infinity Studio - Gwen Statue Limited Edition หารเสื้อ 3 ตัว Zoe:S 💜 กล่องสุ่มฟิวโร่ Kuromi The Witch\'s Feast (ยกบ๊อก 8ลิม) Sanrio TOPTOY 💜',
+            status: 'ชำระเงินแล้ว',
+            price: '฿1',
+            sku: '1',
+            quantity: '1',
+            shippingCost: '฿0',
+            trackingNumber: 'SPXTH04722225606',
+            orderDate: 'today',
+            progress: '0% เสร็จสิ้น',
+            statusColor: 'purple'
+          }
+        ]);
+      }
     } catch (error) {
       console.error('Error fetching data from Google Sheets:', error);
       // Fallback to mock data
@@ -68,12 +96,13 @@ const OrderStatus = () => {
   };
 
   const handleSearch = () => {
-    if (orderNumber) {
-      const foundOrder = ordersData.find(order => 
-        order.orderNumber.toLowerCase().includes(orderNumber.toLowerCase()) ||
-        order.trackingNumber?.toLowerCase().includes(orderNumber.toLowerCase())
+    if (username.trim()) {
+      const foundOrders = ordersData.filter(order => 
+        order.customerName.toLowerCase().includes(username.toLowerCase())
       );
-      setSearchResult(foundOrder || null);
+      setSearchResults(foundOrders);
+    } else {
+      setSearchResults([]);
     }
   };
 
@@ -122,21 +151,24 @@ const OrderStatus = () => {
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">เช็คสถานะสินค้า</h1>
-          <p className="text-gray-600">ค้นหาและติดตามสถานะการสั่งซื้อของคุณ</p>
+          <p className="text-gray-600">สำหรับลูกค้า Facebook - ค้นหาด้วยชื่อผู้ใช้</p>
         </div>
 
         {/* Search Section */}
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle className="text-xl" style={{ color: '#956ec3' }}>ค้นหาหมายเลขออเดอร์</CardTitle>
+            <CardTitle className="text-xl flex items-center space-x-2" style={{ color: '#956ec3' }}>
+              <User className="h-5 w-5" />
+              <span>ค้นหาด้วยชื่อผู้ใช้</span>
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex space-x-4">
               <Input
                 type="text"
-                placeholder="กรอกหมายเลขออเดอร์ เช่น SPXTH04722225606..."
-                value={orderNumber}
-                onChange={(e) => setOrderNumber(e.target.value)}
+                placeholder="กรอกชื่อผู้ใช้ เช่น Wishyoulucky..."
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 className="flex-1"
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
               />
@@ -153,101 +185,100 @@ const OrderStatus = () => {
           </CardContent>
         </Card>
 
-        {/* Search Result */}
-        {searchResult && (
-          <Card className="mb-8" style={{ borderColor: '#956ec3' }}>
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <CardTitle className="text-lg" style={{ color: '#956ec3' }}>
-                      ออเดอร์ #{searchResult.orderNumber}
-                    </CardTitle>
-                    <Badge className={`${getStatusColor(searchResult.status, searchResult.statusColor)} border`}>
-                      <div className="flex items-center space-x-1">
-                        {getStatusIcon(searchResult.status)}
-                        <span>{searchResult.status}</span>
+        {/* Search Results - Flash Cards */}
+        {searchResults.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">ผลการค้นหา</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {searchResults.map((order, index) => (
+                <Card key={index} className="hover:shadow-lg transition-shadow duration-300" style={{ borderColor: '#956ec3' }}>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg" style={{ color: '#956ec3' }}>
+                        #{order.orderNumber}
+                      </CardTitle>
+                      <Badge className={`${getStatusColor(order.status, order.statusColor)} border`}>
+                        <div className="flex items-center space-x-1">
+                          {getStatusIcon(order.status)}
+                          <span className="text-xs">{order.status}</span>
+                        </div>
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {/* Product Image */}
+                      <div className="w-full h-32 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
+                        <img 
+                          src="/lovable-uploads/3a94bca0-09e6-4f37-bfc1-d924f4dc55b1.png" 
+                          alt="Product" 
+                          className="w-full h-full object-cover"
+                        />
                       </div>
-                    </Badge>
-                  </div>
-                  <p className="text-gray-600">ลูกค้า: {searchResult.customerName}</p>
-                  <div className="mt-4">
-                    <div className="bg-purple-100 p-3 rounded-lg">
-                      <div className="text-sm font-medium text-purple-700 mb-1">ความคืบหน้า</div>
-                      <div className="text-lg font-bold text-purple-800">{searchResult.progress}</div>
-                    </div>
-                  </div>
-                </div>
-                <div className="ml-4">
-                  <img 
-                    src="/lovable-uploads/3a94bca0-09e6-4f37-bfc1-d924f4dc55b1.png" 
-                    alt="Product" 
-                    className="w-20 h-20 object-cover rounded-lg"
-                  />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Product Details */}
-              <div>
-                <h4 className="font-semibold text-gray-800 mb-3">รายละเอียดสินค้า</h4>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h5 className="font-medium text-gray-800 mb-2">{searchResult.productName}</h5>
-                  
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    <div>
-                      <span className="text-gray-600">ราคา</span>
-                      <p className="font-semibold" style={{ color: '#956ec3' }}>{searchResult.price}</p>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">SKU</span>
-                      <p className="font-semibold">{searchResult.sku}</p>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">จำนวน</span>
-                      <p className="font-semibold">{searchResult.quantity}</p>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">ค่าจัดส่ง</span>
-                      <p className="font-semibold">{searchResult.shippingCost}</p>
-                    </div>
-                  </div>
-
-                  {searchResult.trackingNumber && (
-                    <div className="mt-4">
-                      <span className="text-gray-600 text-sm">เลข</span>
-                      <div className="flex items-center space-x-2 mt-1">
-                        <code className="bg-white px-3 py-1 rounded border text-sm font-mono">
-                          {searchResult.trackingNumber}
-                        </code>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          className="text-blue-600 hover:text-blue-800"
-                        >
-                          <ExternalLink className="h-4 w-4 mr-1" />
-                          Link to Track And Trace : Thailand Post
-                        </Button>
+                      
+                      {/* Customer Info */}
+                      <div>
+                        <p className="text-sm text-gray-600">ลูกค้า</p>
+                        <p className="font-semibold text-gray-800">{order.customerName}</p>
                       </div>
+                      
+                      {/* Product Name */}
+                      <div>
+                        <p className="text-sm text-gray-600">สินค้า</p>
+                        <p className="font-medium text-gray-800 line-clamp-2">{order.productName}</p>
+                      </div>
+                      
+                      {/* Order Details */}
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-gray-600">ราคา</span>
+                          <p className="font-semibold" style={{ color: '#956ec3' }}>{order.price}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-600">จำนวน</span>
+                          <p className="font-semibold">{order.quantity}</p>
+                        </div>
+                      </div>
+                      
+                      {/* Progress */}
+                      <div className="bg-purple-50 p-3 rounded-lg">
+                        <div className="text-sm font-medium text-purple-700 mb-1">ความคืบหน้า</div>
+                        <div className="text-base font-bold text-purple-800">{order.progress}</div>
+                      </div>
+                      
+                      {/* Tracking */}
+                      {order.trackingNumber && (
+                        <div>
+                          <span className="text-xs text-gray-500">เลขติดตาม</span>
+                          <div className="flex items-center space-x-2 mt-1">
+                            <code className="bg-gray-100 px-2 py-1 rounded text-xs font-mono">
+                              {order.trackingNumber}
+                            </code>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="text-blue-600 hover:text-blue-800 text-xs"
+                            >
+                              <ExternalLink className="h-3 w-3 mr-1" />
+                              ติดตาม
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
-
-                  <div className="mt-4 flex items-center space-x-2 text-sm text-gray-600">
-                    <Clock className="h-4 w-4" />
-                    <span>วันเวลา: {searchResult.orderDate}</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
         )}
 
-        {searchResult === null && orderNumber && (
+        {searchResults.length === 0 && username && (
           <Card className="mb-8">
             <CardContent className="py-8 text-center">
               <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-700 mb-2">ไม่พบออเดอร์</h3>
-              <p className="text-gray-500">ไม่พบหมายเลขออเดอร์ที่ค้นหา กรุณาตรวจสอบหมายเลขและลองใหม่อีกครั้ง</p>
+              <p className="text-gray-500">ไม่พบออเดอร์สำหรับชื่อผู้ใช้ "{username}" กรุณาตรวจสอบชื่อและลองใหม่อีกครั้ง</p>
             </CardContent>
           </Card>
         )}
@@ -307,25 +338,6 @@ const OrderStatus = () => {
                 <p className="text-gray-500">ยังไม่มีข้อมูลออเดอร์</p>
               </div>
             )}
-          </CardContent>
-        </Card>
-
-        {/* Instructions for Google Sheets Integration */}
-        <Card className="mt-8 bg-blue-50 border-blue-200">
-          <CardHeader>
-            <CardTitle className="text-lg text-blue-800">การตั้งค่า Google Sheets API</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-blue-700">
-            <p className="mb-2">เพื่อให้ระบบสามารถดึงข้อมูลจาก Google Sheets ได้:</p>
-            <ol className="list-decimal list-inside space-y-1">
-              <li>สร้าง Google Cloud Project และเปิดใช้งาน Google Sheets API</li>
-              <li>สร้าง API Key และแทนที่ในโค้ด</li>
-              <li>ตั้งค่า Google Sheets ให้เป็น Public หรือแชร์กับ Service Account</li>
-              <li>ปรับแต่ง Column mapping ให้ตรงกับข้อมูลใน Sheet</li>
-            </ol>
-            <p className="mt-2 text-xs">
-              ตอนนี้ใช้ข้อมูล Mock สำหรับทดสอบ - กรุณาแทนที่ API_KEY ด้วย API Key จริง
-            </p>
           </CardContent>
         </Card>
       </div>
