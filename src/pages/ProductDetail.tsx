@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import Header from "@/components/Header";
@@ -49,20 +48,13 @@ const ProductDetail = () => {
       }
 
       setProduct(data);
-      
-      // Initialize selected options with first option of each category
-      if (data?.options && typeof data.options === 'object') {
-        const initialOptions: { [key: string]: string } = {};
-        Object.keys(data.options).forEach(key => {
-          const optionValues = data.options[key];
-          if (Array.isArray(optionValues) && optionValues.length > 0) {
-            initialOptions[key] = optionValues[0];
-          }
-        });
-        setSelectedOptions(initialOptions);
+
+      // Initialize selected option from first option
+      if (Array.isArray(data?.options) && data.options.length > 0) {
+        setSelectedOptions({ default: data.options[0].name });
       }
-      
-      // Fetch related products from same category
+
+      // Fetch related products
       if (data?.category) {
         const { data: relatedData } = await supabase
           .from('public_products')
@@ -70,11 +62,10 @@ const ProductDetail = () => {
           .eq('category', data.category)
           .neq('id', parseInt(id))
           .limit(4);
-        
+
         if (relatedData && relatedData.length > 0) {
           setRelatedProducts(relatedData);
         } else {
-          // If no products in same category, get random products
           const { data: randomData } = await supabase
             .from('public_products')
             .select('*')
@@ -92,7 +83,7 @@ const ProductDetail = () => {
 
   const handleAddToCart = () => {
     if (!product) return;
-    
+
     toast({
       title: "เพิ่มลงตะกร้าแล้ว",
       description: `${product.name} จำนวน ${quantity} ชิ้น`,
@@ -134,7 +125,6 @@ const ProductDetail = () => {
     );
   }
 
-  // Create multiple images array (for now using the same image)
   const productImages = [
     product.image || '/placeholder.svg',
     product.image || '/placeholder.svg'
@@ -143,7 +133,7 @@ const ProductDetail = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      
+
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Breadcrumb */}
         <div className="flex items-center space-x-2 text-sm text-gray-600 mb-6">
@@ -157,7 +147,7 @@ const ProductDetail = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Product Images - Made smaller */}
+          {/* Product Images */}
           <div className="space-y-4">
             <div className="aspect-square bg-white rounded-lg overflow-hidden shadow-sm max-w-md mx-auto">
               <img
@@ -171,15 +161,9 @@ const ProductDetail = () => {
                 <button
                   key={index}
                   onClick={() => setSelectedImage(index)}
-                  className={`w-16 h-16 rounded-lg overflow-hidden border-2 ${
-                    selectedImage === index ? 'border-purple-500' : 'border-gray-200'
-                  }`}
+                  className={`w-16 h-16 rounded-lg overflow-hidden border-2 ${selectedImage === index ? 'border-purple-500' : 'border-gray-200'}`}
                 >
-                  <img
-                    src={image}
-                    alt={`${product.name} ${index + 1}`}
-                    className="w-full h-full object-cover"
-                  />
+                  <img src={image} alt={`${product.name} ${index + 1}`} className="w-full h-full object-cover" />
                 </button>
               ))}
             </div>
@@ -224,34 +208,32 @@ const ProductDetail = () => {
             </div>
 
             {/* Product Options */}
-            {product.options && typeof product.options === 'object' && Object.keys(product.options).length > 0 && (
+            {Array.isArray(product.options) && product.options.length > 0 && (
               <Card>
                 <CardContent className="p-6">
                   <h3 className="text-lg font-semibold mb-4">ตัวเลือกสินค้า</h3>
                   <div className="space-y-4">
-                    {Object.entries(product.options).map(([optionName, optionValues]) => (
-                      <div key={optionName}>
-                        <label className="block text-sm font-medium mb-2">{optionName}:</label>
-                        <div className="flex flex-wrap gap-2">
-                          {Array.isArray(optionValues) && optionValues.map((value: string) => (
-                            <button
-                              key={value}
-                              onClick={() => setSelectedOptions(prev => ({ ...prev, [optionName]: value }))}
-                              className={`px-3 py-1 rounded-md border text-sm ${
-                                selectedOptions[optionName] === value
-                                  ? 'bg-purple-600 text-white border-purple-600'
-                                  : 'bg-white text-gray-700 border-gray-300 hover:border-purple-600'
-                              }`}
-                            >
-                              {value}
-                            </button>
-                          ))}
-                        </div>
-                        {selectedOptions[optionName] && (
-                          <p className="text-sm text-gray-600 mt-1">เลือก: {selectedOptions[optionName]}</p>
-                        )}
+                    <div>
+                      <label className="block text-sm font-medium mb-2">เลือกแบบ:</label>
+                      <div className="flex flex-wrap gap-2">
+                        {product.options.map((opt: any) => (
+                          <button
+                            key={opt.id}
+                            onClick={() => setSelectedOptions({ default: opt.name })}
+                            className={`px-3 py-1 rounded-md border text-sm ${
+                              selectedOptions.default === opt.name
+                                ? 'bg-purple-600 text-white border-purple-600'
+                                : 'bg-white text-gray-700 border-gray-300 hover:border-purple-600'
+                            }`}
+                          >
+                            {opt.name}
+                          </button>
+                        ))}
                       </div>
-                    ))}
+                      {selectedOptions.default && (
+                        <p className="text-sm text-gray-600 mt-1">เลือก: {selectedOptions.default}</p>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -284,18 +266,11 @@ const ProductDetail = () => {
                   </div>
 
                   <div className="flex space-x-3">
-                    <Button
-                      onClick={handleAddToCart}
-                      variant="outline"
-                      className="flex-1"
-                    >
+                    <Button onClick={handleAddToCart} variant="outline" className="flex-1">
                       <ShoppingCart className="h-4 w-4 mr-2" />
                       เพิ่มลงตะกร้า
                     </Button>
-                    <Button
-                      onClick={handleBuyNow}
-                      className="flex-1"
-                    >
+                    <Button onClick={handleBuyNow} className="flex-1">
                       ซื้อเดี๋ยวนี้
                     </Button>
                   </div>
@@ -326,21 +301,19 @@ const ProductDetail = () => {
                     <CardContent className="p-0">
                       <div className="relative">
                         <div className="w-full h-40 bg-gray-200 rounded-t-lg overflow-hidden">
-                          <img 
-                            src={relatedProduct.image || '/placeholder.svg'} 
+                          <img
+                            src={relatedProduct.image || '/placeholder.svg'}
                             alt={relatedProduct.name}
                             className="w-full h-full object-cover"
                           />
                         </div>
                         {relatedProduct.status && (
-                          <Badge 
-                            className="absolute top-2 left-2 text-xs"
-                          >
+                          <Badge className="absolute top-2 left-2 text-xs">
                             {relatedProduct.status}
                           </Badge>
                         )}
                       </div>
-                      
+
                       <div className="p-3">
                         <h3 className="font-medium text-sm mb-2 line-clamp-2">{relatedProduct.name}</h3>
                         <span className="text-lg font-bold text-primary">
