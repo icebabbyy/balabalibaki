@@ -1,19 +1,17 @@
+
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, User, Search, Menu, X, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
-interface HeaderProps {
-  user?: any;
-  onSignOut?: () => void;
-}
-
-const Header = ({ user, onSignOut }: HeaderProps) => {
+const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [profile, setProfile] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
 
   // Fetch user profile to get username
   useEffect(() => {
@@ -61,7 +59,7 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
 
   // Get display name - show username only
   const getDisplayName = () => {
-    return profile?.username || user?.email?.split('@')[0] || '';
+    return profile?.username || 'ผู้ใช้';
   };
 
   return (
@@ -181,7 +179,7 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  onClick={onSignOut}
+                  onClick={signOut}
                   className="text-white hover:bg-white hover:bg-opacity-20"
                 >
                   ออกจากระบบ
