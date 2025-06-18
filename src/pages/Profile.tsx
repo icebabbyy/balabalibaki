@@ -39,6 +39,8 @@ const Profile = () => {
   }, [user]);
 
   const fetchProfile = async () => {
+    if (!user) return;
+    
     try {
       console.log('Fetching profile for user:', user.id);
       
@@ -71,7 +73,7 @@ const Profile = () => {
           .from('profiles')
           .insert([{
             id: user.id,
-            username: user.email,
+            username: user.email?.split('@')[0] || '',
             full_name: '',
             phone: '',
             address: '',
@@ -79,21 +81,23 @@ const Profile = () => {
             role: 'user'
           }])
           .select()
-          .single();
+          .maybeSingle();
 
         if (createError) {
           console.error('Error creating profile:', createError);
           throw createError;
         }
 
-        setProfile(newProfile);
-        setFormData({
-          username: newProfile.username || '',
-          full_name: newProfile.full_name || '',
-          phone: newProfile.phone || '',
-          address: newProfile.address || '',
-          birth_date: newProfile.birth_date || ''
-        });
+        if (newProfile) {
+          setProfile(newProfile);
+          setFormData({
+            username: newProfile.username || '',
+            full_name: newProfile.full_name || '',
+            phone: newProfile.phone || '',
+            address: newProfile.address || '',
+            birth_date: newProfile.birth_date || ''
+          });
+        }
       }
     } catch (error) {
       console.error('Error in fetchProfile:', error);
@@ -104,6 +108,8 @@ const Profile = () => {
   };
 
   const fetchOrders = async () => {
+    if (!user) return;
+    
     try {
       const { data, error } = await supabase
         .from('orders')
@@ -124,31 +130,38 @@ const Profile = () => {
   };
 
   const handleSave = async () => {
+    if (!user || !profile) return;
+    
     setSaving(true);
     try {
       console.log('Saving profile data:', formData);
       
+      const updateData = {
+        username: formData.username.trim(),
+        full_name: formData.full_name.trim(),
+        phone: formData.phone.trim(),
+        address: formData.address.trim(),
+        birth_date: formData.birth_date || null,
+        updated_at: new Date().toISOString()
+      };
+      
       const { data, error } = await supabase
         .from('profiles')
-        .update({
-          username: formData.username,
-          full_name: formData.full_name,
-          phone: formData.phone,
-          address: formData.address,
-          birth_date: formData.birth_date || null,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', user.id)
-        .select();
+        .select()
+        .maybeSingle();
 
       if (error) {
         console.error('Error updating profile:', error);
         throw error;
       }
 
-      console.log('Profile updated successfully:', data);
-      toast.success('บันทึกโปรไฟล์เรียบร้อยแล้ว');
-      await fetchProfile();
+      if (data) {
+        console.log('Profile updated successfully:', data);
+        setProfile(data);
+        toast.success('บันทึกโปรไฟล์เรียบร้อยแล้ว');
+      }
     } catch (error) {
       console.error('Error updating profile:', error);
       toast.error(`เกิดข้อผิดพลาดในการอัปเดตโปรไฟล์: ${error.message}`);

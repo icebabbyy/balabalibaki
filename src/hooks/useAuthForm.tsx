@@ -33,9 +33,9 @@ export const useAuthForm = () => {
     return true;
   };
 
-  const validateSigninForm = (email: string, password: string) => {
-    if (!email || !password) {
-      setError('กรุณากรอกอีเมลและรหัสผ่าน');
+  const validateSigninForm = (emailOrUsername: string, password: string) => {
+    if (!emailOrUsername || !password) {
+      setError('กรุณากรอกอีเมลหรือชื่อผู้ใช้และรหัสผ่าน');
       return false;
     }
     setError('');
@@ -73,13 +73,49 @@ export const useAuthForm = () => {
     }
   };
 
-  const handleSignIn = async (email: string, password: string) => {
-    if (!validateSigninForm(email, password)) return;
+  const handleSignIn = async (emailOrUsername: string, password: string) => {
+    if (!validateSigninForm(emailOrUsername, password)) return;
     
     setLoading(true);
     setError('');
 
     try {
+      let email = emailOrUsername;
+      
+      // Check if input is username (not email format)
+      if (!emailOrUsername.includes('@')) {
+        console.log('Looking up email for username:', emailOrUsername);
+        
+        // Look up email by username
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('username', emailOrUsername)
+          .maybeSingle();
+
+        if (profileError) {
+          console.error('Error looking up username:', profileError);
+          setError('เกิดข้อผิดพลาดในการค้นหาชื่อผู้ใช้');
+          return;
+        }
+
+        if (!profileData) {
+          setError('ไม่พบชื่อผู้ใช้นี้');
+          return;
+        }
+
+        // Get the user's email from auth.users
+        const { data: userData, error: userError } = await supabase.auth.admin.getUserById(profileData.id);
+        
+        if (userError || !userData.user) {
+          // Fallback: try to get email from profiles table or use a different approach
+          setError('ไม่พบข้อมูลผู้ใช้');
+          return;
+        }
+        
+        email = userData.user.email || emailOrUsername;
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,

@@ -46,8 +46,8 @@ const Auth = () => {
     await handleSignUp(email, password, confirmPassword);
   };
 
-  const onSignIn = async (email: string, password: string) => {
-    await handleSignIn(email, password);
+  const onSignIn = async (emailOrUsername: string, password: string) => {
+    await handleSignIn(emailOrUsername, password);
   };
 
   if (user) {

@@ -5,22 +5,22 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface SignInFormProps {
-  onSubmit: (email: string, password: string) => Promise<void>;
+  onSubmit: (emailOrUsername: string, password: string) => Promise<void>;
   loading: boolean;
   error: string;
 }
 
 const SignInForm = ({ onSubmit, loading, error }: SignInFormProps) => {
-  const [formData, setFormData] = useState({ email: "", password: "" });
+  const [formData, setFormData] = useState({ emailOrUsername: "", password: "" });
 
   const validateForm = () => {
-    return formData.email && formData.password;
+    return formData.emailOrUsername && formData.password;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
-    await onSubmit(formData.email, formData.password);
+    await onSubmit(formData.emailOrUsername, formData.password);
   };
 
   return (
@@ -32,13 +32,13 @@ const SignInForm = ({ onSubmit, loading, error }: SignInFormProps) => {
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700">อีเมล</label>
+            <label className="block text-sm font-medium mb-2 text-gray-700">อีเมลหรือชื่อผู้ใช้</label>
             <Input
-              type="email"
-              placeholder="กรุณากรอกอีเมล"
-              value={formData.email}
-              onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-              autoComplete="email"
+              type="text"
+              placeholder="กรุณากรอกอีเมลหรือชื่อผู้ใช้"
+              value={formData.emailOrUsername}
+              onChange={(e) => setFormData(prev => ({ ...prev, emailOrUsername: e.target.value }))}
+              autoComplete="username"
               required
               className="w-full"
             />

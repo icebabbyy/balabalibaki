@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, User, Search, Menu, X, Settings } from "lucide-react";
@@ -10,15 +10,41 @@ interface HeaderProps {
 
 const Header = ({ user, onSignOut }: HeaderProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [profile, setProfile] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Fetch user profile to get username
+  useEffect(() => {
+    if (user) {
+      fetchUserProfile();
+    }
+  }, [user]);
+
+  const fetchUserProfile = async () => {
+    if (!user) return;
+    
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('username, role')
+        .eq('id', user.id)
+        .maybeSingle();
+      
+      if (data) {
+        setProfile(data);
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    }
+  };
 
   const isActive = (path: string) => {
     return location.pathname === path;
   };
 
-  // Check if user is admin (you can customize this logic)
-  const isAdmin = user?.email === 'admin@luckyshop.com' || user?.user_metadata?.role === 'admin';
+  // Check if user is admin
+  const isAdmin = user?.email === 'admin@luckyshop.com' || profile?.role === 'admin';
 
   const handleProfileClick = () => {
     if (user) {
@@ -32,11 +58,9 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
     navigate('/admin');
   };
 
-  // Get display name - prefer username or full_name over email
+  // Get display name - show username only
   const getDisplayName = () => {
-    if (user?.user_metadata?.username) return user.user_metadata.username;
-    if (user?.user_metadata?.full_name) return user.user_metadata.full_name;
-    return user?.email || '';
+    return profile?.username || user?.email?.split('@')[0] || '';
   };
 
   return (
@@ -140,6 +164,19 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
                 >
                   <User className="h-6 w-6" />
                 </Button>
+                {/* Show admin link only for admin users */}
+                {isAdmin && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={handleAdminClick}
+                    className="text-white hover:bg-white hover:bg-opacity-20 flex items-center"
+                    title="ระบบหลังบ้าน"
+                  >
+                    <Settings className="h-4 w-4 mr-2" />
+                    แอดมิน
+                  </Button>
+                )}
                 <Button 
                   variant="ghost" 
                   size="sm" 
