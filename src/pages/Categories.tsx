@@ -67,6 +67,12 @@ const Categories = () => {
     setSelectedCategories(newSelected);
   };
 
+  const handleShowAllChange = (checked) => {
+    if (typeof checked === 'boolean') {
+      setShowAll(checked);
+    }
+  };
+
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = showAll || selectedCategories.size === 0 || selectedCategories.has(product.category);
@@ -127,7 +133,7 @@ const Categories = () => {
                   <Checkbox
                     id="show-all"
                     checked={showAll}
-                    onCheckedChange={setShowAll}
+                    onCheckedChange={handleShowAllChange}
                   />
                   <label
                     htmlFor="show-all"

@@ -23,7 +23,8 @@ const Admin = () => {
     category: '',
     description: '',
     image: '',
-    status: 'พรีออเดอร์'
+    status: 'พรีออเดอร์',
+    sku: ''
   });
 
   useEffect(() => {
@@ -78,7 +79,8 @@ const Admin = () => {
           cost_thb: 10,
           import_cost: 10,
           exchange_rate: 10,
-          quantity: 0
+          quantity: 0,
+          sku: newProduct.sku || `SKU-${Date.now()}`
         }]);
 
       if (error) throw error;
@@ -90,7 +92,8 @@ const Admin = () => {
         category: '',
         description: '',
         image: '',
-        status: 'พรีออเดอร์'
+        status: 'พรีออเดอร์',
+        sku: ''
       });
       fetchAdminData();
     } catch (error) {
@@ -231,9 +234,15 @@ const Admin = () => {
                     onChange={(e) => setNewProduct({...newProduct, category: e.target.value})}
                   />
                   <Input
+                    placeholder="SKU (รหัสสินค้า)"
+                    value={newProduct.sku}
+                    onChange={(e) => setNewProduct({...newProduct, sku: e.target.value})}
+                  />
+                  <Input
                     placeholder="URL รูปภาพ"
                     value={newProduct.image}
                     onChange={(e) => setNewProduct({...newProduct, image: e.target.value})}
+                    className="md:col-span-2"
                   />
                 </div>
                 <Textarea

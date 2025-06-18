@@ -67,7 +67,7 @@ const Index = () => {
   };
 
   const getProductsByCategory = (categoryName) => {
-    return products.filter(product => product.category === categoryName).slice(0, 5);
+    return products.filter(product =>产品.category === categoryName).slice(0, 5);
   };
 
   if (loading) {
@@ -137,7 +137,7 @@ const Index = () => {
                     >
                       <div className="text-center text-white">
                         <h2 className="text-2xl md:text-4xl font-bold mb-4">ของขวัญพิเศษ</h2>
-                        <p className="text-md md:text-lg mb-6">สำหรับคนที่คุณรัก</p>
+                        <p className="text-md md:text-lg mb-6">สำหรบคนที่คุณรัก</p>
                         <Button className="bg-purple-500 hover:bg-purple-400 text-white px-6 py-2 rounded-full">
                           เลือกของขวัญ
                         </Button>
@@ -168,7 +168,7 @@ const Index = () => {
         <section className="mb-12">
           <div className="text-center mb-8">
             <h2 className="text-2xl md:text-3xl font-bold text-purple-800 mb-4">หมวดหมู่สินค้า</h2>
-            <p className="text-lg text-purple-600">เลือกซื้อได้ตามหมวดหมู่ที่คุณสนใจ</p>
+            <p className="text-lg text-purple-600">เลือกซื้อได้ตามหมวดหมู้ที่คุณสนใจ</p>
           </div>
           
           <div className="grid grid-cols-3 md:grid-cols-6 lg:grid-cols-8 gap-4 mb-8">
@@ -182,8 +182,12 @@ const Index = () => {
                         alt={category.name}
                         className="w-12 h-12 object-cover rounded"
                         onError={(e) => {
-                          e.target.style.display = 'none';
-                          e.target.nextSibling.style.display = 'block';
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const nextSibling = target.nextSibling as HTMLElement;
+                          if (nextSibling) {
+                            nextSibling.style.display = 'block';
+                          }
                         }}
                       />
                       <span className="text-lg hidden">📦</span>
