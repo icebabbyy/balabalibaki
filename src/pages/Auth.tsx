@@ -28,6 +28,7 @@ const Auth = () => {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state changed:', event, session?.user);
       setUser(session?.user ?? null);
       if (session?.user) {
         navigate('/');
@@ -120,6 +121,9 @@ const Auth = () => {
 
       if (error) {
         setError(`เกิดข้อผิดพลาด: ${error.message}`);
+      } else {
+        console.log('Login successful:', data.user);
+        // Navigation will be handled by onAuthStateChange
       }
     } catch (error) {
       setError(`เกิดข้อผิดพลาดที่ไม่คาดคิด: ${error.message}`);
@@ -131,6 +135,15 @@ const Auth = () => {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
+  };
+
+  const handleProfileClick = () => {
+    console.log('Profile button clicked, user:', user);
+    if (user) {
+      navigate('/profile');
+    } else {
+      console.error('No user found');
+    }
   };
 
   if (user) {
@@ -146,7 +159,7 @@ const Auth = () => {
               <p className="mb-4">สวัสดี, {user.email}</p>
               <div className="space-y-2">
                 <Button 
-                  onClick={() => navigate('/profile')} 
+                  onClick={handleProfileClick}
                   className="w-full"
                 >
                   จัดการโปรไฟล์
