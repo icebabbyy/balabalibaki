@@ -43,7 +43,18 @@ export const useProductManagement = () => {
         return;
       }
 
-      setProducts(data || []);
+      // Map the data to ensure all required fields are present
+      const mappedData = (data || []).map(item => ({
+        ...item,
+        status: item.status || 'พรีออเดอร์', // Default status if missing
+        shipment_date: item.shipment_date || '',
+        description: item.description || '',
+        link: item.link || '',
+        created_at: item.created_at || '',
+        updated_at: item.updated_at || ''
+      }));
+
+      setProducts(mappedData);
     } catch (error) {
       console.error('Error fetching products:', error);
       toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูลสินค้า');

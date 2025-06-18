@@ -305,6 +305,57 @@ export type Database = {
         }
         Relationships: []
       }
+      publice_orders: {
+        Row: {
+          admin_notes: string | null
+          deposit: number | null
+          id: number | null
+          item: string | null
+          item_json: string | null
+          order_date: string | null
+          payment_date: string | null
+          photo: string | null
+          price: string | null
+          qty: string | null
+          sku: string | null
+          status: string | null
+          tracking_number: string | null
+          username: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          deposit?: number | null
+          id?: number | null
+          item?: never
+          item_json?: never
+          order_date?: string | null
+          payment_date?: string | null
+          photo?: never
+          price?: never
+          qty?: never
+          sku?: never
+          status?: string | null
+          tracking_number?: string | null
+          username?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          deposit?: number | null
+          id?: number | null
+          item?: never
+          item_json?: never
+          order_date?: string | null
+          payment_date?: string | null
+          photo?: never
+          price?: never
+          qty?: never
+          sku?: never
+          status?: string | null
+          tracking_number?: string | null
+          username?: string | null
+        }
+        Relationships: []
+      }
       publine_orders: {
         Row: {
           balance: number | null

@@ -37,7 +37,20 @@ export const usePublineOrders = () => {
         return;
       }
 
-      setOrders(data || []);
+      // Map the data to ensure all required fields are present
+      const mappedData = (data || []).map(item => ({
+        ...item,
+        tracking_number: item.tracking_number || '',
+        admin_notes: item.admin_notes || '',
+        photo: item.photo || '',
+        item_json: item.item_json || '',
+        item: item.item || '',
+        sku: item.sku || '',
+        qty: item.qty || '0',
+        price: item.price || '0'
+      }));
+
+      setOrders(mappedData);
     } catch (error) {
       console.error('Error fetching publine orders:', error);
       toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูลออเดอร์');
