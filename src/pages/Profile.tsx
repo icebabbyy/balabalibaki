@@ -6,11 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Header from "@/components/Header";
-import { useAuth } from "@/hooks/useAuth";
 
 const Profile = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
+  const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
@@ -22,21 +21,34 @@ const Profile = () => {
   });
 
   useEffect(() => {
-    if (!user) {
-      navigate('/auth');
-      return;
-    }
+    // Get current user
+    const getCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log('Current user in Profile:', user);
+      
+      if (!user) {
+        navigate('/auth');
+        return;
+      }
 
-    loadProfile();
-  }, [user, navigate]);
+      setUser(user);
+      await loadProfile(user.id);
+    };
 
-  const loadProfile = async () => {
+    getCurrentUser();
+  }, [navigate]);
+
+  const loadProfile = async (userId) => {
     try {
+      console.log('Loading profile for user ID:', userId);
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', user.id)
+        .eq('id', userId)
         .single();
+
+      console.log('Profile data:', data, 'Error:', error);
 
       if (error && error.code !== 'PGRST116') {
         console.error('Error loading profile:', error);
@@ -77,7 +89,7 @@ const Profile = () => {
         alert('เกิดข้อผิดพลาดในการอัปเดตโปรไฟล์');
       } else {
         alert('อัปเดตโปรไฟล์สำเร็จ!');
-        loadProfile();
+        loadProfile(user.id);
       }
     } catch (err) {
       console.error('Unexpected error:', err);
@@ -98,6 +110,16 @@ const Profile = () => {
         <Header user={user} onSignOut={handleSignOut} />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">กำลังโหลด...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">กำลังตรวจสอบสิทธิ์...</div>
         </div>
       </div>
     );
