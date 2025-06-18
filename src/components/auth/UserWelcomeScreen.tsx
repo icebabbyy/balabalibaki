@@ -7,9 +7,10 @@ interface UserWelcomeScreenProps {
   user: any;
   onSignOut: () => void;
   onProfileClick: () => void;
+  isAdmin: boolean;
 }
 
-const UserWelcomeScreen = ({ user, onSignOut, onProfileClick }: UserWelcomeScreenProps) => {
+const UserWelcomeScreen = ({ user, onSignOut, onProfileClick, isAdmin }: UserWelcomeScreenProps) => {
   console.log('UserWelcomeScreen: Rendering for user:', user.email);
   
   return (
