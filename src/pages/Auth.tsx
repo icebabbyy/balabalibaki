@@ -12,7 +12,7 @@ import AuthDebug from "@/components/AuthDebug";
 const Auth = () => {
   // Separate state for signin and signup
   const [signinData, setSigninData] = useState({ email: "", password: "" });
-  const [signupData, setSignupData] = useState({ email: "", password: "" });
+  const [signupData, setSignupData] = useState({ email: "", password: "", confirmPassword: "" });
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState(null);
   const [error, setError] = useState("");
@@ -48,6 +48,14 @@ const Auth = () => {
     }
     if (signupData.password.length < 6) {
       setError('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');
+      return false;
+    }
+    if (!signupData.confirmPassword) {
+      setError('กรุณายืนยันรหัสผ่าน');
+      return false;
+    }
+    if (signupData.password !== signupData.confirmPassword) {
+      setError('รหัสผ่านและการยืนยันรหัสผ่านไม่ตรงกัน');
       return false;
     }
     setError('');
@@ -87,6 +95,8 @@ const Auth = () => {
       } else {
         setError('');
         alert('สมัครสมาชิกสำเร็จ! กรุณาตรวจสอบอีเมลเพื่อยืนยันบัญชี');
+        // Reset form after successful signup
+        setSignupData({ email: "", password: "", confirmPassword: "" });
       }
     } catch (error) {
       setError(`เกิดข้อผิดพลาดที่ไม่คาดคิด: ${error.message}`);
@@ -176,27 +186,29 @@ const Auth = () => {
                 <CardContent>
                   <form onSubmit={handleSignIn} className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium mb-1">อีเมล</label>
+                      <label className="block text-sm font-medium mb-2 text-gray-700">อีเมล</label>
                       <Input
                         type="email"
                         placeholder="กรุณากรอกอีเมล"
                         value={signinData.email}
                         onChange={(e) => setSigninData(prev => ({ ...prev, email: e.target.value }))}
                         required
+                        className="w-full"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">รหัสผ่าน</label>
+                      <label className="block text-sm font-medium mb-2 text-gray-700">รหัสผ่าน</label>
                       <Input
                         type="password"
                         placeholder="กรุณากรอกรหัสผ่าน"
                         value={signinData.password}
                         onChange={(e) => setSigninData(prev => ({ ...prev, password: e.target.value }))}
                         required
+                        className="w-full"
                       />
                     </div>
                     {error && (
-                      <div className="text-red-500 text-sm text-center">{error}</div>
+                      <div className="text-red-500 text-sm text-center bg-red-50 p-3 rounded-md">{error}</div>
                     )}
                     <Button 
                       type="submit" 
@@ -219,17 +231,18 @@ const Auth = () => {
                 <CardContent>
                   <form onSubmit={handleSignUp} className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium mb-1">อีเมล</label>
+                      <label className="block text-sm font-medium mb-2 text-gray-700">อีเมล</label>
                       <Input
                         type="email"
                         placeholder="กรุณากรอกอีเมล"
                         value={signupData.email}
                         onChange={(e) => setSignupData(prev => ({ ...prev, email: e.target.value }))}
                         required
+                        className="w-full"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">รหัสผ่าน</label>
+                      <label className="block text-sm font-medium mb-2 text-gray-700">รหัสผ่าน</label>
                       <Input
                         type="password"
                         placeholder="อย่างน้อย 6 ตัวอักษร"
@@ -237,10 +250,23 @@ const Auth = () => {
                         onChange={(e) => setSignupData(prev => ({ ...prev, password: e.target.value }))}
                         required
                         minLength={6}
+                        className="w-full"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2 text-gray-700">ยืนยันรหัสผ่าน</label>
+                      <Input
+                        type="password"
+                        placeholder="กรุณายืนยันรหัสผ่าน"
+                        value={signupData.confirmPassword}
+                        onChange={(e) => setSignupData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                        required
+                        minLength={6}
+                        className="w-full"
                       />
                     </div>
                     {error && (
-                      <div className="text-red-500 text-sm text-center">{error}</div>
+                      <div className="text-red-500 text-sm text-center bg-red-50 p-3 rounded-md">{error}</div>
                     )}
                     <Button 
                       type="submit" 
