@@ -1,16 +1,14 @@
 
-import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ImageUpload from "@/components/ImageUpload";
-import ProductImageManager from "@/components/ProductImageManager";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import React, { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
+import { useProductManagement } from '@/hooks/useProductManagement';
+import PhotoCopyPaste from '@/components/PhotoCopyPaste';
 
 interface Product {
   id: number;
@@ -21,6 +19,16 @@ interface Product {
   image: string;
   status: string;
   sku: string;
+  price_yuan: number;
+  exchange_rate: number;
+  import_cost: number;
+  cost_thb: number;
+  quantity: number;
+  shipment_date: string;
+  options: any;
+  link: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface ProductEditDialogProps {
@@ -31,156 +39,198 @@ interface ProductEditDialogProps {
 }
 
 const ProductEditDialog = ({ product, isOpen, onClose, onSave }: ProductEditDialogProps) => {
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [saving, setSaving] = useState(false);
+  const { updateProduct } = useProductManagement();
+  const [formData, setFormData] = useState<Partial<Product>>({});
 
-  // Update editing product when product prop changes
   useEffect(() => {
     if (product) {
-      setEditingProduct({ ...product });
+      setFormData({ ...product });
     }
   }, [product]);
 
-  const handleSave = async () => {
-    if (!editingProduct) return;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!product || !formData) return;
 
-    setSaving(true);
-    try {
-      // Update in public_products table
-      const { error } = await supabase
-        .from('public_products')
-        .update({
-          name: editingProduct.name,
-          selling_price: editingProduct.selling_price,
-          category: editingProduct.category,
-          description: editingProduct.description,
-          image: editingProduct.image,
-          status: editingProduct.status,
-          sku: editingProduct.sku
-        })
-        .eq('id', editingProduct.id);
-
-      if (error) {
-        console.error('Error updating product:', error);
-        toast.error('เกิดข้อผิดพลาดในการบันทึกสินค้า');
-        return;
-      }
-
-      toast.success('บันทึกข้อมูลสินค้าเรียบร้อยแล้ว');
-      onSave(editingProduct);
+    const success = await updateProduct(product.id, formData);
+    if (success) {
+      onSave({ ...product, ...formData } as Product);
       onClose();
-    } catch (error) {
-      console.error('Error saving product:', error);
-      toast.error('เกิดข้อผิดพลาดในการบันทึกสินค้า');
-    } finally {
-      setSaving(false);
     }
   };
 
-  const updateField = (field: string, value: string | number) => {
-    if (editingProduct) {
-      setEditingProduct({
-        ...editingProduct,
-        [field]: value
-      });
-    }
+  const handleInputChange = (field: keyof Product, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  if (!editingProduct) return null;
+  if (!product) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>แก้ไขสินค้า</DialogTitle>
+          <DialogTitle>แก้ไขสินค้า - {product.name}</DialogTitle>
         </DialogHeader>
         
-        <Tabs defaultValue="details" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="details">ข้อมูลสินค้า</TabsTrigger>
-            <TabsTrigger value="images">รูปภาพ</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="details" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label>ชื่อสินค้า</Label>
-                <Input
-                  value={editingProduct.name || ''}
-                  onChange={(e) => updateField('name', e.target.value)}
-                />
-              </div>
-              <div>
-                <Label>ราคา</Label>
-                <Input
-                  type="number"
-                  value={editingProduct.selling_price || 0}
-                  onChange={(e) => updateField('selling_price', parseFloat(e.target.value) || 0)}
-                />
-              </div>
-              <div>
-                <Label>หมวดหมู่</Label>
-                <Input
-                  value={editingProduct.category || ''}
-                  onChange={(e) => updateField('category', e.target.value)}
-                />
-              </div>
-              <div>
-                <Label>SKU</Label>
-                <Input
-                  value={editingProduct.sku || ''}
-                  onChange={(e) => updateField('sku', e.target.value)}
-                />
-              </div>
-              <div>
-                <Label>สถานะ</Label>
-                <Select value={editingProduct.status || 'พรีออเดอร์'} onValueChange={(value) => updateField('status', value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="พรีออเดอร์">พรีออเดอร์</SelectItem>
-                    <SelectItem value="พร้อมส่ง">พร้อมส่ง</SelectItem>
-                    <SelectItem value="หมดสต็อก">หมดสต็อก</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <ImageUpload
-                currentImage={editingProduct.image}
-                onImageChange={(imageUrl) => updateField('image', imageUrl)}
-                label="รูปภาพหลัก"
-                folder="products"
+              <Label htmlFor="name">ชื่อสินค้า</Label>
+              <Input
+                id="name"
+                value={formData.name || ''}
+                onChange={(e) => handleInputChange('name', e.target.value)}
+                required
               />
             </div>
+            
             <div>
-              <Label>คำอธิบายสินค้า</Label>
-              <Textarea
-                value={editingProduct.description || ''}
-                onChange={(e) => updateField('description', e.target.value)}
-                rows={4}
+              <Label htmlFor="sku">SKU</Label>
+              <Input
+                id="sku"
+                value={formData.sku || ''}
+                onChange={(e) => handleInputChange('sku', e.target.value)}
+                required
               />
             </div>
-          </TabsContent>
-          
-          <TabsContent value="images">
-            <ProductImageManager productId={editingProduct.id} />
-          </TabsContent>
-        </Tabs>
-        
-        <div className="flex space-x-2 pt-4">
-          <Button 
-            onClick={handleSave} 
-            className="bg-purple-600 hover:bg-purple-700"
-            disabled={saving}
-          >
-            {saving ? 'กำลังบันทึก...' : 'บันทึก'}
-          </Button>
-          <Button variant="outline" onClick={onClose} disabled={saving}>
-            ยกเลิก
-          </Button>
-        </div>
+          </div>
+
+          <PhotoCopyPaste
+            currentImage={formData.image}
+            onImageChange={(imageUrl) => handleInputChange('image', imageUrl)}
+            label="รูปภาพสินค้า"
+            folder="products"
+          />
+
+          <div>
+            <Label htmlFor="description">รายละเอียด</Label>
+            <Textarea
+              id="description"
+              value={formData.description || ''}
+              onChange={(e) => handleInputChange('description', e.target.value)}
+              rows={3}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="category">หมวดหมู่</Label>
+              <Input
+                id="category"
+                value={formData.category || ''}
+                onChange={(e) => handleInputChange('category', e.target.value)}
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="status">สถานะ</Label>
+              <Select
+                value={formData.status || ''}
+                onValueChange={(value) => handleInputChange('status', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="เลือกสถานะ" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="พรีออเดอร์">พรีออเดอร์</SelectItem>
+                  <SelectItem value="พร้อมส่ง">พร้อมส่ง</SelectItem>
+                  <SelectItem value="หมด">หมด</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="selling_price">ราคาขาย (บาท)</Label>
+              <Input
+                id="selling_price"
+                type="number"
+                value={formData.selling_price || ''}
+                onChange={(e) => handleInputChange('selling_price', parseFloat(e.target.value) || 0)}
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="quantity">จำนวน</Label>
+              <Input
+                id="quantity"
+                type="number"
+                value={formData.quantity || ''}
+                onChange={(e) => handleInputChange('quantity', parseInt(e.target.value) || 0)}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="price_yuan">ราคาหยวน</Label>
+              <Input
+                id="price_yuan"
+                type="number"
+                step="0.01"
+                value={formData.price_yuan || ''}
+                onChange={(e) => handleInputChange('price_yuan', parseFloat(e.target.value) || 0)}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="exchange_rate">อัตราแลกเปลี่ยน</Label>
+              <Input
+                id="exchange_rate"
+                type="number"
+                step="0.01"
+                value={formData.exchange_rate || ''}
+                onChange={(e) => handleInputChange('exchange_rate', parseFloat(e.target.value) || 0)}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="import_cost">ค่าขนส่ง</Label>
+              <Input
+                id="import_cost"
+                type="number"
+                step="0.01"
+                value={formData.import_cost || ''}
+                onChange={(e) => handleInputChange('import_cost', parseFloat(e.target.value) || 0)}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="shipment_date">วันที่จัดส่ง</Label>
+              <Input
+                id="shipment_date"
+                type="date"
+                value={formData.shipment_date || ''}
+                onChange={(e) => handleInputChange('shipment_date', e.target.value)}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="link">ลิงก์สินค้า</Label>
+              <Input
+                id="link"
+                type="url"
+                value={formData.link || ''}
+                onChange={(e) => handleInputChange('link', e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button type="button" variant="outline" onClick={onClose}>
+              ยกเลิก
+            </Button>
+            <Button type="submit" style={{ backgroundColor: '#956ec3' }}>
+              บันทึก
+            </Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   );

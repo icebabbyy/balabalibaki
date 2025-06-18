@@ -27,33 +27,34 @@ export const usePublineOrders = () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
-        .from('publine_orders')
+        .from('publice_orders')
         .select('*')
         .order('id', { ascending: false });
 
       if (error) {
-        console.error('Error fetching publine orders:', error);
+        console.error('Error fetching publice orders:', error);
         toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูลออเดอร์');
         return;
       }
 
       // Map the data to ensure all required fields are present
-      // Note: tracking_number and admin_notes are not in publine_orders view, so we set them to empty
+      // Note: tracking_number and admin_notes are available in publice_orders view
       const mappedData = (data || []).map(item => ({
         ...item,
-        tracking_number: '', // Not available in publine_orders view
-        admin_notes: '', // Not available in publine_orders view
+        tracking_number: item.tracking_number || '',
+        admin_notes: item.admin_notes || '',
         photo: item.photo || '',
         item_json: item.item_json || '',
         item: item.item || '',
         sku: item.sku || '',
         qty: item.qty || '0',
-        price: item.price || '0'
+        price: item.price || '0',
+        balance: 0 // Not available in publice_orders view
       }));
 
       setOrders(mappedData);
     } catch (error) {
-      console.error('Error fetching publine orders:', error);
+      console.error('Error fetching publice orders:', error);
       toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูลออเดอร์');
     } finally {
       setLoading(false);
