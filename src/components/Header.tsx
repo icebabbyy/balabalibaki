@@ -22,7 +22,7 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
 
   return (
     <header 
-      className="text-gray-800 shadow-lg sticky top-0 z-50"
+      className="text-white shadow-lg sticky top-0 z-50"
       style={{ background: 'linear-gradient(to right, #956ec3, #a576c9)' }}
     >
       <div className="max-w-7xl mx-auto px-4 py-4">
@@ -40,7 +40,7 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
             <nav className="hidden md:flex space-x-6">
               <Link 
                 to="/" 
-                className={`hover:text-white transition-colors px-3 py-2 rounded font-medium ${
+                className={`hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium ${
                   isActive('/') ? 'bg-white bg-opacity-20 text-white' : ''
                 }`}
               >
@@ -48,7 +48,7 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
               </Link>
               <Link 
                 to="/categories" 
-                className={`hover:text-white transition-colors px-3 py-2 rounded font-medium ${
+                className={`hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium ${
                   isActive('/categories') ? 'bg-white bg-opacity-20 text-white' : ''
                 }`}
               >
@@ -56,7 +56,7 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
               </Link>
               <Link 
                 to="/order-status" 
-                className={`hover:text-white transition-colors px-3 py-2 rounded font-medium ${
+                className={`hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium ${
                   isActive('/order-status') ? 'bg-white bg-opacity-20 text-white' : ''
                 }`}
               >
@@ -64,7 +64,7 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
               </Link>
               <Link 
                 to="/qa" 
-                className={`hover:text-white transition-colors px-3 py-2 rounded font-medium ${
+                className={`hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium ${
                   isActive('/qa') ? 'bg-white bg-opacity-20 text-white' : ''
                 }`}
               >
@@ -72,7 +72,7 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
               </Link>
               <Link 
                 to="/reviews" 
-                className={`hover:text-white transition-colors px-3 py-2 rounded font-medium ${
+                className={`hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium ${
                   isActive('/reviews') ? 'bg-white bg-opacity-20 text-white' : ''
                 }`}
               >
@@ -82,7 +82,7 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
               {user && isAdmin && (
                 <Link 
                   to="/admin" 
-                  className={`hover:text-white transition-colors px-3 py-2 rounded font-medium ${
+                  className={`hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium ${
                     isActive('/admin') ? 'bg-white bg-opacity-20 text-white' : ''
                   }`}
                 >
@@ -97,15 +97,16 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
               <input
                 type="text"
                 placeholder="ค้นหาสินค้า..."
-                className="w-64 px-4 py-2 rounded-lg text-gray-800 bg-white focus:outline-none focus:ring-2 border border-white border-opacity-30"
-                style={{ focusRingColor: '#956ec3' }}
+                className="w-64 px-4 py-2 rounded-lg text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-purple-300 border border-white border-opacity-30"
               />
               <Search className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
             </div>
             
-            <Button variant="ghost" size="icon" className="text-gray-800 hover:bg-white hover:bg-opacity-20">
-              <ShoppingCart className="h-6 w-6" />
-            </Button>
+            <Link to="/cart">
+              <Button variant="ghost" size="icon" className="text-white hover:bg-white hover:bg-opacity-20">
+                <ShoppingCart className="h-6 w-6" />
+              </Button>
+            </Link>
             
             {user ? (
               <div className="flex items-center space-x-2">
@@ -145,7 +146,7 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
             <div className="flex flex-col space-y-2">
               <Link 
                 to="/" 
-                className={`hover:text-white transition-colors px-3 py-2 rounded font-medium ${
+                className={`hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium ${
                   isActive('/') ? 'bg-white bg-opacity-20 text-white' : ''
                 }`}
                 onClick={() => setIsMobileMenuOpen(false)}
@@ -154,7 +155,7 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
               </Link>
               <Link 
                 to="/categories" 
-                className={`hover:text-white transition-colors px-3 py-2 rounded font-medium ${
+                className={`hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium ${
                   isActive('/categories') ? 'bg-white bg-opacity-20 text-white' : ''
                 }`}
                 onClick={() => setIsMobileMenuOpen(false)}
@@ -163,7 +164,7 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
               </Link>
               <Link 
                 to="/order-status" 
-                className={`hover:text-white transition-colors px-3 py-2 rounded font-medium ${
+                className={`hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium ${
                   isActive('/order-status') ? 'bg-white bg-opacity-20 text-white' : ''
                 }`}
                 onClick={() => setIsMobileMenuOpen(false)}
@@ -172,7 +173,7 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
               </Link>
               <Link 
                 to="/qa" 
-                className={`hover:text-white transition-colors px-3 py-2 rounded font-medium ${
+                className={`hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium ${
                   isActive('/qa') ? 'bg-white bg-opacity-20 text-white' : ''
                 }`}
                 onClick={() => setIsMobileMenuOpen(false)}
@@ -181,7 +182,7 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
               </Link>
               <Link 
                 to="/reviews" 
-                className={`hover:text-white transition-colors px-3 py-2 rounded font-medium ${
+                className={`hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium ${
                   isActive('/reviews') ? 'bg-white bg-opacity-20 text-white' : ''
                 }`}
                 onClick={() => setIsMobileMenuOpen(false)}
@@ -192,7 +193,7 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
               {user && isAdmin && (
                 <Link 
                   to="/admin" 
-                  className={`hover:text-white transition-colors px-3 py-2 rounded font-medium ${
+                  className={`hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium ${
                     isActive('/admin') ? 'bg-white bg-opacity-20 text-white' : ''
                   }`}
                   onClick={() => setIsMobileMenuOpen(false)}

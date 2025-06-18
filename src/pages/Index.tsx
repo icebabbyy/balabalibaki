@@ -31,27 +31,23 @@ const Index = () => {
         .from('categories')
         .select('*');
 
-      // Fetch products with limit 5 per category
       const { data: productsData } = await supabase
         .from('public_products')
         .select('*')
         .limit(30);
 
-      // Fetch banners
       const { data: bannersData } = await supabase
         .from('banners')
         .select('*')
         .eq('active', true)
         .order('position');
 
-      // Fetch new products (latest 8)
       const { data: newProductsData } = await supabase
         .from('public_products')
         .select('*')
         .order('id', { ascending: false })
         .limit(8);
 
-      // Simulate best sellers (random selection for now)
       const { data: bestSellersData } = await supabase
         .from('public_products')
         .select('*')
@@ -68,6 +64,29 @@ const Index = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const addToCart = (product: any) => {
+    const cartItem = {
+      id: product.id,
+      name: product.name,
+      price: product.selling_price,
+      quantity: 1,
+      image: product.image,
+      sku: product.sku
+    };
+
+    const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
+    const existingItemIndex = existingCart.findIndex((item: any) => item.id === product.id);
+
+    if (existingItemIndex > -1) {
+      existingCart[existingItemIndex].quantity += 1;
+    } else {
+      existingCart.push(cartItem);
+    }
+
+    localStorage.setItem('cart', JSON.stringify(existingCart));
+    toast.success('เพิ่มสินค้าลงตะกร้าแล้ว');
   };
 
   const getProductsByCategory = (categoryName) => {
@@ -116,7 +135,7 @@ const Index = () => {
                     >
                       <div className="text-center text-white">
                         <h2 className="text-2xl md:text-4xl font-bold mb-4">ของขวัญพิเศษ</h2>
-                        <p className="text-md md:text-lg mb-6">สำหรบคนที่คุณรัก</p>
+                        <p className="text-md md:text-lg mb-6">สำหรับคนที่คุณรัก</p>
                         <Button className="bg-purple-500 hover:bg-purple-400 text-white px-6 py-2 rounded-full">
                           เลือกของขวัญ
                         </Button>
@@ -229,11 +248,16 @@ const Index = () => {
                   
                   <div className="space-y-1">
                     <Link to={`/product/${product.id}`}>
-                      <Button size="sm" className="w-full bg-purple-600 hover:bg-purple-700 text-white text-xs">
+                      <Button size="sm" className="w-full text-white text-xs" style={{ backgroundColor: '#956ec3' }}>
                         ซื้อเดี๋ยวนี้
                       </Button>
                     </Link>
-                    <Button variant="outline" size="sm" className="w-full border-purple-300 text-purple-600 hover:bg-purple-50 text-xs">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full border-purple-300 text-purple-600 hover:bg-purple-50 text-xs"
+                      onClick={() => addToCart(product)}
+                    >
                       <ShoppingCart className="h-3 w-3 mr-1" />
                       เพิ่มลงตะกร้า
                     </Button>
@@ -282,11 +306,16 @@ const Index = () => {
                   
                   <div className="space-y-1">
                     <Link to={`/product/${product.id}`}>
-                      <Button size="sm" className="w-full bg-purple-600 hover:bg-purple-700 text-white text-xs">
+                      <Button size="sm" className="w-full text-white text-xs" style={{ backgroundColor: '#956ec3' }}>
                         ซื้อเดี๋ยวนี้
                       </Button>
                     </Link>
-                    <Button variant="outline" size="sm" className="w-full border-purple-300 text-purple-600 hover:bg-purple-50 text-xs">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full border-purple-300 text-purple-600 hover:bg-purple-50 text-xs"
+                      onClick={() => addToCart(product)}
+                    >
                       <ShoppingCart className="h-3 w-3 mr-1" />
                       เพิ่มลงตะกร้า
                     </Button>
@@ -343,11 +372,16 @@ const Index = () => {
                       
                       <div className="space-y-1">
                         <Link to={`/product/${product.id}`}>
-                          <Button size="sm" className="w-full bg-purple-600 hover:bg-purple-700 text-white text-xs">
+                          <Button size="sm" className="w-full text-white text-xs" style={{ backgroundColor: '#956ec3' }}>
                             ซื้อเดี๋ยวนี้
                           </Button>
                         </Link>
-                        <Button variant="outline" size="sm" className="w-full border-purple-300 text-purple-600 hover:bg-purple-50 text-xs">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="w-full border-purple-300 text-purple-600 hover:bg-purple-50 text-xs"
+                          onClick={() => addToCart(product)}
+                        >
                           <ShoppingCart className="h-3 w-3 mr-1" />
                           เพิ่มลงตะกร้า
                         </Button>

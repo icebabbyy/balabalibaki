@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ShoppingCart, Search } from "lucide-react";
 import { toast } from "sonner";
 import Header from "@/components/Header";
+import { useAuth } from "@/hooks/useAuth";
 
 const Categories = () => {
   const [searchParams] = useSearchParams();
@@ -21,6 +21,7 @@ const Categories = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategories, setSelectedCategories] = useState(new Set(selectedCategory ? [selectedCategory] : []));
   const [showAll, setShowAll] = useState(false);
+  const { user, signOut } = useAuth();
 
   useEffect(() => {
     fetchData();
@@ -58,6 +59,29 @@ const Categories = () => {
     }
   };
 
+  const addToCart = (product: any) => {
+    const cartItem = {
+      id: product.id,
+      name: product.name,
+      price: product.selling_price,
+      quantity: 1,
+      image: product.image,
+      sku: product.sku
+    };
+
+    const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
+    const existingItemIndex = existingCart.findIndex((item: any) => item.id === product.id);
+
+    if (existingItemIndex > -1) {
+      existingCart[existingItemIndex].quantity += 1;
+    } else {
+      existingCart.push(cartItem);
+    }
+
+    localStorage.setItem('cart', JSON.stringify(existingCart));
+    toast.success('เพิ่มสินค้าลงตะกร้าแล้ว');
+  };
+
   const handleCategoryToggle = (categoryName, checked) => {
     const newSelected = new Set(selectedCategories);
     if (checked) {
@@ -93,7 +117,7 @@ const Categories = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header />
+      <Header user={user} onSignOut={signOut} />
 
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="mb-6">
@@ -223,6 +247,7 @@ const Categories = () => {
                         size="sm" 
                         className="w-full hover:bg-purple-50"
                         style={{ borderColor: '#956ec3', color: '#956ec3' }}
+                        onClick={() => addToCart(product)}
                       >
                         <ShoppingCart className="h-4 w-4 mr-2" />
                         เพิ่มลงตะกร้า

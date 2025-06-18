@@ -12,7 +12,10 @@ import Reviews from "./pages/Reviews";
 import OrderStatus from "./pages/OrderStatus";
 import Admin from "./pages/Admin";
 import Auth from "./pages/Auth";
+import Cart from "./pages/Cart";
+import Payment from "./pages/Payment";
 import NotFound from "./pages/NotFound";
+import Footer from "./components/Footer";
 
 const queryClient = new QueryClient();
 
@@ -22,18 +25,25 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/categories" element={<Categories />} />
-          <Route path="/product/:id" element={<ProductDetail />} />
-          <Route path="/qa" element={<QA />} />
-          <Route path="/reviews" element={<Reviews />} />
-          <Route path="/order-status" element={<OrderStatus />} />
-          <Route path="/admin" element={<Admin />} />
-          <Route path="/auth" element={<Auth />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <div className="min-h-screen flex flex-col">
+          <div className="flex-grow">
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/categories" element={<Categories />} />
+              <Route path="/product/:id" element={<ProductDetail />} />
+              <Route path="/qa" element={<QA />} />
+              <Route path="/reviews" element={<Reviews />} />
+              <Route path="/order-status" element={<OrderStatus />} />
+              <Route path="/admin" element={<Admin />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/cart" element={<Cart />} />
+              <Route path="/payment" element={<Payment />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </div>
+          <Footer />
+        </div>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
