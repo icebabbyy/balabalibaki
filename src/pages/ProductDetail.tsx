@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import Header from "@/components/Header";
@@ -17,6 +18,7 @@ const ProductDetail = () => {
   const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [selectedOptions, setSelectedOptions] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
     fetchProduct();
@@ -47,6 +49,18 @@ const ProductDetail = () => {
       }
 
       setProduct(data);
+      
+      // Initialize selected options with first option of each category
+      if (data?.options && typeof data.options === 'object') {
+        const initialOptions: { [key: string]: string } = {};
+        Object.keys(data.options).forEach(key => {
+          const optionValues = data.options[key];
+          if (Array.isArray(optionValues) && optionValues.length > 0) {
+            initialOptions[key] = optionValues[0];
+          }
+        });
+        setSelectedOptions(initialOptions);
+      }
       
       // Fetch related products from same category
       if (data?.category) {
@@ -208,6 +222,40 @@ const ProductDetail = () => {
                 )}
               </div>
             </div>
+
+            {/* Product Options */}
+            {product.options && typeof product.options === 'object' && Object.keys(product.options).length > 0 && (
+              <Card>
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">ตัวเลือกสินค้า</h3>
+                  <div className="space-y-4">
+                    {Object.entries(product.options).map(([optionName, optionValues]) => (
+                      <div key={optionName}>
+                        <label className="block text-sm font-medium mb-2">{optionName}:</label>
+                        <div className="flex flex-wrap gap-2">
+                          {Array.isArray(optionValues) && optionValues.map((value: string, index: number) => (
+                            <button
+                              key={index}
+                              onClick={() => setSelectedOptions(prev => ({ ...prev, [optionName]: value }))}
+                              className={`px-3 py-1 rounded-md border text-sm ${
+                                selectedOptions[optionName] === value
+                                  ? 'bg-purple-600 text-white border-purple-600'
+                                  : 'bg-white text-gray-700 border-gray-300 hover:border-purple-600'
+                              }`}
+                            >
+                              {value}
+                            </button>
+                          ))}
+                        </div>
+                        {selectedOptions[optionName] && (
+                          <p className="text-sm text-gray-600 mt-1">เลือก: {selectedOptions[optionName]}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Quantity & Actions */}
             <Card>

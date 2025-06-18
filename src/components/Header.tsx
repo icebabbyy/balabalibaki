@@ -3,7 +3,9 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, User, Heart, Package, LogOut } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ShoppingCart, User, Heart, Package, LogOut, Search } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -13,6 +15,7 @@ const Header = () => {
   const navigate = useNavigate();
   const [cartCount, setCartCount] = useState(0);
   const [profile, setProfile] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (user) {
@@ -80,6 +83,13 @@ const Header = () => {
     }
   };
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/categories?search=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+
   // Get display name - show username only, fallback to email username part
   const getDisplayName = () => {
     if (profile?.username && profile.username.trim() !== '') {
@@ -132,27 +142,29 @@ const Header = () => {
             </button>
           </nav>
 
+          {/* Search Bar */}
+          <form onSubmit={handleSearch} className="hidden md:flex items-center space-x-2">
+            <div className="relative">
+              <Input
+                type="text"
+                placeholder="ค้นหาสินค้า..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-64 bg-white text-gray-900 placeholder-gray-500"
+              />
+              <Button
+                type="submit"
+                size="sm"
+                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 bg-purple-600 hover:bg-purple-700"
+              >
+                <Search className="h-4 w-4" />
+              </Button>
+            </div>
+          </form>
+
           <div className="flex items-center space-x-4">
             {user && (
               <>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => navigate('/wishlist')}
-                  className="text-white hover:bg-purple-700 hover:text-white"
-                >
-                  <Heart className="h-4 w-4" />
-                </Button>
-                
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => navigate('/order-history')}
-                  className="text-white hover:bg-purple-700 hover:text-white"
-                >
-                  <Package className="h-4 w-4" />
-                </Button>
-
                 <Button
                   variant="ghost"
                   size="sm"
@@ -172,22 +184,37 @@ const Header = () => {
 
                 <div className="flex items-center space-x-2">
                   <span className="text-sm">สวัสดี, {getDisplayName()}</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => navigate('/profile')}
-                    className="text-white hover:bg-purple-700 hover:text-white"
-                  >
-                    <User className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleSignOut}
-                    className="text-white hover:bg-purple-700 hover:text-white"
-                  >
-                    <LogOut className="h-4 w-4" />
-                  </Button>
+                  
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-white hover:bg-purple-700 hover:text-white"
+                      >
+                        <User className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-56 bg-white">
+                      <DropdownMenuItem onClick={() => navigate('/profile')}>
+                        <User className="mr-2 h-4 w-4" />
+                        <span>จัดการโปรไฟล์</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate('/wishlist')}>
+                        <Heart className="mr-2 h-4 w-4" />
+                        <span>รายการโปรด</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate('/order-history')}>
+                        <Package className="mr-2 h-4 w-4" />
+                        <span>ประวัติการสั่งซื้อ</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleSignOut}>
+                        <LogOut className="mr-2 h-4 w-4" />
+                        <span>ออกจากระบบ</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
                   {profile?.role === 'admin' && (
                     <Button
                       onClick={() => navigate('/admin')}
