@@ -21,15 +21,15 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
   const isAdmin = user?.email === 'admin@luckyshop.com' || user?.user_metadata?.role === 'admin';
 
   return (
-    <header className="bg-gradient-to-r from-purple-300 to-purple-400 text-gray-800 shadow-lg sticky top-0 z-50">
+    <header className="bg-gradient-to-r from-purple-200 to-purple-300 text-gray-800 shadow-lg sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-8">
-            <Link to="/">
+            <Link to="/" className="flex items-center">
               <img 
-                src="/lovable-uploads/487f8c60-99c5-451d-a44f-f637d86b3b11.png" 
+                src="/lovable-uploads/ecaac6f9-54fc-484a-b4fa-bfb1cd61c348.png" 
                 alt="Lucky Shop Logo" 
-                className="h-10 w-auto"
+                className="h-12 w-auto"
               />
             </Link>
             

@@ -63,7 +63,7 @@ export const useBanners = () => {
       const { error } = await supabase
         .from('banners')
         .update(updateData)
-        .eq('id', Number(banner.id));
+        .eq('id', banner.id);
 
       if (error) throw error;
 
@@ -82,7 +82,7 @@ export const useBanners = () => {
       const { error } = await supabase
         .from('banners')
         .delete()
-        .eq('id', Number(id));
+        .eq('id', id);
 
       if (error) throw error;
 
