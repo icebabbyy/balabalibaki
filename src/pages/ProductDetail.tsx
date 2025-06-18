@@ -108,6 +108,8 @@ const ProductDetail = () => {
           <span>/</span>
           <Link to="/categories" className="hover:text-purple-600">หมวดหมู่</Link>
           <span>/</span>
+          <span className="hover:text-purple-600">{product.category}</span>
+          <span>/</span>
           <span className="text-gray-900">{product.name}</span>
         </div>
 
@@ -167,6 +169,7 @@ const ProductDetail = () => {
                 </span>
               </div>
               <p className="text-gray-600">รหัสสินค้า: {product.sku}</p>
+              <p className="text-gray-600">สถานะ: {product.status || 'พร้อมส่ง'}</p>
             </div>
 
             {/* Description */}

@@ -11,6 +11,9 @@ import { supabase } from "@/integrations/supabase/client";
 const Index = () => {
   const [categories, setCategories] = useState<any[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [products, setProducts] = useState<any[]>([]);
+  const [productsLoading, setProductsLoading] = useState(true);
+  const [banners, setBanners] = useState<any[]>([]);
   
   // Fetch categories from Supabase
   const fetchCategories = async () => {
@@ -29,8 +32,44 @@ const Index = () => {
     }
   };
 
+  // Fetch products from Supabase
+  const fetchProducts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('public_products')
+        .select('*')
+        .limit(8);
+
+      if (error) throw error;
+      setProducts(data || []);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    } finally {
+      setProductsLoading(false);
+    }
+  };
+
+  // Fetch banners from Supabase
+  const fetchBanners = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('banners')
+        .select('*')
+        .eq('active', true)
+        .order('position')
+        .limit(2);
+
+      if (error) throw error;
+      setBanners(data || []);
+    } catch (error) {
+      console.error('Error fetching banners:', error);
+    }
+  };
+
   useEffect(() => {
     fetchCategories();
+    fetchProducts();
+    fetchBanners();
   }, []);
 
   return (
@@ -58,6 +97,19 @@ const Index = () => {
             </div>
           </div>
         </div>
+
+        {/* First Banner */}
+        {banners[0] && (
+          <section className="mb-8">
+            <div className="rounded-lg overflow-hidden">
+              <img 
+                src={banners[0].image_url} 
+                alt="Banner 1"
+                className="w-full h-40 object-cover"
+              />
+            </div>
+          </section>
+        )}
 
         {/* Categories Section - Grid layout with thumbnails */}
         <section className="mb-10">
@@ -94,6 +146,19 @@ const Index = () => {
           )}
         </section>
 
+        {/* Second Banner */}
+        {banners[1] && (
+          <section className="mb-8">
+            <div className="rounded-lg overflow-hidden">
+              <img 
+                src={banners[1].image_url} 
+                alt="Banner 2"
+                className="w-full h-40 object-cover"
+              />
+            </div>
+          </section>
+        )}
+
         {/* Featured Products Section */}
         <section className="mb-8">
           <div className="flex items-center justify-between mb-4">
@@ -105,67 +170,94 @@ const Index = () => {
             </Link>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {/* Sample products - will be replaced with real data */}
-            {[1, 2, 3, 4].map((i) => (
-              <Card key={i} className="hover:shadow-md transition-shadow duration-200">
-                <CardContent className="p-0">
-                  <div className="relative">
-                    <div className="w-full h-40 bg-gray-200 rounded-t-lg flex items-center justify-center">
-                      <Package className="h-12 w-12 text-gray-400" />
-                    </div>
-                    <Badge 
-                      className="absolute top-2 left-2 text-xs"
-                      style={{ backgroundColor: '#956ec3' }}
-                    >
-                      ใหม่
-                    </Badge>
-                  </div>
-                  
-                  <div className="p-3">
-                    <h3 className="font-medium text-sm mb-2 line-clamp-2">สินค้าตัวอย่าง {i}</h3>
-                    
-                    <div className="flex items-center mb-2">
-                      <div className="flex items-center">
-                        {[...Array(5)].map((_, starIndex) => (
-                          <Star
-                            key={starIndex}
-                            className="h-3 w-3 text-yellow-400 fill-current"
-                          />
-                        ))}
+          {productsLoading ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="bg-gray-200 rounded-lg h-40 mb-2"></div>
+                  <div className="bg-gray-200 rounded h-4 mb-2"></div>
+                  <div className="bg-gray-200 rounded h-4"></div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {products.slice(0, 4).map((product) => (
+                <Link key={product.id} to={`/product/${product.id}`}>
+                  <Card className="hover:shadow-md transition-shadow duration-200">
+                    <CardContent className="p-0">
+                      <div className="relative">
+                        <div className="w-full h-40 bg-gray-200 rounded-t-lg overflow-hidden">
+                          {product.image ? (
+                            <img 
+                              src={product.image} 
+                              alt={product.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Package className="h-12 w-12 text-gray-400" />
+                            </div>
+                          )}
+                        </div>
+                        <Badge 
+                          className="absolute top-2 left-2 text-xs"
+                          style={{ backgroundColor: '#956ec3' }}
+                        >
+                          {product.status || 'ใหม่'}
+                        </Badge>
                       </div>
-                      <span className="text-xs text-gray-500 ml-1">(15)</span>
-                    </div>
-                    
-                    <div className="mb-3">
-                      <span className="text-lg font-bold" style={{ color: '#956ec3' }}>
-                        ฿1,500
-                      </span>
-                    </div>
-                    
-                    <div className="flex space-x-1">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 text-xs"
-                        style={{ borderColor: '#956ec3', color: '#956ec3' }}
-                      >
-                        <ShoppingCart className="h-3 w-3 mr-1" />
-                        ใส่ตะกร้า
-                      </Button>
-                      <Button 
-                        size="sm"
-                        className="flex-1 text-xs"
-                        style={{ backgroundColor: '#956ec3' }}
-                      >
-                        ดูสินค้า
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                      
+                      <div className="p-3">
+                        <h3 className="font-medium text-sm mb-2 line-clamp-2">{product.name}</h3>
+                        
+                        <div className="flex items-center mb-2">
+                          <div className="flex items-center">
+                            {[...Array(5)].map((_, starIndex) => (
+                              <Star
+                                key={starIndex}
+                                className="h-3 w-3 text-yellow-400 fill-current"
+                              />
+                            ))}
+                          </div>
+                          <span className="text-xs text-gray-500 ml-1">(15)</span>
+                        </div>
+                        
+                        <div className="mb-3">
+                          <span className="text-lg font-bold" style={{ color: '#956ec3' }}>
+                            ฿{product.selling_price?.toLocaleString()}
+                          </span>
+                        </div>
+                        
+                        <div className="flex space-x-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 text-xs"
+                            style={{ borderColor: '#956ec3', color: '#956ec3' }}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                            }}
+                          >
+                            <ShoppingCart className="h-3 w-3 mr-1" />
+                            ใส่ตะกร้า
+                          </Button>
+                          <Button 
+                            size="sm"
+                            className="flex-1 text-xs"
+                            style={{ backgroundColor: '#956ec3' }}
+                          >
+                            ดูสินค้า
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          )}
         </section>
       </div>
     </div>
