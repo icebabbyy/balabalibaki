@@ -17,6 +17,9 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
     return location.pathname === path;
   };
 
+  // Check if user is admin (you can customize this logic)
+  const isAdmin = user?.email === 'admin@luckyshop.com' || user?.user_metadata?.role === 'admin';
+
   return (
     <header className="bg-purple-600 text-white shadow-lg sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 py-4">
@@ -68,7 +71,8 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
               >
                 รีวิว
               </Link>
-              {user && (
+              {/* Show admin link only for admin users */}
+              {user && isAdmin && (
                 <Link 
                   to="/admin" 
                   className={`hover:text-purple-200 transition-colors px-3 py-2 rounded ${
@@ -176,7 +180,8 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
               >
                 รีวิว
               </Link>
-              {user && (
+              {/* Show admin link only for admin users in mobile */}
+              {user && isAdmin && (
                 <Link 
                   to="/admin" 
                   className={`hover:text-purple-200 transition-colors px-3 py-2 rounded ${

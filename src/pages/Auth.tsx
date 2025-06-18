@@ -1,6 +1,5 @@
-
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,8 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Mail, Phone, User, Calendar } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const Auth = () => {
+  const navigate = useNavigate();
   const [loginForm, setLoginForm] = useState({
     email: '',
     password: ''
@@ -26,13 +27,36 @@ const Auth = () => {
     birthDate: ''
   });
 
-  const handleLogin = async (e) => {
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock login functionality
-    toast.success('เข้าสู่ระบบสำเร็จ');
+    setLoading(true);
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: loginForm.email,
+        password: loginForm.password,
+      });
+
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+
+      if (data.user) {
+        toast.success('เข้าสู่ระบบสำเร็จ');
+        navigate('/');
+      }
+    } catch (error) {
+      console.error('Error during login:', error);
+      toast.error('เกิดข้อผิดพลาดในการเข้าสู่ระบบ');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleRegister = async (e) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (registerForm.password !== registerForm.confirmPassword) {
@@ -40,8 +64,48 @@ const Auth = () => {
       return;
     }
 
-    // Mock registration functionality
-    toast.success('สมัครสมาชิกสำเร็จ');
+    setLoading(true);
+
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: registerForm.email,
+        password: registerForm.password,
+        options: {
+          data: {
+            username: registerForm.username,
+            full_name: registerForm.fullName,
+            phone: registerForm.phone,
+            address: registerForm.address,
+            birth_date: registerForm.birthDate,
+          }
+        }
+      });
+
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+
+      if (data.user) {
+        toast.success('สมัครสมาชิกสำเร็จ กรุณาตรวจสอบอีเมลเพื่อยืนยันบัญชี');
+        // Reset form
+        setRegisterForm({
+          email: '',
+          phone: '',
+          username: '',
+          password: '',
+          confirmPassword: '',
+          fullName: '',
+          address: '',
+          birthDate: ''
+        });
+      }
+    } catch (error) {
+      console.error('Error during registration:', error);
+      toast.error('เกิดข้อผิดพลาดในการสมัครสมาชิก');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleFacebookLogin = () => {
@@ -80,16 +144,17 @@ const Auth = () => {
               <CardContent className="space-y-4">
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="login-email">อีเมล/เบอร์โทร/ชื่อผู้ใช้</Label>
+                    <Label htmlFor="login-email">อีเมล</Label>
                     <div className="relative">
                       <Input
                         id="login-email"
-                        type="text"
-                        placeholder="กรอกอีเมล เบอร์โทร หรือชื่อผู้ใช้"
+                        type="email"
+                        placeholder="กรอกอีเมล"
                         value={loginForm.email}
                         onChange={(e) => setLoginForm({...loginForm, email: e.target.value})}
                         className="pl-10"
                         required
+                        disabled={loading}
                       />
                       <Mail className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
                     </div>
@@ -104,11 +169,16 @@ const Auth = () => {
                       value={loginForm.password}
                       onChange={(e) => setLoginForm({...loginForm, password: e.target.value})}
                       required
+                      disabled={loading}
                     />
                   </div>
 
-                  <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700">
-                    เข้าสู่ระบบ
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-purple-600 hover:bg-purple-700"
+                    disabled={loading}
+                  >
+                    {loading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
                   </Button>
                 </form>
 
@@ -125,6 +195,7 @@ const Auth = () => {
                   onClick={handleFacebookLogin}
                   variant="outline"
                   className="w-full border-blue-600 text-blue-600 hover:bg-blue-50"
+                  disabled={loading}
                 >
                   เข้าสู่ระบบด้วย Facebook
                 </Button>
@@ -155,6 +226,7 @@ const Auth = () => {
                         onChange={(e) => setRegisterForm({...registerForm, email: e.target.value})}
                         className="pl-10"
                         required
+                        disabled={loading}
                       />
                       <Mail className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
                     </div>
@@ -171,6 +243,7 @@ const Auth = () => {
                         onChange={(e) => setRegisterForm({...registerForm, phone: e.target.value})}
                         className="pl-10"
                         required
+                        disabled={loading}
                       />
                       <Phone className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
                     </div>
@@ -187,6 +260,7 @@ const Auth = () => {
                         onChange={(e) => setRegisterForm({...registerForm, username: e.target.value})}
                         className="pl-10"
                         required
+                        disabled={loading}
                       />
                       <User className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
                     </div>
@@ -201,6 +275,7 @@ const Auth = () => {
                       value={registerForm.fullName}
                       onChange={(e) => setRegisterForm({...registerForm, fullName: e.target.value})}
                       required
+                      disabled={loading}
                     />
                   </div>
 
@@ -213,6 +288,7 @@ const Auth = () => {
                       value={registerForm.address}
                       onChange={(e) => setRegisterForm({...registerForm, address: e.target.value})}
                       required
+                      disabled={loading}
                     />
                   </div>
 
@@ -226,6 +302,7 @@ const Auth = () => {
                         onChange={(e) => setRegisterForm({...registerForm, birthDate: e.target.value})}
                         className="pl-10"
                         required
+                        disabled={loading}
                       />
                       <Calendar className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
                     </div>
@@ -240,6 +317,7 @@ const Auth = () => {
                       value={registerForm.password}
                       onChange={(e) => setRegisterForm({...registerForm, password: e.target.value})}
                       required
+                      disabled={loading}
                     />
                   </div>
 
@@ -252,11 +330,16 @@ const Auth = () => {
                       value={registerForm.confirmPassword}
                       onChange={(e) => setRegisterForm({...registerForm, confirmPassword: e.target.value})}
                       required
+                      disabled={loading}
                     />
                   </div>
 
-                  <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700">
-                    สมัครสมาชิก
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-purple-600 hover:bg-purple-700"
+                    disabled={loading}
+                  >
+                    {loading ? 'กำลังสมัครสมาชิก...' : 'สมัครสมาชิก'}
                   </Button>
                 </form>
 
@@ -273,6 +356,7 @@ const Auth = () => {
                   onClick={handleFacebookLogin}
                   variant="outline"
                   className="w-full border-blue-600 text-blue-600 hover:bg-blue-50"
+                  disabled={loading}
                 >
                   สมัครด้วย Facebook
                 </Button>
