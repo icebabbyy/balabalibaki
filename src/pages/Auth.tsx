@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -20,17 +19,25 @@ const Auth = () => {
 
   useEffect(() => {
     // Check if user is already logged in
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        setUser(user);
+    const checkUser = async () => {
+      console.log('Auth page: Checking existing session...');
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log('Auth page - Session:', session);
+      
+      if (session?.user) {
+        console.log('Auth page: User already logged in, setting user state');
+        setUser(session.user);
       }
-    });
+    };
+
+    checkUser();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth state changed:', event, session?.user);
+      console.log('Auth page - Auth state changed:', event, session?.user);
       setUser(session?.user ?? null);
       if (session?.user) {
+        console.log('Auth page: User signed in, redirecting to home');
         navigate('/');
       }
     });
@@ -122,7 +129,7 @@ const Auth = () => {
       if (error) {
         setError(`เกิดข้อผิดพลาด: ${error.message}`);
       } else {
-        console.log('Login successful:', data.user);
+        console.log('Auth page: Login successful:', data.user);
         // Navigation will be handled by onAuthStateChange
       }
     } catch (error) {
@@ -133,20 +140,24 @@ const Auth = () => {
   };
 
   const handleSignOut = async () => {
+    console.log('Auth page: Signing out user...');
     await supabase.auth.signOut();
     setUser(null);
   };
 
   const handleProfileClick = () => {
-    console.log('Profile button clicked, user:', user);
+    console.log('Auth page: Profile button clicked, user:', user);
     if (user) {
+      console.log('Auth page: Navigating to profile page');
       navigate('/profile');
     } else {
-      console.error('No user found');
+      console.error('Auth page: No user found, cannot navigate to profile');
+      setError('ไม่พบข้อมูลผู้ใช้');
     }
   };
 
   if (user) {
+    console.log('Auth page: Rendering user welcome screen for:', user.email);
     return (
       <div className="min-h-screen bg-gray-50">
         <Header user={user} onSignOut={handleSignOut} />

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -13,6 +12,7 @@ const Profile = () => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const [formData, setFormData] = useState({
     username: '',
     full_name: '',
@@ -21,41 +21,55 @@ const Profile = () => {
   });
 
   useEffect(() => {
-    // Get current user
-    const getCurrentUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      console.log('Current user in Profile:', user);
-      
-      if (!user) {
-        navigate('/auth');
-        return;
-      }
+    const checkAuth = async () => {
+      try {
+        console.log('Profile page: Checking authentication...');
+        
+        // Check current session first
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        console.log('Profile page - Session:', session, 'Session Error:', sessionError);
+        
+        if (!session?.user) {
+          console.log('Profile page: No session found, redirecting to auth');
+          navigate('/auth');
+          return;
+        }
 
-      setUser(user);
-      await loadProfile(user.id);
+        console.log('Profile page: User found:', session.user);
+        setUser(session.user);
+        await loadProfile(session.user.id);
+        
+      } catch (error) {
+        console.error('Profile page: Auth check error:', error);
+        navigate('/auth');
+      } finally {
+        setAuthChecked(true);
+        setLoading(false);
+      }
     };
 
-    getCurrentUser();
+    checkAuth();
   }, [navigate]);
 
   const loadProfile = async (userId) => {
     try {
-      console.log('Loading profile for user ID:', userId);
+      console.log('Profile page: Loading profile for user ID:', userId);
       
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle(); // Use maybeSingle instead of single to handle no data case
 
-      console.log('Profile data:', data, 'Error:', error);
+      console.log('Profile page - Profile data:', data, 'Profile Error:', error);
 
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error loading profile:', error);
-        return;
+      if (error) {
+        console.error('Profile page: Error loading profile:', error);
+        // Don't return here, continue to show the form even if no profile exists
       }
 
       if (data) {
+        console.log('Profile page: Setting profile data:', data);
         setProfile(data);
         setFormData({
           username: data.username || '',
@@ -63,16 +77,18 @@ const Profile = () => {
           phone: data.phone || '',
           address: data.address || ''
         });
+      } else {
+        console.log('Profile page: No profile found, showing empty form');
+        // Keep empty form data for new profile creation
       }
     } catch (err) {
-      console.error('Unexpected error:', err);
-    } finally {
-      setLoading(false);
+      console.error('Profile page: Unexpected error in loadProfile:', err);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log('Profile page: Submitting form with data:', formData);
     setUpdating(true);
 
     try {
@@ -85,14 +101,15 @@ const Profile = () => {
         });
 
       if (error) {
-        console.error('Error updating profile:', error);
+        console.error('Profile page: Error updating profile:', error);
         alert('เกิดข้อผิดพลาดในการอัปเดตโปรไฟล์');
       } else {
+        console.log('Profile page: Profile updated successfully');
         alert('อัปเดตโปรไฟล์สำเร็จ!');
-        loadProfile(user.id);
+        await loadProfile(user.id);
       }
     } catch (err) {
-      console.error('Unexpected error:', err);
+      console.error('Profile page: Unexpected error in handleSubmit:', err);
       alert('เกิดข้อผิดพลาดที่ไม่คาดคิด');
     } finally {
       setUpdating(false);
@@ -100,14 +117,15 @@ const Profile = () => {
   };
 
   const handleSignOut = async () => {
+    console.log('Profile page: Signing out...');
     await supabase.auth.signOut();
     navigate('/auth');
   };
 
-  if (loading) {
+  // Show loading while checking auth
+  if (!authChecked || loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Header user={user} onSignOut={handleSignOut} />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">กำลังโหลด...</div>
         </div>
@@ -115,6 +133,7 @@ const Profile = () => {
     );
   }
 
+  // Show auth message if no user after check
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-50">
