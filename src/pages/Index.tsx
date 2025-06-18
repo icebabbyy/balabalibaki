@@ -39,12 +39,16 @@ const Index = () => {
   const [banners, setBanners] = useState<Banner[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [nikkeProducts, setNikkeProducts] = useState<Product[]>([]);
+  const [honkaiProducts, setHonkaiProducts] = useState<Product[]>([]);
+  const [lolProducts, setLolProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchBanners();
     fetchFeaturedProducts();
     fetchCategories();
+    fetchCategoryProducts();
   }, []);
 
   const fetchBanners = async () => {
@@ -80,12 +84,42 @@ const Index = () => {
     try {
       const { data } = await supabase
         .from('categories')
-        .select('*')
-        .limit(12);
+        .select('*');
       
       setCategories(data || []);
     } catch (error) {
       console.error('Error fetching categories:', error);
+    }
+  };
+
+  const fetchCategoryProducts = async () => {
+    try {
+      // Fetch Nikke products
+      const { data: nikkeData } = await supabase
+        .from('products')
+        .select('*')
+        .eq('category', 'Nikke')
+        .limit(5);
+      
+      // Fetch Honkai Star Rail products
+      const { data: honkaiData } = await supabase
+        .from('products')
+        .select('*')
+        .eq('category', 'Honkai : Star Rail')
+        .limit(5);
+      
+      // Fetch League of Legends products
+      const { data: lolData } = await supabase
+        .from('products')
+        .select('*')
+        .eq('category', 'League of Legends')
+        .limit(5);
+
+      setNikkeProducts(nikkeData || []);
+      setHonkaiProducts(honkaiData || []);
+      setLolProducts(lolData || []);
+    } catch (error) {
+      console.error('Error fetching category products:', error);
     }
   };
 
@@ -114,6 +148,78 @@ const Index = () => {
     localStorage.setItem('cart', JSON.stringify(existingCart));
     alert('เพิ่มสินค้าลงตะกร้าแล้ว');
   };
+
+  const ProductCard = ({ product }: { product: Product }) => (
+    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+      <div className="relative">
+        <img
+          src={product.image || '/placeholder.svg'}
+          alt={product.name}
+          className="w-full h-48 object-cover rounded-t-lg"
+          onClick={() => handleProductClick(product.id)}
+        />
+        {product.status && (
+          <Badge className="absolute top-2 left-2 bg-purple-600">
+            {product.status}
+          </Badge>
+        )}
+      </div>
+      <CardContent className="p-4">
+        <h3 className="font-semibold mb-2 line-clamp-2" onClick={() => handleProductClick(product.id)}>{product.name}</h3>
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-lg font-bold text-purple-600">
+            ฿{product.selling_price?.toLocaleString()}
+          </span>
+        </div>
+        <div className="space-y-2">
+          <Button 
+            size="sm" 
+            className="w-full bg-purple-600 hover:bg-purple-700"
+            onClick={() => handleProductClick(product.id)}
+          >
+            ซื้อเดี๋ยวนี้
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full"
+            onClick={() => addToCart(product)}
+          >
+            <ShoppingCart className="h-4 w-4 mr-2" />
+            เพิ่มลงตะกร้า
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  const CategorySection = ({ title, products, categoryName }: { title: string; products: Product[]; categoryName: string }) => (
+    <section className="py-12 bg-white">
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-2xl font-bold">{title}</h2>
+          <Link 
+            to={`/categories?category=${encodeURIComponent(categoryName)}`}
+            className="flex items-center text-purple-600 hover:text-purple-700 font-medium"
+          >
+            ดูทั้งหมด <ArrowRight className="h-4 w-4 ml-1" />
+          </Link>
+        </div>
+        
+        {products.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+            {products.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            ไม่พบสินค้าในหมวดหมู่นี้
+          </div>
+        )}
+      </div>
+    </section>
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -161,12 +267,12 @@ const Index = () => {
         )}
       </section>
 
-      {/* หมวดหมู่สินค้า (ใส่รูป thumbnail) */}
+      {/* หมวดหมู่สินค้าทั้งหมด */}
       <section className="py-12 bg-white">
         <div className="max-w-7xl mx-auto px-4">
           <h2 className="text-2xl font-bold mb-8 text-center">หมวดหมู่สินค้า</h2>
           <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
-            {categories.slice(0, 6).map((category) => (
+            {categories.map((category) => (
               <Link key={category.id} to={`/categories?category=${encodeURIComponent(category.name)}`}>
                 <Card className="hover:shadow-lg transition-shadow text-center p-4">
                   <div className="w-16 h-16 mx-auto mb-3 bg-purple-100 rounded-full flex items-center justify-center overflow-hidden">
@@ -208,82 +314,15 @@ const Index = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {featuredProducts.slice(0, 4).map((product) => (
-                <Card 
-                  key={product.id} 
-                  className="hover:shadow-lg transition-shadow cursor-pointer"
-                >
-                  <div className="relative">
-                    <img
-                      src={product.image || '/placeholder.svg'}
-                      alt={product.name}
-                      className="w-full h-48 object-cover rounded-t-lg"
-                      onClick={() => handleProductClick(product.id)}
-                    />
-                    {product.status && (
-                      <Badge className="absolute top-2 left-2 bg-purple-600">
-                        {product.status}
-                      </Badge>
-                    )}
-                  </div>
-                  <CardContent className="p-4">
-                    <h3 className="font-semibold mb-2 line-clamp-2" onClick={() => handleProductClick(product.id)}>{product.name}</h3>
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-lg font-bold text-purple-600">
-                        ฿{product.selling_price?.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="space-y-2">
-                      <Button 
-                        size="sm" 
-                        className="w-full bg-purple-600 hover:bg-purple-700"
-                        onClick={() => handleProductClick(product.id)}
-                      >
-                        ซื้อเดี๋ยวนี้
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="w-full"
-                        onClick={() => addToCart(product)}
-                      >
-                        <ShoppingCart className="h-4 w-4 mr-2" />
-                        เพิ่มลงตะกร้า
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                <ProductCard key={product.id} product={product} />
               ))}
             </div>
           )}
         </div>
       </section>
 
-      {/* หมวดหมู่สินค้า (สุ่ม) */}
-      <section className="py-12 bg-white">
-        <div className="max-w-7xl mx-auto px-4">
-          <h2 className="text-2xl font-bold mb-8 text-center">หมวดหมู่ยอดนิยม</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {categories.slice(6, 10).map((category) => (
-              <Link key={category.id} to={`/categories?category=${encodeURIComponent(category.name)}`}>
-                <Card className="hover:shadow-lg transition-shadow text-center p-6">
-                  <div className="w-20 h-20 mx-auto mb-4 bg-purple-100 rounded-full flex items-center justify-center overflow-hidden">
-                    {category.image ? (
-                      <img 
-                        src={category.image} 
-                        alt={category.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 bg-purple-600 rounded"></div>
-                    )}
-                  </div>
-                  <h3 className="font-medium">{category.name}</h3>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* หมวดหมู่ยอดนิยม - Nikke */}
+      <CategorySection title="Nikke" products={nikkeProducts} categoryName="Nikke" />
 
       {/* แบนเนอร์รูปภาพ */}
       <section className="py-8 bg-gray-50">
@@ -297,44 +336,11 @@ const Index = () => {
         </div>
       </section>
 
-      {/* หมวดหมู่สินค้า (สุ่ม) */}
-      <section className="py-12 bg-white">
-        <div className="max-w-7xl mx-auto px-4">
-          <h2 className="text-2xl font-bold mb-8 text-center">หมวดหมู่แนะนำ</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {categories.slice(2, 6).map((category) => (
-              <Link key={category.id} to={`/categories?category=${encodeURIComponent(category.name)}`}>
-                <Card className="hover:shadow-lg transition-shadow text-center p-6">
-                  <div className="w-20 h-20 mx-auto mb-4 bg-purple-100 rounded-full flex items-center justify-center overflow-hidden">
-                    {category.image ? (
-                      <img 
-                        src={category.image} 
-                        alt={category.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 bg-purple-600 rounded"></div>
-                    )}
-                  </div>
-                  <h3 className="font-medium">{category.name}</h3>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* หมวดหมู่ยอดนิยม - Honkai : Star Rail */}
+      <CategorySection title="Honkai : Star Rail" products={honkaiProducts} categoryName="Honkai : Star Rail" />
 
-      {/* แบนเนอร์รูปภาพ */}
-      <section className="py-8 bg-gray-50">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="h-40 md:h-60 bg-gradient-to-r from-green-600 to-blue-600 rounded-lg flex items-center justify-center">
-            <div className="text-center text-white">
-              <h3 className="text-xl md:text-2xl font-bold mb-2">จัดส่งฟรี</h3>
-              <p className="text-sm md:text-base">สั่งซื้อตั้งแต่ 500 บาทขึ้นไป</p>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* หมวดหมู่ยอดนิยม - League of Legends */}
+      <CategorySection title="League of Legends" products={lolProducts} categoryName="League of Legends" />
     </div>
   );
 };
