@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, User, Search, Menu, X } from "lucide-react";
 
@@ -12,6 +12,7 @@ interface HeaderProps {
 const Header = ({ user, onSignOut }: HeaderProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   const isActive = (path: string) => {
     return location.pathname === path;
@@ -19,6 +20,14 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
 
   // Check if user is admin (you can customize this logic)
   const isAdmin = user?.email === 'admin@luckyshop.com' || user?.user_metadata?.role === 'admin';
+
+  const handleProfileClick = () => {
+    if (user) {
+      navigate('/profile');
+    } else {
+      navigate('/auth');
+    }
+  };
 
   return (
     <header 
@@ -113,6 +122,15 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
                 <span className="text-sm font-medium text-white">สวัสดี, {user.email}</span>
                 <Button 
                   variant="ghost" 
+                  size="icon" 
+                  onClick={handleProfileClick}
+                  className="text-white hover:bg-white hover:bg-opacity-20"
+                  title="จัดการโปรไฟล์"
+                >
+                  <User className="h-6 w-6" />
+                </Button>
+                <Button 
+                  variant="ghost" 
                   size="sm" 
                   onClick={onSignOut}
                   className="text-white hover:bg-white hover:bg-opacity-20"
@@ -121,11 +139,15 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
                 </Button>
               </div>
             ) : (
-              <Link to="/auth">
-                <Button variant="ghost" size="icon" className="text-white hover:bg-white hover:bg-opacity-20">
-                  <User className="h-6 w-6" />
-                </Button>
-              </Link>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={handleProfileClick}
+                className="text-white hover:bg-white hover:bg-opacity-20"
+                title="เข้าสู่ระบบ"
+              >
+                <User className="h-6 w-6" />
+              </Button>
             )}
 
             {/* Mobile menu button */}
@@ -200,6 +222,17 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
                 >
                   แอดมิน
                 </Link>
+              )}
+              {user && (
+                <button
+                  onClick={() => {
+                    handleProfileClick();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="text-left hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium"
+                >
+                  จัดการโปรไฟล์
+                </button>
               )}
             </div>
           </nav>
