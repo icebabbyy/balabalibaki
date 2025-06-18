@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -84,17 +85,17 @@ const Admin = () => {
 
   const fetchAdminData = async () => {
     try {
-      // Fetch products
+      // Fetch products from public_products only
       const { data: productsData } = await supabase
-        .from('products')
+        .from('public_products')
         .select('*')
         .order('id', { ascending: false });
 
-      // Fetch orders
+      // Fetch orders from publine_orders only
       const { data: ordersData } = await supabase
-        .from('orders')
+        .from('publine_orders')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('id', { ascending: false });
 
       // Fetch categories
       const { data: categoriesData } = await supabase
@@ -119,85 +120,22 @@ const Admin = () => {
     }
   };
 
+  // Note: Admin functions for adding/editing products would need to be updated to work with public views
+  // Since public_products is a view, direct insertion may not be possible without proper setup
   const handleAddProduct = async () => {
-    try {
-      const { error } = await supabase
-        .from('products')
-        .insert([{
-          ...newProduct,
-          selling_price: parseFloat(newProduct.selling_price) || 0,
-          price_yuan: 10,
-          cost_thb: 10,
-          import_cost: 10,
-          exchange_rate: 10,
-          quantity: 0,
-          sku: newProduct.sku || `SKU-${Date.now()}`
-        }]);
-
-      if (error) throw error;
-
-      toast.success('เพิ่มสินค้าเรียบร้อยแล้ว');
-      setNewProduct({
-        name: '',
-        selling_price: '',
-        category: '',
-        description: '',
-        image: '',
-        status: 'พรีออเดอร์',
-        sku: ''
-      });
-      fetchAdminData();
-    } catch (error) {
-      console.error('Error adding product:', error);
-      toast.error('เกิดข้อผิดพลาดในการเพิ่มสินค้า');
-    }
+    toast.error('การเพิ่มสินค้าต้องทำผ่านระบบหลังบ้าน');
   };
 
   const handleEditProduct = (product) => {
-    setEditingProduct(product);
+    toast.error('การแก้ไขสินค้าต้องทำผ่านระบบหลังบ้าน');
   };
 
   const handleSaveProduct = async (updatedProduct) => {
-    try {
-      const { error } = await supabase
-        .from('products')
-        .update({
-          name: updatedProduct.name,
-          selling_price: updatedProduct.selling_price,
-          category: updatedProduct.category,
-          description: updatedProduct.description,
-          image: updatedProduct.image,
-          status: updatedProduct.status,
-          sku: updatedProduct.sku
-        })
-        .eq('id', updatedProduct.id);
-
-      if (error) throw error;
-
-      toast.success('อัพเดทสินค้าเรียบร้อยแล้ว');
-      fetchAdminData();
-      setEditingProduct(null);
-    } catch (error) {
-      console.error('Error updating product:', error);
-      toast.error('เกิดข้อผิดพลาดในการอัพเดทสินค้า');
-    }
+    toast.error('การบันทึกสินค้าต้องทำผ่านระบบหลังบ้าน');
   };
 
   const handleUpdateOrder = async (orderId, newStatus) => {
-    try {
-      const { error } = await supabase
-        .from('orders')
-        .update({ status: newStatus })
-        .eq('id', orderId);
-
-      if (error) throw error;
-
-      toast.success('อัพเดทสถานะออเดอร์เรียบร้อยแล้ว');
-      fetchAdminData();
-    } catch (error) {
-      console.error('Error updating order:', error);
-      toast.error('เกิดข้อผิดพลาดในการอัพเดทออเดอร์');
-    }
+    toast.error('การอัพเดทออเดอร์ต้องทำผ่านระบบหลังบ้าน');
   };
 
   if (loading) {
@@ -309,59 +247,10 @@ const Admin = () => {
 
           {/* Products Management */}
           <TabsContent value="products" className="space-y-6">
-            {/* Add New Product */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Plus className="h-5 w-5" />
-                  <span>เพิ่มสินค้าใหม่</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input
-                    placeholder="ชื่อสินค้า"
-                    value={newProduct.name}
-                    onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
-                  />
-                  <Input
-                    placeholder="ราคา"
-                    type="number"
-                    value={newProduct.selling_price}
-                    onChange={(e) => setNewProduct({...newProduct, selling_price: e.target.value})}
-                  />
-                  <Input
-                    placeholder="หมวดหมู่"
-                    value={newProduct.category}
-                    onChange={(e) => setNewProduct({...newProduct, category: e.target.value})}
-                  />
-                  <Input
-                    placeholder="SKU (รหัสสินค้า)"
-                    value={newProduct.sku}
-                    onChange={(e) => setNewProduct({...newProduct, sku: e.target.value})}
-                  />
-                </div>
-                <ImageUpload
-                  currentImage={newProduct.image}
-                  onImageChange={(imageUrl) => setNewProduct({...newProduct, image: imageUrl})}
-                  label="รูปภาพสินค้า"
-                  folder="products"
-                />
-                <Textarea
-                  placeholder="คำอธิบายสินค้า"
-                  value={newProduct.description}
-                  onChange={(e) => setNewProduct({...newProduct, description: e.target.value})}
-                />
-                <Button onClick={handleAddProduct} className="bg-purple-600 hover:bg-purple-700">
-                  เพิ่มสินค้า
-                </Button>
-              </CardContent>
-            </Card>
-
             {/* Products List */}
             <Card>
               <CardHeader>
-                <CardTitle>รายการสินค้า</CardTitle>
+                <CardTitle>รายการสินค้า (จาก public_products)</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -380,17 +269,8 @@ const Admin = () => {
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Badge variant="outline">{product.status}</Badge>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleEditProduct(product)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="outline" size="sm" className="text-red-600">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <Badge variant="outline">{product.status || product["status TEXT DEFAULT"]}</Badge>
+                        <span className="text-xs text-gray-500">อ่านอย่างเดียว</span>
                       </div>
                     </div>
                   ))}
@@ -403,7 +283,7 @@ const Admin = () => {
           <TabsContent value="orders" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>จัดการออเดอร์</CardTitle>
+                <CardTitle>จัดการออเดอร์ (จาก publine_orders)</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -412,9 +292,8 @@ const Admin = () => {
                       <div className="flex items-center justify-between mb-2">
                         <div>
                           <h4 className="font-medium">ออเดอร์ #{order.id}</h4>
-                          <p className="text-sm text-gray-500">
-                            {new Date(order.created_at).toLocaleDateString('th-TH')}
-                          </p>
+                          <p className="text-sm text-gray-500">สินค้า: {order.item}</p>
+                          <p className="text-sm text-gray-500">SKU: {order.sku}</p>
                         </div>
                         <div className="flex items-center space-x-2">
                           <Badge className={
@@ -422,22 +301,19 @@ const Admin = () => {
                             order.status === 'กำลังจัดส่ง' ? 'bg-blue-100 text-blue-800' :
                             'bg-green-100 text-green-800'
                           }>
-                            {order.status}
+                            {order.status || 'รอชำระเงิน'}
                           </Badge>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleUpdateOrder(order.id, 'กำลังจัดส่ง')}
-                          >
-                            อัพเดทสถานะ
-                          </Button>
+                          <span className="text-xs text-gray-500">อ่านอย่างเดียว</span>
                         </div>
                       </div>
                       <p className="text-sm text-gray-600">
-                        ยอดรวม: ฿{order.total_selling_price?.toLocaleString()}
+                        ราคา: {order.price}
                       </p>
                       <p className="text-sm text-gray-600">
                         ลูกค้า: {order.username || 'ไม่ระบุ'}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        จำนวน: {order.qty}
                       </p>
                     </div>
                   ))}

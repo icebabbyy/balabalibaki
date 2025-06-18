@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -68,7 +67,7 @@ const Index = () => {
   const fetchFeaturedProducts = async () => {
     try {
       const { data } = await supabase
-        .from('products')
+        .from('public_products')
         .select('*')
         .limit(8);
       
@@ -96,21 +95,21 @@ const Index = () => {
     try {
       // Fetch Nikke products
       const { data: nikkeData } = await supabase
-        .from('products')
+        .from('public_products')
         .select('*')
         .eq('category', 'Nikke')
         .limit(5);
       
       // Fetch Honkai Star Rail products
       const { data: honkaiData } = await supabase
-        .from('products')
+        .from('public_products')
         .select('*')
         .eq('category', 'Honkai : Star Rail')
         .limit(5);
       
       // Fetch League of Legends products
       const { data: lolData } = await supabase
-        .from('products')
+        .from('public_products')
         .select('*')
         .eq('category', 'League of Legends')
         .limit(5);
