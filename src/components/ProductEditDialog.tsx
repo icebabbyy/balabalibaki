@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import ImageUpload from "@/components/ImageUpload";
 
 interface Product {
   id: number;
@@ -98,21 +99,12 @@ const ProductEditDialog = ({ product, isOpen, onClose, onSave }: ProductEditDial
             </div>
           </div>
           <div>
-            <Label>URL รูปภาพ</Label>
-            <Input
-              value={editingProduct.image}
-              onChange={(e) => updateField('image', e.target.value)}
-              placeholder="https://example.com/image.jpg"
+            <ImageUpload
+              currentImage={editingProduct.image}
+              onImageChange={(imageUrl) => updateField('image', imageUrl)}
+              label="รูปภาพสินค้า"
+              folder="products"
             />
-            {editingProduct.image && (
-              <div className="mt-2">
-                <img 
-                  src={editingProduct.image} 
-                  alt="Preview" 
-                  className="w-32 h-32 object-cover rounded border"
-                />
-              </div>
-            )}
           </div>
           <div>
             <Label>คำอธิบายสินค้า</Label>

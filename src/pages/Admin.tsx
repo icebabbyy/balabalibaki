@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,13 +7,17 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Edit, Trash2, Package, ShoppingCart, Users, BarChart3 } from "lucide-react";
+import { Plus, Edit, Trash2, Package, ShoppingCart, Users, BarChart3, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import BannerManager from "@/components/BannerManager";
+import CategoryManager from "@/components/CategoryManager";
+import ProductEditDialog from "@/components/ProductEditDialog";
+import ImageUpload from "@/components/ImageUpload";
 
 const Admin = () => {
-  const { user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
+  const { user, loading: authLoading, signOut } = useAuth();
   const [profile, setProfile] = useState(null);
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
@@ -21,6 +25,7 @@ const Admin = () => {
   const [banners, setBanners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [editingOrder, setEditingOrder] = useState(null);
   const [newProduct, setNewProduct] = useState({
     name: '',
     selling_price: '',
@@ -148,6 +153,36 @@ const Admin = () => {
     }
   };
 
+  const handleEditProduct = (product) => {
+    setEditingProduct(product);
+  };
+
+  const handleSaveProduct = async (updatedProduct) => {
+    try {
+      const { error } = await supabase
+        .from('products')
+        .update({
+          name: updatedProduct.name,
+          selling_price: updatedProduct.selling_price,
+          category: updatedProduct.category,
+          description: updatedProduct.description,
+          image: updatedProduct.image,
+          status: updatedProduct.status,
+          sku: updatedProduct.sku
+        })
+        .eq('id', updatedProduct.id);
+
+      if (error) throw error;
+
+      toast.success('อัพเดทสินค้าเรียบร้อยแล้ว');
+      fetchAdminData();
+      setEditingProduct(null);
+    } catch (error) {
+      console.error('Error updating product:', error);
+      toast.error('เกิดข้อผิดพลาดในการอัพเดทสินค้า');
+    }
+  };
+
   const handleUpdateOrder = async (orderId, newStatus) => {
     try {
       const { error } = await supabase
@@ -178,13 +213,32 @@ const Admin = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-purple-600 text-white shadow-lg">
+      {/* Fixed Header */}
+      <header className="bg-purple-600 text-white shadow-lg sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold">ระบบแอดมิน - Lucky Shop</h1>
+            <div className="flex items-center space-x-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/')}
+                className="text-white hover:bg-purple-700"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                กลับหน้าแรก
+              </Button>
+              <h1 className="text-2xl font-bold">ระบบแอดมิน - Lucky Shop</h1>
+            </div>
             <div className="flex items-center space-x-4">
               <Badge variant="secondary">แอดมิน: {profile?.username || user?.email}</Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={signOut}
+                className="text-white hover:bg-purple-700"
+              >
+                ออกจากระบบ
+              </Button>
             </div>
           </div>
         </div>
@@ -242,14 +296,16 @@ const Admin = () => {
           </Card>
         </div>
 
-        {/* Admin Tabs */}
+        {/* Admin Tabs with sticky navigation */}
         <Tabs defaultValue="products" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="products">จัดการสินค้า</TabsTrigger>
-            <TabsTrigger value="orders">จัดการออเดอร์</TabsTrigger>
-            <TabsTrigger value="categories">หมวดหมู่</TabsTrigger>
-            <TabsTrigger value="banners">แบนเนอร์</TabsTrigger>
-          </TabsList>
+          <div className="sticky top-20 z-40 bg-gray-50 pb-4">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="products">จัดการสินค้า</TabsTrigger>
+              <TabsTrigger value="orders">จัดการออเดอร์</TabsTrigger>
+              <TabsTrigger value="categories">หมวดหมู่</TabsTrigger>
+              <TabsTrigger value="banners">แบนเนอร์</TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* Products Management */}
           <TabsContent value="products" className="space-y-6">
@@ -284,13 +340,13 @@ const Admin = () => {
                     value={newProduct.sku}
                     onChange={(e) => setNewProduct({...newProduct, sku: e.target.value})}
                   />
-                  <Input
-                    placeholder="URL รูปภาพ"
-                    value={newProduct.image}
-                    onChange={(e) => setNewProduct({...newProduct, image: e.target.value})}
-                    className="md:col-span-2"
-                  />
                 </div>
+                <ImageUpload
+                  currentImage={newProduct.image}
+                  onImageChange={(imageUrl) => setNewProduct({...newProduct, image: imageUrl})}
+                  label="รูปภาพสินค้า"
+                  folder="products"
+                />
                 <Textarea
                   placeholder="คำอธิบายสินค้า"
                   value={newProduct.description}
@@ -325,7 +381,11 @@ const Admin = () => {
                       </div>
                       <div className="flex items-center space-x-2">
                         <Badge variant="outline">{product.status}</Badge>
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleEditProduct(product)}
+                        >
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button variant="outline" size="sm" className="text-red-600">
@@ -388,33 +448,7 @@ const Admin = () => {
 
           {/* Categories Management */}
           <TabsContent value="categories" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>จัดการหมวดหมู่สินค้า</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {categories.map((category) => (
-                    <div key={category.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div>
-                        <h4 className="font-medium">{category.name}</h4>
-                        <p className="text-sm text-gray-500">
-                          สร้างเมื่อ: {new Date(category.created_at).toLocaleDateString('th-TH')}
-                        </p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Button variant="outline" size="sm">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="outline" size="sm" className="text-red-600">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            <CategoryManager />
           </TabsContent>
 
           {/* Banners Management */}
@@ -423,6 +457,14 @@ const Admin = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Product Edit Dialog */}
+      <ProductEditDialog
+        product={editingProduct}
+        isOpen={!!editingProduct}
+        onClose={() => setEditingProduct(null)}
+        onSave={handleSaveProduct}
+      />
     </div>
   );
 };

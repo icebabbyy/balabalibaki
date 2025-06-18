@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 import { toast } from 'sonner';
@@ -8,6 +8,7 @@ export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const hasShownSignInToast = useRef(false);
 
   useEffect(() => {
     // Get initial session
@@ -27,10 +28,12 @@ export const useAuth = () => {
         setUser(session?.user ?? null);
         setLoading(false);
 
-        if (event === 'SIGNED_IN') {
+        if (event === 'SIGNED_IN' && !hasShownSignInToast.current) {
           toast.success('เข้าสู่ระบบสำเร็จ');
+          hasShownSignInToast.current = true;
         } else if (event === 'SIGNED_OUT') {
           toast.success('ออกจากระบบสำเร็จ');
+          hasShownSignInToast.current = false;
         }
       }
     );

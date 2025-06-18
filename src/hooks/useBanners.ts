@@ -38,17 +38,28 @@ export const useBanners = () => {
 
   const addBanner = async (newBanner: NewBannerForm) => {
     try {
+      // Generate a unique ID for the banner
+      const bannerId = `banner_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
       const { error } = await supabase
         .from('banners')
-        .insert([newBanner]);
+        .insert([{
+          id: bannerId,
+          image_url: newBanner.image_url,
+          position: newBanner.position,
+          active: newBanner.active
+        }]);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Banner insert error:', error);
+        throw error;
+      }
 
       toast.success('เพิ่มแบนเนอร์เรียบร้อยแล้ว');
       fetchBanners();
     } catch (error) {
       console.error('Error adding banner:', error);
-      toast.error('เกิดข้อผิดพลาดในการเพิ่มแบนเนอร์');
+      toast.error('เกิดข้อผิดพลาดในการเพิ่มแบนเนอร์: ' + (error as Error).message);
     }
   };
 
