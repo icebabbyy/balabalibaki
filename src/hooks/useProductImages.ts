@@ -17,15 +17,20 @@ export const useProductImages = (productId?: number) => {
 
   useEffect(() => {
     if (productId) {
+      console.log('Fetching images for product ID:', productId);
       fetchProductImages();
     }
   }, [productId]);
 
   const fetchProductImages = async () => {
-    if (!productId) return;
+    if (!productId) {
+      console.log('No product ID provided');
+      return;
+    }
 
     setLoading(true);
     try {
+      console.log('Fetching product images from database...');
       const { data, error } = await supabase
         .from('product_images')
         .select('*')
@@ -34,28 +39,40 @@ export const useProductImages = (productId?: number) => {
 
       if (error) {
         console.error('Error fetching product images:', error);
+        toast.error('เกิดข้อผิดพลาดในการโหลดรูปภาพ');
         return;
       }
 
+      console.log('Fetched images:', data);
       setImages(data || []);
     } catch (error) {
       console.error('Error:', error);
+      toast.error('เกิดข้อผิดพลาดในการโหลดรูปภาพ');
     } finally {
       setLoading(false);
     }
   };
 
   const uploadImages = async (files: File[]): Promise<string[]> => {
-    if (!productId) return [];
+    if (!productId) {
+      toast.error('ไม่พบ Product ID');
+      return [];
+    }
 
     setUploading(true);
     const uploadedUrls: string[] = [];
 
     try {
+      console.log('Starting upload process for', files.length, 'files');
+      
       for (const file of files) {
+        console.log('Uploading file:', file.name);
+        
         // Create unique filename
         const fileExt = file.name.split('.').pop();
         const fileName = `products/${productId}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+        
+        console.log('Upload path:', fileName);
         
         const { data, error } = await supabase.storage
           .from('product-images')
@@ -63,19 +80,24 @@ export const useProductImages = (productId?: number) => {
 
         if (error) {
           console.error('Upload error:', error);
-          toast.error(`เกิดข้อผิดพลาดในการอัพโหลด ${file.name}`);
+          toast.error(`เกิดข้อผิดพลาดในการอัพโหลด ${file.name}: ${error.message}`);
           continue;
         }
+
+        console.log('Upload successful:', data);
 
         // Get public URL
         const { data: { publicUrl } } = supabase.storage
           .from('product-images')
           .getPublicUrl(data.path);
 
+        console.log('Public URL:', publicUrl);
         uploadedUrls.push(publicUrl);
 
         // Add to product_images table
         const nextOrder = images.length > 0 ? Math.max(...images.map(img => img.order || 0)) + 1 : 1;
+        
+        console.log('Inserting image record with order:', nextOrder);
         
         const { error: insertError } = await supabase
           .from('product_images')
@@ -88,6 +110,8 @@ export const useProductImages = (productId?: number) => {
         if (insertError) {
           console.error('Error inserting image record:', insertError);
           toast.error('เกิดข้อผิดพลาดในการบันทึกข้อมูลรูปภาพ');
+        } else {
+          console.log('Image record inserted successfully');
         }
       }
 
@@ -111,11 +135,19 @@ export const useProductImages = (productId?: number) => {
       const imageToDelete = images.find(img => img.id === imageId);
       if (!imageToDelete) return;
 
+      console.log('Deleting image:', imageToDelete);
+
       // Delete from storage
       const path = imageToDelete.image_url.split('/').slice(-2).join('/'); // Get path from URL
-      await supabase.storage
+      console.log('Deleting from storage path:', path);
+      
+      const { error: storageError } = await supabase.storage
         .from('product-images')
         .remove([path]);
+
+      if (storageError) {
+        console.error('Storage delete error:', storageError);
+      }
 
       // Delete from database
       const { error } = await supabase

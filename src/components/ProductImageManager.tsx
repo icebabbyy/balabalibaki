@@ -18,12 +18,18 @@ const ProductImageManager = ({ productId }: ProductImageManagerProps) => {
     const files = Array.from(event.target.files || []);
     if (files.length === 0) return;
 
+    console.log('Selected files:', files);
     await uploadImages(files);
     
     // Clear the input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+  };
+
+  const handleUploadClick = () => {
+    console.log('Upload button clicked');
+    fileInputRef.current?.click();
   };
 
   return (
@@ -37,7 +43,7 @@ const ProductImageManager = ({ productId }: ProductImageManagerProps) => {
           <Button
             type="button"
             variant="outline"
-            onClick={() => fileInputRef.current?.click()}
+            onClick={handleUploadClick}
             disabled={uploading}
             className="flex items-center space-x-2"
           >
@@ -72,6 +78,10 @@ const ProductImageManager = ({ productId }: ProductImageManagerProps) => {
                     src={image.image_url}
                     alt={`Product image ${image.order}`}
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      console.error('Image failed to load:', image.image_url);
+                      e.currentTarget.src = '/placeholder.svg';
+                    }}
                   />
                 </div>
                 

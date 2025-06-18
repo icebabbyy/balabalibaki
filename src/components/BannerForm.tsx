@@ -2,12 +2,12 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus } from "lucide-react";
 import { NewBannerForm } from "@/types/banner";
+import ImageUpload from "@/components/ImageUpload";
 
 interface BannerFormProps {
   onSubmit: (banner: NewBannerForm) => void;
@@ -30,9 +30,11 @@ const BannerForm = ({ onSubmit }: BannerFormProps) => {
 
   const handleSubmit = () => {
     if (!newBanner.image_url) {
-      alert('กรุณาใส่ URL รูปภาพ');
+      alert('กรุณาเลือกรูปภาพ');
       return;
     }
+    
+    console.log('Submitting banner:', newBanner);
     onSubmit(newBanner);
     setNewBanner({
       image_url: '',
@@ -59,22 +61,12 @@ const BannerForm = ({ onSubmit }: BannerFormProps) => {
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="banner-url">URL รูปภาพ</Label>
-            <Input
-              id="banner-url"
-              placeholder="https://example.com/image.jpg"
-              value={newBanner.image_url}
-              onChange={(e) => updateField('image_url', e.target.value)}
+            <ImageUpload
+              currentImage={newBanner.image_url}
+              onImageChange={(imageUrl) => updateField('image_url', imageUrl)}
+              label="รูปภาพแบนเนอร์"
+              folder="banners"
             />
-            {newBanner.image_url && (
-              <div className="mt-2">
-                <img 
-                  src={newBanner.image_url} 
-                  alt="Preview" 
-                  className="w-48 h-32 object-cover rounded border"
-                />
-              </div>
-            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="banner-position">ตำแหน่งแบนเนอร์</Label>

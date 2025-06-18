@@ -2,11 +2,11 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Banner } from "@/types/banner";
+import ImageUpload from "@/components/ImageUpload";
 
 interface BannerEditFormProps {
   banner: Banner;
@@ -33,6 +33,7 @@ const BannerEditForm = ({ banner, onSave, onCancel }: BannerEditFormProps) => {
   };
 
   const handleSave = () => {
+    console.log('Saving banner:', editingBanner);
     onSave(editingBanner);
   };
 
@@ -44,20 +45,12 @@ const BannerEditForm = ({ banner, onSave, onCancel }: BannerEditFormProps) => {
       <CardContent className="space-y-4">
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label>URL รูปภาพ</Label>
-            <Input
-              value={editingBanner.image_url}
-              onChange={(e) => updateField('image_url', e.target.value)}
+            <ImageUpload
+              currentImage={editingBanner.image_url}
+              onImageChange={(imageUrl) => updateField('image_url', imageUrl)}
+              label="รูปภาพแบนเนอร์"
+              folder="banners"
             />
-            {editingBanner.image_url && (
-              <div className="mt-2">
-                <img 
-                  src={editingBanner.image_url} 
-                  alt="Preview" 
-                  className="w-48 h-32 object-cover rounded border"
-                />
-              </div>
-            )}
           </div>
           <div className="space-y-2">
             <Label>ตำแหน่งแบนเนอร์</Label>

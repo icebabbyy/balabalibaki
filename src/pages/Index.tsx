@@ -53,12 +53,15 @@ const Index = () => {
 
   const fetchBanners = async () => {
     try {
+      console.log('Fetching banners...');
       const { data } = await supabase
         .from('banners')
         .select('*')
         .eq('active', true)
-        .order('position');
+        .eq('position', 1) // Only get position 1 banners for main carousel
+        .order('created_at', { ascending: false });
       
+      console.log('Fetched banners:', data);
       setBanners(data || []);
     } catch (error) {
       console.error('Error fetching banners:', error);
@@ -225,7 +228,7 @@ const Index = () => {
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      {/* แบนเนอร์ขนาดกลางแบบ Auto Carousel */}
+      {/* แบนเนอร์ขนาดกลางแบบ Auto Carousel - Position 1 only */}
       <section className="relative">
         {banners.length > 0 ? (
           <div className="max-w-4xl mx-auto px-4 py-8">
@@ -250,6 +253,10 @@ const Index = () => {
                         src={banner.image_url || '/placeholder.svg'}
                         alt={banner.title || 'Banner'}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          console.error('Banner image failed to load:', banner.image_url);
+                          e.currentTarget.src = '/placeholder.svg';
+                        }}
                       />
                       {(banner.title || banner.description) && (
                         <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
