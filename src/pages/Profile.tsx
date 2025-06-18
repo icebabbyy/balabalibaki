@@ -1,84 +1,95 @@
 
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import Header from "@/components/Header";
-import { useAuth } from "@/hooks/useAuth";
+import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { User, Package, Heart, Settings } from "lucide-react";
+import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
+import Header from "@/components/Header";
 
 const Profile = () => {
-  const navigate = useNavigate();
   const { user, loading: authLoading, signOut } = useAuth();
   const [profile, setProfile] = useState(null);
+  const [orders, setOrders] = useState([]);
+  const [wishlist, setWishlist] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [updating, setUpdating] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     username: '',
     full_name: '',
     phone: '',
-    address: ''
+    address: '',
+    birth_date: ''
   });
 
-  console.log('Profile page: Component mounted', { user, authLoading });
-
   useEffect(() => {
-    if (authLoading) {
-      console.log('Profile page: Still loading auth state');
-      return;
+    if (user) {
+      fetchProfile();
+      fetchOrders();
+      fetchWishlist();
     }
+  }, [user]);
 
-    if (!user) {
-      console.log('Profile page: No user found, redirecting to auth');
-      navigate('/auth');
-      return;
-    }
-
-    console.log('Profile page: User found, loading profile:', user);
-    loadProfile(user.id);
-  }, [user, authLoading, navigate]);
-
-  const loadProfile = async (userId) => {
+  const fetchProfile = async () => {
     try {
-      console.log('Profile page: Loading profile for user ID:', userId);
-      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', userId)
-        .maybeSingle();
+        .eq('id', user.id)
+        .single();
 
-      console.log('Profile page - Profile data:', data, 'Profile Error:', error);
-
-      if (error) {
-        console.error('Profile page: Error loading profile:', error);
+      if (error && error.code !== 'PGRST116') {
+        throw error;
       }
 
       if (data) {
-        console.log('Profile page: Setting profile data:', data);
         setProfile(data);
         setFormData({
           username: data.username || '',
           full_name: data.full_name || '',
           phone: data.phone || '',
-          address: data.address || ''
+          address: data.address || '',
+          birth_date: data.birth_date || ''
         });
-      } else {
-        console.log('Profile page: No profile found, showing empty form');
       }
-    } catch (err) {
-      console.error('Profile page: Unexpected error in loadProfile:', err);
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      toast.error('เกิดข้อผิดพลาดในการโหลดโปรไฟล์');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    console.log('Profile page: Submitting form with data:', formData);
-    setUpdating(true);
+  const fetchOrders = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('username', user.email)
+        .order('created_at', { ascending: false });
 
+      if (error) throw error;
+      setOrders(data || []);
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+    }
+  };
+
+  const fetchWishlist = async () => {
+    // For now, we'll simulate wishlist data since it's not in the database yet
+    setWishlist([]);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
     try {
       const { error } = await supabase
         .from('profiles')
@@ -88,142 +99,207 @@ const Profile = () => {
           updated_at: new Date().toISOString()
         });
 
-      if (error) {
-        console.error('Profile page: Error updating profile:', error);
-        alert('เกิดข้อผิดพลาดในการอัปเดตโปรไฟล์');
-      } else {
-        console.log('Profile page: Profile updated successfully');
-        alert('อัปเดตโปรไฟล์สำเร็จ!');
-        await loadProfile(user.id);
-      }
-    } catch (err) {
-      console.error('Profile page: Unexpected error in handleSubmit:', err);
-      alert('เกิดข้อผิดพลาดที่ไม่คาดคิด');
+      if (error) throw error;
+
+      toast.success('บันทึกโปรไฟล์เรียบร้อยแล้ว');
+      fetchProfile();
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error('เกิดข้อผิดพลาดในการอัปเดตโปรไฟล์');
     } finally {
-      setUpdating(false);
+      setSaving(false);
     }
   };
 
-  // Show loading while checking auth
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center">กำลังโหลด...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-purple-600 font-medium">กำลังโหลด...</p>
         </div>
       </div>
     );
   }
 
-  // Show auth message if no user after check
   if (!user) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center">กำลังตรวจสอบสิทธิ์...</div>
-        </div>
-      </div>
-    );
+    return <Navigate to="/auth" replace />;
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header user={user} onSignOut={signOut} />
+      
       <div className="container mx-auto px-4 py-8">
-        <div className="max-w-md mx-auto">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-center text-xl font-bold">จัดการโปรไฟล์</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">อีเมล</label>
-                  <Input
-                    type="email"
-                    value={user?.email || ''}
-                    disabled
-                    className="bg-gray-100"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium mb-1">ชื่อผู้ใช้</label>
-                  <Input
-                    type="text"
-                    placeholder="กรุณากรอกชื่อผู้ใช้"
-                    value={formData.username}
-                    onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
-                  />
-                </div>
+        <div className="max-w-4xl mx-auto">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">จัดการโปรไฟล์</h1>
+            <p className="text-gray-600">จัดการข้อมูลส่วนตัว ประวัติการสั่งซื้อ และรายการที่ชอบ</p>
+          </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-1">ชื่อ-นามสกุล</label>
-                  <Input
-                    type="text"
-                    placeholder="กรุณากรอกชื่อ-นามสกุล"
-                    value={formData.full_name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, full_name: e.target.value }))}
-                  />
-                </div>
+          <Tabs defaultValue="profile" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="profile" className="flex items-center space-x-2">
+                <User className="h-4 w-4" />
+                <span>ข้อมูลส่วนตัว</span>
+              </TabsTrigger>
+              <TabsTrigger value="orders" className="flex items-center space-x-2">
+                <Package className="h-4 w-4" />
+                <span>ประวัติการสั่งซื้อ</span>
+              </TabsTrigger>
+              <TabsTrigger value="wishlist" className="flex items-center space-x-2">
+                <Heart className="h-4 w-4" />
+                <span>รายการที่ชอบ</span>
+              </TabsTrigger>
+            </TabsList>
 
-                <div>
-                  <label className="block text-sm font-medium mb-1">เบอร์โทรศัพท์</label>
-                  <Input
-                    type="tel"
-                    placeholder="กรุณากรอกเบอร์โทรศัพท์"
-                    value={formData.phone}
-                    onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-1">ที่อยู่</label>
-                  <Input
-                    type="text"
-                    placeholder="กรุณากรอกที่อยู่"
-                    value={formData.address}
-                    onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
-                  />
-                </div>
-
-                {profile && (
-                  <div>
-                    <label className="block text-sm font-medium mb-1">บทบาท</label>
-                    <Input
-                      type="text"
-                      value={profile.role || 'user'}
-                      disabled
-                      className="bg-gray-100"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      หากต้องการเปลี่ยนบทบาท กรุณาติดต่อผู้ดูแลระบบ
-                    </p>
+            {/* Profile Tab */}
+            <TabsContent value="profile" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Settings className="h-5 w-5" />
+                    <span>ข้อมูลส่วนตัว</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="username">ชื่อผู้ใช้</Label>
+                      <Input
+                        id="username"
+                        value={formData.username}
+                        onChange={(e) => handleInputChange('username', e.target.value)}
+                        placeholder="กรอกชื่อผู้ใช้"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="full_name">ชื่อ-นามสกุล</Label>
+                      <Input
+                        id="full_name"
+                        value={formData.full_name}
+                        onChange={(e) => handleInputChange('full_name', e.target.value)}
+                        placeholder="กรอกชื่อ-นามสกุล"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">เบอร์โทรศัพท์</Label>
+                      <Input
+                        id="phone"
+                        value={formData.phone}
+                        onChange={(e) => handleInputChange('phone', e.target.value)}
+                        placeholder="กรอกเบอร์โทรศัพท์"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="birth_date">วันเกิด</Label>
+                      <Input
+                        id="birth_date"
+                        type="date"
+                        value={formData.birth_date}
+                        onChange={(e) => handleInputChange('birth_date', e.target.value)}
+                      />
+                    </div>
                   </div>
-                )}
+                  <div className="space-y-2">
+                    <Label htmlFor="address">ที่อยู่</Label>
+                    <Textarea
+                      id="address"
+                      value={formData.address}
+                      onChange={(e) => handleInputChange('address', e.target.value)}
+                      placeholder="กรอกที่อยู่สำหรับจัดส่ง"
+                      rows={3}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>อีเมล</Label>
+                    <Input value={user.email} disabled className="bg-gray-100" />
+                    <p className="text-sm text-gray-500">อีเมลไม่สามารถแก้ไขได้</p>
+                  </div>
+                  <Button onClick={handleSave} disabled={saving} className="w-full">
+                    {saving ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-                <div className="space-y-2">
-                  <Button 
-                    type="submit" 
-                    className="w-full" 
-                    disabled={updating}
-                    style={{ backgroundColor: '#9f73c7' }}
-                  >
-                    {updating ? 'กำลังอัปเดต...' : 'อัปเดตโปรไฟล์'}
-                  </Button>
-                  
-                  <Button 
-                    type="button"
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => navigate('/')}
-                  >
-                    กลับหน้าหลัก
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
+            {/* Orders Tab */}
+            <TabsContent value="orders" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Package className="h-5 w-5" />
+                    <span>ประวัติการสั่งซื้อ</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {orders.length > 0 ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>หมายเลขออเดอร์</TableHead>
+                          <TableHead>วันที่สั่ง</TableHead>
+                          <TableHead>สถานะ</TableHead>
+                          <TableHead>ยอดรวม</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {orders.map((order) => (
+                          <TableRow key={order.id}>
+                            <TableCell>#{order.id}</TableCell>
+                            <TableCell>
+                              {new Date(order.created_at).toLocaleDateString('th-TH')}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={
+                                order.status === 'รอชำระเงิน' ? 'secondary' :
+                                order.status === 'กำลังจัดส่ง' ? 'default' :
+                                'outline'
+                              }>
+                                {order.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>฿{order.total_selling_price?.toLocaleString()}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-500">ยังไม่มีประวัติการสั่งซื้อ</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Wishlist Tab */}
+            <TabsContent value="wishlist" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Heart className="h-5 w-5" />
+                    <span>รายการที่ชอบ</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8">
+                    <Heart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500">ยังไม่มีสินค้าในรายการที่ชอบ</p>
+                    <p className="text-sm text-gray-400 mt-2">คลิกที่ไอคอนหัวใจในหน้าสินค้าเพื่อเพิ่มลงรายการที่ชอบ</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </div>

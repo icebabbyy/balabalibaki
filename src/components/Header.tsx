@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, User, Search, Menu, X } from "lucide-react";
+import { ShoppingCart, User, Search, Menu, X, Settings } from "lucide-react";
 
 interface HeaderProps {
   user?: any;
@@ -27,6 +27,17 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
     } else {
       navigate('/auth');
     }
+  };
+
+  const handleAdminClick = () => {
+    navigate('/admin');
+  };
+
+  // Get display name - prefer username or full_name over email
+  const getDisplayName = () => {
+    if (user?.user_metadata?.username) return user.user_metadata.username;
+    if (user?.user_metadata?.full_name) return user.user_metadata.full_name;
+    return user?.email || '';
   };
 
   return (
@@ -89,14 +100,16 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
               </Link>
               {/* Show admin link only for admin users */}
               {user && isAdmin && (
-                <Link 
-                  to="/admin" 
-                  className={`hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium ${
+                <Button
+                  onClick={handleAdminClick}
+                  variant="ghost"
+                  className={`hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium text-white hover:bg-white hover:bg-opacity-20 ${
                     isActive('/admin') ? 'bg-white bg-opacity-20 text-white' : ''
                   }`}
                 >
-                  แอดมิน
-                </Link>
+                  <Settings className="h-4 w-4 mr-2" />
+                  ระบบหลังบ้าน
+                </Button>
               )}
             </nav>
           </div>
@@ -119,7 +132,7 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
             
             {user ? (
               <div className="flex items-center space-x-2">
-                <span className="text-sm font-medium text-white">สวัสดี, {user.email}</span>
+                <span className="text-sm font-medium text-white">สวัสดี, {getDisplayName()}</span>
                 <Button 
                   variant="ghost" 
                   size="icon" 
@@ -213,15 +226,16 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
               </Link>
               {/* Show admin link only for admin users in mobile */}
               {user && isAdmin && (
-                <Link 
-                  to="/admin" 
-                  className={`hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium ${
-                    isActive('/admin') ? 'bg-white bg-opacity-20 text-white' : ''
-                  }`}
-                  onClick={() => setIsMobileMenuOpen(false)}
+                <button
+                  onClick={() => {
+                    handleAdminClick();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="text-left hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium flex items-center"
                 >
-                  แอดมิน
-                </Link>
+                  <Settings className="h-4 w-4 mr-2" />
+                  ระบบหลังบ้าน
+                </button>
               )}
               {user && (
                 <button
