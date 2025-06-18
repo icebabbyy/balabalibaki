@@ -2,136 +2,70 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Package, Edit, Check, X, Calculator } from "lucide-react";
+import { Edit, Package, CheckCircle, Clock, AlertCircle, Truck } from "lucide-react";
+import { useOrderManagement } from "@/hooks/useOrderManagement";
+import OrderTrackingDialog from "@/components/OrderTrackingDialog";
 
 const OrderManagement = () => {
-  const [orders, setOrders] = useState([
-    {
-      id: 1,
-      orderNumber: "ORD-001",
-      customer: "น้องแนท",
-      product: "Kuromi Limited Edition",
-      quantity: 1,
-      originalPrice: 1500,
-      discount: 0,
-      shippingCost: 0,
-      totalPrice: 1500,
-      status: "รอการอนุมัติ",
-      paymentStatus: "รอชำระเงิน",
-      notes: ""
-    },
-    {
-      id: 2,
-      orderNumber: "ORD-002", 
-      customer: "คุณสมใจ",
-      product: "Gwen Statue Collection",
-      quantity: 2,
-      originalPrice: 3000,
-      discount: 300,
-      shippingCost: 100,
-      totalPrice: 2800,
-      status: "รอการอนุมัติ",
-      paymentStatus: "รอชำระเงิน",
-      notes: "ขอส่วนลด 10%"
-    }
-  ]);
-
+  const { orders, loading, updateOrderStatus } = useOrderManagement();
   const [editingOrder, setEditingOrder] = useState(null);
-  const [shippingRates] = useState({
-    "กรุงเทพ": 50,
-    "ปริมณฑล": 80,
-    "ต่างจังหวัด": 120
-  });
-
-  const handleEditOrder = (order) => {
-    setEditingOrder({...order});
-  };
-
-  const calculateShipping = (province) => {
-    return shippingRates[province] || 100;
-  };
-
-  const updateOrderPrice = (field, value) => {
-    if (!editingOrder) return;
-    
-    const updated = { ...editingOrder, [field]: parseFloat(value) || 0 };
-    
-    // คำนวณราคาใหม่
-    const subtotal = updated.originalPrice - updated.discount;
-    updated.totalPrice = subtotal + updated.shippingCost;
-    
-    setEditingOrder(updated);
-  };
-
-  const saveOrder = () => {
-    setOrders(orders.map(order => 
-      order.id === editingOrder.id ? editingOrder : order
-    ));
-    setEditingOrder(null);
-  };
-
-  const approveOrder = (orderId) => {
-    setOrders(orders.map(order => 
-      order.id === orderId 
-        ? { ...order, status: "อนุมัติแล้ว", paymentStatus: "รอการโอนเงิน" }
-        : order
-    ));
-  };
-
-  const rejectOrder = (orderId) => {
-    setOrders(orders.map(order => 
-      order.id === orderId 
-        ? { ...order, status: "ปฏิเสธ", paymentStatus: "ยกเลิก" }
-        : order
-    ));
-  };
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'รอการอนุมัติ':
+      case 'รอชำระเงิน':
         return 'bg-yellow-100 text-yellow-800';
-      case 'อนุมัติแล้ว':
+      case 'ชำระเงินแล้ว':
+        return 'bg-purple-100 text-purple-800';
+      case 'กำลังจัดส่ง':
+        return 'bg-blue-100 text-blue-800';
+      case 'จัดส่งแล้ว':
         return 'bg-green-100 text-green-800';
-      case 'ปฏิเสธ':
+      case 'ยกเลิก':
         return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
   };
 
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'รอชำระเงิน':
+        return <Clock className="h-4 w-4" />;
+      case 'ชำระเงินแล้ว':
+        return <CheckCircle className="h-4 w-4" />;
+      case 'กำลังจัดส่ง':
+        return <Truck className="h-4 w-4" />;
+      case 'จัดส่งแล้ว':
+        return <CheckCircle className="h-4 w-4" />;
+      case 'ยกเลิก':
+        return <AlertCircle className="h-4 w-4" />;
+      default:
+        return <Package className="h-4 w-4" />;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <h2 className="text-2xl font-bold" style={{ color: '#956ec3' }}>จัดการออเดอร์</h2>
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-purple-600 font-medium">กำลังโหลดข้อมูล...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold" style={{ color: '#956ec3' }}>จัดการออเดอร์</h2>
         <Badge variant="secondary" className="px-3 py-1">
-          {orders.filter(o => o.status === 'รอการอนุมัติ').length} รายการรอพิจารณา
+          {orders.filter(o => o.status === 'รอชำระเงิน').length} รายการรอพิจารณา
         </Badge>
       </div>
 
-      {/* Shipping Rate Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">อัตราค่าจัดส่ง</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-3 gap-4">
-            {Object.entries(shippingRates).map(([province, rate]) => (
-              <div key={province} className="text-center p-3 bg-gray-50 rounded-lg">
-                <p className="font-medium">{province}</p>
-                <p className="text-lg font-bold" style={{ color: '#956ec3' }}>฿{rate}</p>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Orders List */}
       <div className="space-y-4">
         {orders.map((order) => (
           <Card key={order.id}>
@@ -139,170 +73,144 @@ const OrderManagement = () => {
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center space-x-2 mb-2">
-                    <h3 className="font-semibold text-lg">#{order.orderNumber}</h3>
+                    <h3 className="font-semibold text-lg">#{order.id}</h3>
                     <Badge className={getStatusColor(order.status)}>
-                      {order.status}
-                    </Badge>
-                    <Badge variant="outline">
-                      {order.paymentStatus}
+                      {getStatusIcon(order.status)}
+                      <span className="ml-1">{order.status}</span>
                     </Badge>
                   </div>
                   
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4">
                     <div>
                       <span className="text-gray-600">ลูกค้า:</span>
-                      <p className="font-medium">{order.customer}</p>
+                      <p className="font-medium">{order.username || 'ไม่ระบุ'}</p>
                     </div>
                     <div>
                       <span className="text-gray-600">สินค้า:</span>
-                      <p className="font-medium">{order.product}</p>
+                      <p className="font-medium">
+                        {order.items && order.items[0] ? order.items[0].productName : 'ไม่ระบุสินค้า'}
+                      </p>
                     </div>
                     <div>
                       <span className="text-gray-600">จำนวน:</span>
-                      <p className="font-medium">{order.quantity}</p>
+                      <p className="font-medium">
+                        {order.items && order.items[0] ? order.items[0].quantity : 'ไม่ระบุ'}
+                      </p>
                     </div>
                     <div>
                       <span className="text-gray-600">ราคารวม:</span>
                       <p className="font-bold text-lg" style={{ color: '#956ec3' }}>
-                        ฿{order.totalPrice.toLocaleString()}
+                        ฿{order.total_selling_price?.toLocaleString() || 'ไม่ระบุ'}
                       </p>
                     </div>
                   </div>
 
-                  {/* Price Breakdown */}
-                  <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                  {/* Tracking & Notes Section */}
+                  <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                       <div>
-                        <span className="text-gray-600">ราคาเดิม:</span>
-                        <p>฿{order.originalPrice.toLocaleString()}</p>
+                        <span className="text-gray-600">หมายเลขติดตาม:</span>
+                        <p className="font-medium">
+                          {order.tracking_number ? (
+                            <span className="font-mono bg-blue-100 px-2 py-1 rounded">
+                              {order.tracking_number}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">ยังไม่ได้ระบุ</span>
+                          )}
+                        </p>
                       </div>
                       <div>
-                        <span className="text-gray-600">ส่วนลด:</span>
-                        <p className="text-red-600">-฿{order.discount.toLocaleString()}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">ค่าจัดส่ง:</span>
-                        <p>฿{order.shippingCost.toLocaleString()}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">ยอดสุทธิ:</span>
-                        <p className="font-bold">฿{order.totalPrice.toLocaleString()}</p>
+                        <span className="text-gray-600">หมายเหตุแอดมิน:</span>
+                        <p className="font-medium">
+                          {order.admin_notes || <span className="text-gray-400">ไม่มีหมายเหตุ</span>}
+                        </p>
                       </div>
                     </div>
                   </div>
 
-                  {order.notes && (
-                    <div className="mt-2">
-                      <span className="text-gray-600 text-sm">หมายเหตุ:</span>
-                      <p className="text-sm italic">{order.notes}</p>
+                  {/* Financial Info */}
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+                    <div>
+                      <span className="text-gray-600">มัดจำ:</span>
+                      <p>฿{order.deposit?.toLocaleString() || '0'}</p>
                     </div>
-                  )}
+                    <div>
+                      <span className="text-gray-600">ยอดคงเหลือ:</span>
+                      <p>฿{order.profit?.toLocaleString() || '0'}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">วันที่สร้าง:</span>
+                      <p>{order.created_at ? new Date(order.created_at).toLocaleDateString('th-TH') : 'ไม่ระบุ'}</p>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="flex space-x-2 ml-4">
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleEditOrder(order)}
-                      >
-                        <Edit className="h-4 w-4 mr-1" />
-                        แก้ไข
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-md">
-                      <DialogHeader>
-                        <DialogTitle>แก้ไขออเดอร์ #{order.orderNumber}</DialogTitle>
-                      </DialogHeader>
-                      {editingOrder && (
-                        <div className="space-y-4">
-                          <div>
-                            <Label>ราคาเดิม</Label>
-                            <Input
-                              type="number"
-                              value={editingOrder.originalPrice}
-                              onChange={(e) => updateOrderPrice('originalPrice', e.target.value)}
-                            />
-                          </div>
-                          <div>
-                            <Label>ส่วนลด</Label>
-                            <Input
-                              type="number"
-                              value={editingOrder.discount}
-                              onChange={(e) => updateOrderPrice('discount', e.target.value)}
-                            />
-                          </div>
-                          <div>
-                            <Label>ค่าจัดส่ง</Label>
-                            <Select 
-                              value={editingOrder.shippingCost.toString()}
-                              onValueChange={(value) => updateOrderPrice('shippingCost', value)}
-                            >
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {Object.entries(shippingRates).map(([province, rate]) => (
-                                  <SelectItem key={province} value={rate.toString()}>
-                                    {province} - ฿{rate}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <Label>หมายเหตุ</Label>
-                            <Textarea
-                              value={editingOrder.notes}
-                              onChange={(e) => setEditingOrder({...editingOrder, notes: e.target.value})}
-                            />
-                          </div>
-                          <div className="p-3 bg-purple-50 rounded-lg">
-                            <div className="flex items-center space-x-2">
-                              <Calculator className="h-4 w-4" />
-                              <span className="font-medium">ราคารวม: ฿{editingOrder.totalPrice.toLocaleString()}</span>
-                            </div>
-                          </div>
-                          <div className="flex space-x-2">
-                            <Button onClick={saveOrder} className="flex-1">
-                              บันทึก
-                            </Button>
-                            <Button variant="outline" onClick={() => setEditingOrder(null)}>
-                              ยกเลิก
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                    </DialogContent>
-                  </Dialog>
+                <div className="flex flex-col space-y-2 ml-4">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setEditingOrder(order)}
+                  >
+                    <Edit className="h-4 w-4 mr-1" />
+                    แก้ไข Tracking
+                  </Button>
 
-                  {order.status === 'รอการอนุมัติ' && (
-                    <>
-                      <Button 
-                        size="sm" 
-                        onClick={() => approveOrder(order.id)}
-                        style={{ backgroundColor: '#956ec3' }}
-                      >
-                        <Check className="h-4 w-4 mr-1" />
-                        อนุมัติ
-                      </Button>
-                      <Button 
-                        variant="destructive" 
-                        size="sm"
-                        onClick={() => rejectOrder(order.id)}
-                      >
-                        <X className="h-4 w-4 mr-1" />
-                        ปฏิเสธ
-                      </Button>
-                    </>
+                  {order.status === 'รอชำระเงิน' && (
+                    <Button 
+                      size="sm" 
+                      onClick={() => updateOrderStatus(order.id, 'ชำระเงินแล้ว')}
+                      style={{ backgroundColor: '#956ec3' }}
+                    >
+                      <CheckCircle className="h-4 w-4 mr-1" />
+                      ยืนยันชำระ
+                    </Button>
+                  )}
+
+                  {order.status === 'ชำระเงินแล้ว' && (
+                    <Button 
+                      size="sm" 
+                      onClick={() => updateOrderStatus(order.id, 'กำลังจัดส่ง')}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      <Truck className="h-4 w-4 mr-1" />
+                      เริ่มจัดส่ง
+                    </Button>
+                  )}
+
+                  {order.status === 'กำลังจัดส่ง' && (
+                    <Button 
+                      size="sm" 
+                      onClick={() => updateOrderStatus(order.id, 'จัดส่งแล้ว')}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <CheckCircle className="h-4 w-4 mr-1" />
+                      จัดส่งเสร็จ
+                    </Button>
                   )}
                 </div>
               </div>
             </CardContent>
           </Card>
         ))}
+
+        {orders.length === 0 && (
+          <Card>
+            <CardContent className="py-8 text-center">
+              <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-700 mb-2">ยังไม่มีออเดอร์</h3>
+              <p className="text-gray-500">เมื่อมีออเดอร์เข้ามา จะแสดงที่นี่</p>
+            </CardContent>
+          </Card>
+        )}
       </div>
+
+      {/* Order Tracking Dialog */}
+      <OrderTrackingDialog
+        order={editingOrder}
+        isOpen={!!editingOrder}
+        onClose={() => setEditingOrder(null)}
+      />
     </div>
   );
 };

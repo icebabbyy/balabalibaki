@@ -1,41 +1,34 @@
-
 import { useState, useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Edit, Trash2, Package, ShoppingCart, Users, BarChart3, ArrowLeft } from "lucide-react";
+import { Plus, Edit, Trash2, Package, ShoppingCart, Users, BarChart3, ArrowLeft, Image } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import BannerManager from "@/components/BannerManager";
 import CategoryManager from "@/components/CategoryManager";
 import ProductEditDialog from "@/components/ProductEditDialog";
-import ImageUpload from "@/components/ImageUpload";
+import OrderManagement from "@/components/OrderManagement";
+import { useProductManagement } from "@/hooks/useProductManagement";
+import { useOrderManagement } from "@/hooks/useOrderManagement";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import ProductImageManager from "@/components/ProductImageManager";
 
 const Admin = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading, signOut } = useAuth();
   const [profile, setProfile] = useState(null);
-  const [products, setProducts] = useState([]);
-  const [orders, setOrders] = useState([]);
   const [categories, setCategories] = useState([]);
   const [banners, setBanners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingProduct, setEditingProduct] = useState(null);
-  const [editingOrder, setEditingOrder] = useState(null);
-  const [newProduct, setNewProduct] = useState({
-    name: '',
-    selling_price: '',
-    category: '',
-    description: '',
-    image: '',
-    status: 'พรีออเดอร์',
-    sku: ''
-  });
+  const [managingImages, setManagingImages] = useState(null);
+  
+  const { products, loading: productsLoading } = useProductManagement();
+  const { orders, loading: ordersLoading } = useOrderManagement();
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -85,18 +78,6 @@ const Admin = () => {
 
   const fetchAdminData = async () => {
     try {
-      // Fetch products from public_products only
-      const { data: productsData } = await supabase
-        .from('public_products')
-        .select('*')
-        .order('id', { ascending: false });
-
-      // Fetch orders from publine_orders only
-      const { data: ordersData } = await supabase
-        .from('publine_orders')
-        .select('*')
-        .order('id', { ascending: false });
-
       // Fetch categories
       const { data: categoriesData } = await supabase
         .from('categories')
@@ -108,8 +89,6 @@ const Admin = () => {
         .select('*')
         .order('position');
 
-      setProducts(productsData || []);
-      setOrders(ordersData || []);
       setCategories(categoriesData || []);
       setBanners(bannersData || []);
     } catch (error) {
@@ -120,25 +99,20 @@ const Admin = () => {
     }
   };
 
-  // Note: Admin functions for adding/editing products would need to be updated to work with public views
-  // Since public_products is a view, direct insertion may not be possible without proper setup
-  const handleAddProduct = async () => {
-    toast.error('การเพิ่มสินค้าต้องทำผ่านระบบหลังบ้าน');
-  };
-
   const handleEditProduct = (product) => {
-    toast.error('การแก้ไขสินค้าต้องทำผ่านระบบหลังบ้าน');
+    setEditingProduct(product);
   };
 
   const handleSaveProduct = async (updatedProduct) => {
-    toast.error('การบันทึกสินค้าต้องทำผ่านระบบหลังบ้าน');
+    // The ProductEditDialog will handle the saving
+    setEditingProduct(null);
   };
 
-  const handleUpdateOrder = async (orderId, newStatus) => {
-    toast.error('การอัพเดทออเดอร์ต้องทำผ่านระบบหลังบ้าน');
+  const handleManageImages = (product) => {
+    setManagingImages(product);
   };
 
-  if (loading) {
+  if (loading || productsLoading || ordersLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -247,10 +221,9 @@ const Admin = () => {
 
           {/* Products Management */}
           <TabsContent value="products" className="space-y-6">
-            {/* Products List */}
             <Card>
               <CardHeader>
-                <CardTitle>รายการสินค้า (จาก public_products)</CardTitle>
+                <CardTitle>รายการสินค้า</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -269,8 +242,23 @@ const Admin = () => {
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Badge variant="outline">{product.status || product["status TEXT DEFAULT"]}</Badge>
-                        <span className="text-xs text-gray-500">อ่านอย่างเดียว</span>
+                        <Badge variant="outline">{product.status}</Badge>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleManageImages(product)}
+                        >
+                          <Image className="h-4 w-4 mr-1" />
+                          รูปภาพ
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditProduct(product)}
+                        >
+                          <Edit className="h-4 w-4 mr-1" />
+                          แก้ไข
+                        </Button>
                       </div>
                     </div>
                   ))}
@@ -281,45 +269,7 @@ const Admin = () => {
 
           {/* Orders Management */}
           <TabsContent value="orders" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>จัดการออเดอร์ (จาก publine_orders)</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {orders.map((order) => (
-                    <div key={order.id} className="p-4 border rounded-lg">
-                      <div className="flex items-center justify-between mb-2">
-                        <div>
-                          <h4 className="font-medium">ออเดอร์ #{order.id}</h4>
-                          <p className="text-sm text-gray-500">สินค้า: {order.item}</p>
-                          <p className="text-sm text-gray-500">SKU: {order.sku}</p>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Badge className={
-                            order.status === 'รอชำระเงิน' ? 'bg-yellow-100 text-yellow-800' :
-                            order.status === 'กำลังจัดส่ง' ? 'bg-blue-100 text-blue-800' :
-                            'bg-green-100 text-green-800'
-                          }>
-                            {order.status || 'รอชำระเงิน'}
-                          </Badge>
-                          <span className="text-xs text-gray-500">อ่านอย่างเดียว</span>
-                        </div>
-                      </div>
-                      <p className="text-sm text-gray-600">
-                        ราคา: {order.price}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        ลูกค้า: {order.username || 'ไม่ระบุ'}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        จำนวน: {order.qty}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            <OrderManagement />
           </TabsContent>
 
           {/* Categories Management */}
@@ -341,6 +291,18 @@ const Admin = () => {
         onClose={() => setEditingProduct(null)}
         onSave={handleSaveProduct}
       />
+
+      {/* Product Image Management Dialog */}
+      {managingImages && (
+        <Dialog open={!!managingImages} onOpenChange={() => setManagingImages(null)}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>จัดการรูปภาพ - {managingImages.name}</DialogTitle>
+            </DialogHeader>
+            <ProductImageManager productId={managingImages.id} />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };

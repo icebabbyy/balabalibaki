@@ -60,6 +60,7 @@ export type Database = {
       orders: {
         Row: {
           address: string | null
+          admin_notes: string | null
           created_at: string | null
           deposit: number | null
           discount: number | null
@@ -73,11 +74,13 @@ export type Database = {
           status: string | null
           total_cost: number | null
           total_selling_price: number | null
+          tracking_number: string | null
           updated_at: string | null
           username: string | null
         }
         Insert: {
           address?: string | null
+          admin_notes?: string | null
           created_at?: string | null
           deposit?: number | null
           discount?: number | null
@@ -91,11 +94,13 @@ export type Database = {
           status?: string | null
           total_cost?: number | null
           total_selling_price?: number | null
+          tracking_number?: string | null
           updated_at?: string | null
           username?: string | null
         }
         Update: {
           address?: string | null
+          admin_notes?: string | null
           created_at?: string | null
           deposit?: number | null
           discount?: number | null
@@ -109,6 +114,7 @@ export type Database = {
           status?: string | null
           total_cost?: number | null
           total_selling_price?: number | null
+          tracking_number?: string | null
           updated_at?: string | null
           username?: string | null
         }
