@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +28,11 @@ interface ProductEditDialogProps {
 
 const ProductEditDialog = ({ product, isOpen, onClose, onSave }: ProductEditDialogProps) => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(product);
+
+  // Update editing product when product prop changes
+  useEffect(() => {
+    setEditingProduct(product);
+  }, [product]);
 
   const handleSave = () => {
     if (editingProduct) {

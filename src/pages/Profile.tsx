@@ -247,7 +247,6 @@ const Profile = () => {
                 <div className="text-sm text-gray-500">
                   <p>สร้างบัญชีเมื่อ: {profile?.created_at ? new Date(profile.created_at).toLocaleDateString('th-TH') : 'ไม่ระบุ'}</p>
                   <p>แก้ไขล่าสุดเมื่อ: {profile?.updated_at ? new Date(profile.updated_at).toLocaleDateString('th-TH') : 'ไม่ระบุ'}</p>
-                  <p>อีเมล: {user.email}</p>
                 </div>
               </div>
             </CardContent>

@@ -8,10 +8,19 @@ interface UserWelcomeScreenProps {
   onSignOut: () => void;
   onProfileClick: () => void;
   isAdmin: boolean;
+  profile?: any;
 }
 
-const UserWelcomeScreen = ({ user, onSignOut, onProfileClick, isAdmin }: UserWelcomeScreenProps) => {
+const UserWelcomeScreen = ({ user, onSignOut, onProfileClick, isAdmin, profile }: UserWelcomeScreenProps) => {
   console.log('UserWelcomeScreen: Rendering for user:', user.email);
+  
+  // Get display name - prioritize username over email
+  const getDisplayName = () => {
+    if (profile?.username) {
+      return profile.username;
+    }
+    return user?.email?.split('@')[0] || 'ผู้ใช้';
+  };
   
   return (
     <div className="min-h-screen bg-gray-50">
@@ -22,7 +31,7 @@ const UserWelcomeScreen = ({ user, onSignOut, onProfileClick, isAdmin }: UserWel
             <CardTitle>ยินดีต้อนรับ!</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="mb-4">สวัสดี, {user.email}</p>
+            <p className="mb-4">สวัสดี, {getDisplayName()}</p>
             <div className="space-y-2">
               <Button 
                 onClick={onProfileClick}

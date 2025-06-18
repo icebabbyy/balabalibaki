@@ -54,9 +54,12 @@ const Header = () => {
     }
   };
 
-  // Get display name - show username only
+  // Get display name - show username only, fallback to email username part
   const getDisplayName = () => {
-    return profile?.username || user?.email?.split('@')[0] || 'ผู้ใช้';
+    if (profile?.username) {
+      return profile.username;
+    }
+    return user?.email?.split('@')[0] || 'ผู้ใช้';
   };
 
   return (
