@@ -5,25 +5,50 @@ import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Minus, Plus, ArrowLeft, Calendar, Heart } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { ShoppingCart, Minus, Plus, ArrowLeft, Calendar, Heart, ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useImageGallery } from "@/hooks/useImageGallery";
 
 interface ProductOption {
   id: string | number;
   name: string;
 }
 
+interface ProductImage {
+  id: number;
+  image_url: string;
+  order: number;
+}
+
 const ProductDetail = () => {
   const { id } = useParams();
   const { toast } = useToast();
   const [quantity, setQuantity] = useState(1);
-  const [selectedImage, setSelectedImage] = useState(0);
   const [product, setProduct] = useState<any>(null);
+  const [productImages, setProductImages] = useState<ProductImage[]>([]);
   const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState<{ [key: string]: string }>({});
+
+  // Combine main product image with additional images
+  const allImages = [
+    product?.image || '/placeholder.svg',
+    ...productImages.map(img => img.image_url)
+  ].filter((img, index, arr) => arr.indexOf(img) === index); // Remove duplicates
+
+  const {
+    selectedIndex,
+    isModalOpen,
+    selectImage,
+    openModal,
+    closeModal,
+    nextImage,
+    previousImage,
+    currentImage
+  } = useImageGallery(allImages);
 
   useEffect(() => {
     fetchProduct();
@@ -37,6 +62,7 @@ const ProductDetail = () => {
     }
 
     try {
+      // Fetch product details
       const { data, error } = await supabase
         .from('public_products')
         .select('*')
@@ -54,6 +80,15 @@ const ProductDetail = () => {
       }
 
       setProduct(data);
+
+      // Fetch additional product images
+      const { data: imagesData } = await supabase
+        .from('product_images')
+        .select('*')
+        .eq('product_id', parseInt(id))
+        .order('order', { ascending: true });
+
+      setProductImages(imagesData || []);
 
       // Initialize selected option from first option with proper type checking
       if (data?.options && Array.isArray(data.options) && data.options.length > 0) {
@@ -135,11 +170,6 @@ const ProductDetail = () => {
     );
   }
 
-  const productImages = [
-    product.image || '/placeholder.svg',
-    product.image || '/placeholder.svg'
-  ];
-
   // Helper function to safely parse options
   const getProductOptions = (): ProductOption[] => {
     if (!product?.options) return [];
@@ -180,24 +210,29 @@ const ProductDetail = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Product Images */}
           <div className="space-y-4">
-            <div className="aspect-square bg-white rounded-lg overflow-hidden shadow-sm max-w-md mx-auto">
+            <div className="aspect-square bg-white rounded-lg overflow-hidden shadow-sm max-w-md mx-auto cursor-pointer">
               <img
-                src={productImages[selectedImage]}
+                src={allImages[selectedIndex]}
                 alt={product.name}
                 className="w-full h-full object-cover"
+                onClick={() => openModal(selectedIndex)}
               />
             </div>
-            <div className="flex space-x-2 justify-center">
-              {productImages.map((image, index) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedImage(index)}
-                  className={`w-16 h-16 rounded-lg overflow-hidden border-2 ${selectedImage === index ? 'border-purple-500' : 'border-gray-200'}`}
-                >
-                  <img src={image} alt={`${product.name} ${index + 1}`} className="w-full h-full object-cover" />
-                </button>
-              ))}
-            </div>
+            
+            {/* Image Thumbnails */}
+            {allImages.length > 1 && (
+              <div className="flex space-x-2 justify-center overflow-x-auto">
+                {allImages.map((image, index) => (
+                  <button
+                    key={index}
+                    onClick={() => selectImage(index)}
+                    className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 ${selectedIndex === index ? 'border-purple-500' : 'border-gray-200'}`}
+                  >
+                    <img src={image} alt={`${product.name} ${index + 1}`} className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Product Info */}
@@ -369,6 +404,46 @@ const ProductDetail = () => {
           </Link>
         </div>
       </div>
+
+      {/* Image Modal */}
+      <Dialog open={isModalOpen} onOpenChange={closeModal}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0">
+          <div className="relative">
+            <img
+              src={currentImage || '/placeholder.svg'}
+              alt={product.name}
+              className="w-full h-auto max-h-[85vh] object-contain"
+            />
+            
+            {/* Navigation Buttons */}
+            {allImages.length > 1 && (
+              <>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white"
+                  onClick={previousImage}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white"
+                  onClick={nextImage}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                
+                {/* Image Counter */}
+                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
+                  {selectedIndex + 1} / {allImages.length}
+                </div>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

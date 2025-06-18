@@ -6,7 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ImageUpload from "@/components/ImageUpload";
+import ProductImageManager from "@/components/ProductImageManager";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -88,72 +90,85 @@ const ProductEditDialog = ({ product, isOpen, onClose, onSave }: ProductEditDial
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>แก้ไขสินค้า</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        
+        <Tabs defaultValue="details" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="details">ข้อมูลสินค้า</TabsTrigger>
+            <TabsTrigger value="images">รูปภาพ</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="details" className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>ชื่อสินค้า</Label>
+                <Input
+                  value={editingProduct.name || ''}
+                  onChange={(e) => updateField('name', e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>ราคา</Label>
+                <Input
+                  type="number"
+                  value={editingProduct.selling_price || 0}
+                  onChange={(e) => updateField('selling_price', parseFloat(e.target.value) || 0)}
+                />
+              </div>
+              <div>
+                <Label>หมวดหมู่</Label>
+                <Input
+                  value={editingProduct.category || ''}
+                  onChange={(e) => updateField('category', e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>SKU</Label>
+                <Input
+                  value={editingProduct.sku || ''}
+                  onChange={(e) => updateField('sku', e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>สถานะ</Label>
+                <Select value={editingProduct.status || 'พรีออเดอร์'} onValueChange={(value) => updateField('status', value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="พรีออเดอร์">พรีออเดอร์</SelectItem>
+                    <SelectItem value="พร้อมส่ง">พร้อมส่ง</SelectItem>
+                    <SelectItem value="หมดสต็อก">หมดสต็อก</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             <div>
-              <Label>ชื่อสินค้า</Label>
-              <Input
-                value={editingProduct.name || ''}
-                onChange={(e) => updateField('name', e.target.value)}
+              <ImageUpload
+                currentImage={editingProduct.image}
+                onImageChange={(imageUrl) => updateField('image', imageUrl)}
+                label="รูปภาพหลัก"
+                folder="products"
               />
             </div>
             <div>
-              <Label>ราคา</Label>
-              <Input
-                type="number"
-                value={editingProduct.selling_price || 0}
-                onChange={(e) => updateField('selling_price', parseFloat(e.target.value) || 0)}
+              <Label>คำอธิบายสินค้า</Label>
+              <Textarea
+                value={editingProduct.description || ''}
+                onChange={(e) => updateField('description', e.target.value)}
+                rows={4}
               />
             </div>
-            <div>
-              <Label>หมวดหมู่</Label>
-              <Input
-                value={editingProduct.category || ''}
-                onChange={(e) => updateField('category', e.target.value)}
-              />
-            </div>
-            <div>
-              <Label>SKU</Label>
-              <Input
-                value={editingProduct.sku || ''}
-                onChange={(e) => updateField('sku', e.target.value)}
-              />
-            </div>
-            <div>
-              <Label>สถานะ</Label>
-              <Select value={editingProduct.status || 'พรีออเดอร์'} onValueChange={(value) => updateField('status', value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="พรีออเดอร์">พรีออเดอร์</SelectItem>
-                  <SelectItem value="พร้อมส่ง">พร้อมส่ง</SelectItem>
-                  <SelectItem value="หมดสต็อก">หมดสต็อก</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div>
-            <ImageUpload
-              currentImage={editingProduct.image}
-              onImageChange={(imageUrl) => updateField('image', imageUrl)}
-              label="รูปภาพสินค้า"
-              folder="products"
-            />
-          </div>
-          <div>
-            <Label>คำอธิบายสินค้า</Label>
-            <Textarea
-              value={editingProduct.description || ''}
-              onChange={(e) => updateField('description', e.target.value)}
-              rows={4}
-            />
-          </div>
-        </div>
+          </TabsContent>
+          
+          <TabsContent value="images">
+            <ProductImageManager productId={editingProduct.id} />
+          </TabsContent>
+        </Tabs>
+        
         <div className="flex space-x-2 pt-4">
           <Button 
             onClick={handleSave} 
