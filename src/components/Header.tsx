@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -100,16 +99,15 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
               </Link>
               {/* Show admin link only for admin users */}
               {user && isAdmin && (
-                <Button
-                  onClick={handleAdminClick}
-                  variant="ghost"
-                  className={`hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium text-white hover:bg-white hover:bg-opacity-20 ${
+                <Link
+                  to="/admin"
+                  className={`hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium flex items-center ${
                     isActive('/admin') ? 'bg-white bg-opacity-20 text-white' : ''
                   }`}
                 >
                   <Settings className="h-4 w-4 mr-2" />
                   ระบบหลังบ้าน
-                </Button>
+                </Link>
               )}
             </nav>
           </div>
@@ -132,7 +130,7 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
             
             {user ? (
               <div className="flex items-center space-x-2">
-                <span className="text-sm font-medium text-white">สวัสดี, {getDisplayName()}</span>
+                <span className="text-sm font-medium text-white">{getDisplayName()}</span>
                 <Button 
                   variant="ghost" 
                   size="icon" 
@@ -226,16 +224,14 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
               </Link>
               {/* Show admin link only for admin users in mobile */}
               {user && isAdmin && (
-                <button
-                  onClick={() => {
-                    handleAdminClick();
-                    setIsMobileMenuOpen(false);
-                  }}
+                <Link
+                  to="/admin"
                   className="text-left hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium flex items-center"
+                  onClick={() => setIsMobileMenuOpen(false)}
                 >
                   <Settings className="h-4 w-4 mr-2" />
                   ระบบหลังบ้าน
-                </button>
+                </Link>
               )}
               {user && (
                 <button

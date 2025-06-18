@@ -40,15 +40,20 @@ const Profile = () => {
 
   const fetchProfile = async () => {
     try {
+      console.log('Fetching profile for user:', user.id);
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
+        console.error('Error fetching profile:', error);
         throw error;
       }
+
+      console.log('Profile data:', data);
 
       if (data) {
         setProfile(data);
@@ -59,9 +64,39 @@ const Profile = () => {
           address: data.address || '',
           birth_date: data.birth_date || ''
         });
+      } else {
+        // Create initial profile if doesn't exist
+        console.log('No profile found, creating initial profile');
+        const { data: newProfile, error: createError } = await supabase
+          .from('profiles')
+          .insert([{
+            id: user.id,
+            username: user.email,
+            full_name: '',
+            phone: '',
+            address: '',
+            birth_date: null,
+            role: 'user'
+          }])
+          .select()
+          .single();
+
+        if (createError) {
+          console.error('Error creating profile:', createError);
+          throw createError;
+        }
+
+        setProfile(newProfile);
+        setFormData({
+          username: newProfile.username || '',
+          full_name: newProfile.full_name || '',
+          phone: newProfile.phone || '',
+          address: newProfile.address || '',
+          birth_date: newProfile.birth_date || ''
+        });
       }
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('Error in fetchProfile:', error);
       toast.error('เกิดข้อผิดพลาดในการโหลดโปรไฟล์');
     } finally {
       setLoading(false);
@@ -91,21 +126,32 @@ const Profile = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const { error } = await supabase
+      console.log('Saving profile data:', formData);
+      
+      const { data, error } = await supabase
         .from('profiles')
-        .upsert({
-          id: user.id,
-          ...formData,
+        .update({
+          username: formData.username,
+          full_name: formData.full_name,
+          phone: formData.phone,
+          address: formData.address,
+          birth_date: formData.birth_date || null,
           updated_at: new Date().toISOString()
-        });
+        })
+        .eq('id', user.id)
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating profile:', error);
+        throw error;
+      }
 
+      console.log('Profile updated successfully:', data);
       toast.success('บันทึกโปรไฟล์เรียบร้อยแล้ว');
-      fetchProfile();
+      await fetchProfile();
     } catch (error) {
       console.error('Error updating profile:', error);
-      toast.error('เกิดข้อผิดพลาดในการอัปเดตโปรไฟล์');
+      toast.error(`เกิดข้อผิดพลาดในการอัปเดตโปรไฟล์: ${error.message}`);
     } finally {
       setSaving(false);
     }
