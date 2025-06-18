@@ -2,7 +2,8 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, User, Search, Menu, X, Settings } from "lucide-react";
+import { ShoppingCart, User, Search, Menu, X, Settings, Package, Heart } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -51,10 +52,6 @@ const Header = () => {
     } else {
       navigate('/auth');
     }
-  };
-
-  const handleAdminClick = () => {
-    navigate('/admin');
   };
 
   // Get display name - show username only
@@ -154,36 +151,44 @@ const Header = () => {
             {user ? (
               <div className="flex items-center space-x-2">
                 <span className="text-sm font-medium text-white">{getDisplayName()}</span>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={handleProfileClick}
-                  className="text-white hover:bg-white hover:bg-opacity-20"
-                  title="จัดการโปรไฟล์"
-                >
-                  <User className="h-6 w-6" />
-                </Button>
-                {/* Show admin link only for admin users */}
-                {isAdmin && (
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={handleAdminClick}
-                    className="text-white hover:bg-white hover:bg-opacity-20 flex items-center"
-                    title="ระบบหลังบ้าน"
-                  >
-                    <Settings className="h-4 w-4 mr-2" />
-                    แอดมิน
-                  </Button>
-                )}
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={signOut}
-                  className="text-white hover:bg-white hover:bg-opacity-20"
-                >
-                  ออกจากระบบ
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="text-white hover:bg-white hover:bg-opacity-20"
+                    >
+                      <User className="h-6 w-6" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuItem onClick={handleProfileClick}>
+                      <User className="h-4 w-4 mr-2" />
+                      ข้อมูลโปรไฟล์
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/order-status')}>
+                      <Package className="h-4 w-4 mr-2" />
+                      ประวัติการสั่งซื้อ
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/wishlist')}>
+                      <Heart className="h-4 w-4 mr-2" />
+                      รายการโปรด
+                    </DropdownMenuItem>
+                    {isAdmin && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => navigate('/admin')}>
+                          <Settings className="h-4 w-4 mr-2" />
+                          ระบบหลังบ้าน
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={signOut}>
+                      ออกจากระบบ
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             ) : (
               <Button 
@@ -258,27 +263,48 @@ const Header = () => {
               >
                 รีวิว
               </Link>
-              {/* Show admin link only for admin users in mobile */}
-              {user && isAdmin && (
-                <Link
-                  to="/admin"
-                  className="text-left hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium flex items-center"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  <Settings className="h-4 w-4 mr-2" />
-                  ระบบหลังบ้าน
-                </Link>
-              )}
               {user && (
-                <button
-                  onClick={() => {
-                    handleProfileClick();
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="text-left hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium"
-                >
-                  จัดการโปรไฟล์
-                </button>
+                <>
+                  <button
+                    onClick={() => {
+                      handleProfileClick();
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="text-left hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium"
+                  >
+                    ข้อมูลโปรไฟล์
+                  </button>
+                  <button
+                    onClick={() => {
+                      navigate('/order-status');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="text-left hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium"
+                  >
+                    ประวัติการสั่งซื้อ
+                  </button>
+                  <button
+                    onClick={() => {
+                      navigate('/wishlist');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="text-left hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium"
+                  >
+                    รายการโปรด
+                  </button>
+                  {isAdmin && (
+                    <button
+                      onClick={() => {
+                        navigate('/admin');
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="text-left hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium flex items-center"
+                    >
+                      <Settings className="h-4 w-4 mr-2" />
+                      ระบบหลังบ้าน
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </nav>
