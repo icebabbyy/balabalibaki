@@ -25,11 +25,17 @@ const ProductDetail = () => {
   }, [id]);
 
   const fetchProduct = async () => {
+    if (!id) {
+      console.error('No product ID provided');
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('public_products')
         .select('*')
-        .eq('id', id)
+        .eq('id', parseInt(id))
         .single();
 
       if (error) {
