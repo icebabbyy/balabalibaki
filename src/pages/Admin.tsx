@@ -14,6 +14,7 @@ import BannerManager from "@/components/BannerManager";
 
 const Admin = () => {
   const { user, loading: authLoading } = useAuth();
+  const [profile, setProfile] = useState(null);
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -30,14 +31,34 @@ const Admin = () => {
     sku: ''
   });
 
-  // Check if user is admin
-  const isAdmin = user?.email === 'admin@luckyshop.com' || user?.user_metadata?.role === 'admin';
-
   useEffect(() => {
     if (!authLoading && user) {
+      fetchUserProfile();
       fetchAdminData();
     }
   }, [user, authLoading]);
+
+  const fetchUserProfile = async () => {
+    if (!user) return;
+    
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('username, role')
+        .eq('id', user.id)
+        .maybeSingle();
+      
+      if (data) {
+        setProfile(data);
+        console.log('Admin - User profile loaded:', data);
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    }
+  };
+
+  // Check if user is admin - consistent with other pages
+  const isAdmin = user?.email === 'admin@luckyshop.com' || profile?.role === 'admin';
 
   // Redirect if not admin
   if (authLoading) {
@@ -52,6 +73,7 @@ const Admin = () => {
   }
 
   if (!user || !isAdmin) {
+    console.log('Admin access denied - User:', user?.email, 'Profile role:', profile?.role);
     return <Navigate to="/auth" replace />;
   }
 
@@ -162,7 +184,7 @@ const Admin = () => {
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold">ระบบแอดมิน - Lucky Shop</h1>
             <div className="flex items-center space-x-4">
-              <Badge variant="secondary">แอดมิน</Badge>
+              <Badge variant="secondary">แอดมิน: {profile?.username || user?.email}</Badge>
             </div>
           </div>
         </div>

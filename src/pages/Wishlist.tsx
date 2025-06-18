@@ -6,39 +6,87 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Heart, ShoppingCart, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const Wishlist = () => {
   const { user, loading: authLoading } = useAuth();
   const [wishlistItems, setWishlistItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState(null);
 
   useEffect(() => {
     if (user) {
-      // Mock wishlist data for now
-      setWishlistItems([
-        {
-          id: 1,
-          name: "Nikke - Goddess of Victory Figure",
-          price: "฿2,500",
-          image: "/lovable-uploads/3a94bca0-09e6-4f37-bfc1-d924f4dc55b1.png",
-          category: "Nikke"
-        },
-        {
-          id: 2,
-          name: "Honkai: Star Rail - Kafka Figure",
-          price: "฿3,200",
-          image: "/lovable-uploads/3a94bca0-09e6-4f37-bfc1-d924f4dc55b1.png",
-          category: "Honkai: Star Rail"
-        }
-      ]);
-      setLoading(false);
+      fetchUserProfile();
     }
   }, [user]);
 
-  const removeFromWishlist = (itemId) => {
-    setWishlistItems(items => items.filter(item => item.id !== itemId));
-    toast.success('ลบออกจากรายการโปรดแล้ว');
+  const fetchUserProfile = async () => {
+    if (!user) return;
+    
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('wishlist')
+        .eq('id', user.id)
+        .maybeSingle();
+      
+      if (data) {
+        setProfile(data);
+        // Parse wishlist from string (comma-separated IDs) to array
+        const wishlistIds = data.wishlist ? data.wishlist.split(',').filter(id => id.trim()) : [];
+        await fetchWishlistProducts(wishlistIds);
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchWishlistProducts = async (productIds) => {
+    if (productIds.length === 0) {
+      setWishlistItems([]);
+      return;
+    }
+
+    try {
+      const { data: products } = await supabase
+        .from('products')
+        .select('*')
+        .in('id', productIds);
+
+      setWishlistItems(products || []);
+    } catch (error) {
+      console.error('Error fetching wishlist products:', error);
+      setWishlistItems([]);
+    }
+  };
+
+  const removeFromWishlist = async (itemId) => {
+    try {
+      // Get current wishlist
+      const currentWishlist = profile?.wishlist ? profile.wishlist.split(',').filter(id => id.trim()) : [];
+      // Remove the item
+      const updatedWishlist = currentWishlist.filter(id => id !== itemId.toString());
+      
+      // Update in database
+      const { error } = await supabase
+        .from('profiles')
+        .update({ wishlist: updatedWishlist.join(',') })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      // Update local state
+      setWishlistItems(items => items.filter(item => item.id !== itemId));
+      setProfile(prev => ({ ...prev, wishlist: updatedWishlist.join(',') }));
+      
+      toast.success('ลบออกจากรายการโปรดแล้ว');
+    } catch (error) {
+      console.error('Error removing from wishlist:', error);
+      toast.error('เกิดข้อผิดพลาดในการลบสินค้า');
+    }
   };
 
   const addToCart = (item) => {
@@ -105,7 +153,7 @@ const Wishlist = () => {
                       <div className="flex-1">
                         <h3 className="font-semibold text-gray-900">{item.name}</h3>
                         <p className="text-sm text-gray-500">{item.category}</p>
-                        <p className="font-bold text-purple-600 mt-1">{item.price}</p>
+                        <p className="font-bold text-purple-600 mt-1">฿{item.selling_price?.toLocaleString()}</p>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Button

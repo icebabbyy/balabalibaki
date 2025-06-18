@@ -185,6 +185,7 @@ export type Database = {
           role: string
           updated_at: string | null
           username: string | null
+          wishlist: string | null
         }
         Insert: {
           address?: string | null
@@ -196,6 +197,7 @@ export type Database = {
           role?: string
           updated_at?: string | null
           username?: string | null
+          wishlist?: string | null
         }
         Update: {
           address?: string | null
@@ -207,6 +209,7 @@ export type Database = {
           role?: string
           updated_at?: string | null
           username?: string | null
+          wishlist?: string | null
         }
         Relationships: []
       }

@@ -11,6 +11,7 @@ import { useAuthForm } from "@/hooks/useAuthForm";
 
 const Auth = () => {
   const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
   const { 
     loading, 
     error, 
@@ -29,18 +30,41 @@ const Auth = () => {
       if (session?.user) {
         console.log('Auth page: User already logged in, setting user state');
         setUser(session.user);
+        await fetchUserProfile(session.user.id);
       }
     };
 
     checkUser();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth page - Auth state changed:', event, session?.user);
       setUser(session?.user ?? null);
+      if (session?.user) {
+        await fetchUserProfile(session.user.id);
+      } else {
+        setProfile(null);
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const fetchUserProfile = async (userId) => {
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('username, role')
+        .eq('id', userId)
+        .maybeSingle();
+      
+      if (data) {
+        setProfile(data);
+        console.log('User profile loaded:', data);
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    }
+  };
 
   const onSignUp = async (email: string, password: string, confirmPassword: string) => {
     await handleSignUp(email, password, confirmPassword);
@@ -50,12 +74,16 @@ const Auth = () => {
     await handleSignIn(emailOrUsername, password);
   };
 
+  // Check if user is admin
+  const isAdmin = user?.email === 'admin@luckyshop.com' || profile?.role === 'admin';
+  
   if (user) {
     return (
       <UserWelcomeScreen 
         user={user} 
         onSignOut={handleSignOut} 
-        onProfileClick={handleProfileClick} 
+        onProfileClick={handleProfileClick}
+        isAdmin={isAdmin}
       />
     );
   }
