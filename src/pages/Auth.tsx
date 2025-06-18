@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Header from "@/components/Header";
-import AuthDebug from "@/components/AuthDebug";
 import SignInForm from "@/components/auth/SignInForm";
 import SignUpForm from "@/components/auth/SignUpForm";
 import UserWelcomeScreen from "@/components/auth/UserWelcomeScreen";
@@ -115,10 +114,6 @@ const Auth = () => {
               />
             </TabsContent>
           </Tabs>
-
-          <div className="mt-8">
-            <AuthDebug />
-          </div>
         </div>
       </div>
     </div>
