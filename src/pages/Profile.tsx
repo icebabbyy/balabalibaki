@@ -5,7 +5,6 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Header from "@/components/Header";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -19,8 +18,7 @@ const Profile = () => {
     username: '',
     full_name: '',
     phone: '',
-    address: '',
-    role: 'user'
+    address: ''
   });
 
   useEffect(() => {
@@ -51,8 +49,7 @@ const Profile = () => {
           username: data.username || '',
           full_name: data.full_name || '',
           phone: data.phone || '',
-          address: data.address || '',
-          role: data.role || 'user'
+          address: data.address || ''
         });
       }
     } catch (err) {
@@ -167,28 +164,27 @@ const Profile = () => {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-1">บทบาท</label>
-                  <Select 
-                    value={formData.role} 
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, role: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="เลือกบทบาท" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="user">ผู้ใช้ทั่วไป</SelectItem>
-                      <SelectItem value="admin">ผู้ดูแลระบบ</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                {profile && (
+                  <div>
+                    <label className="block text-sm font-medium mb-1">บทบาท</label>
+                    <Input
+                      type="text"
+                      value={profile.role || 'user'}
+                      disabled
+                      className="bg-gray-100"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      หากต้องการเปลี่ยนบทบาท กรุณาติดต่อผู้ดูแลระบบ
+                    </p>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Button 
                     type="submit" 
                     className="w-full" 
                     disabled={updating}
-                    style={{ backgroundColor: '#956ec3' }}
+                    style={{ backgroundColor: '#9f73c7' }}
                   >
                     {updating ? 'กำลังอัปเดต...' : 'อัปเดตโปรไฟล์'}
                   </Button>

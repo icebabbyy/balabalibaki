@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -35,10 +34,7 @@ const AuthDebug = () => {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            role: 'user' // ทุกคนเริ่มต้นเป็น user
-          }
+          emailRedirectTo: `${window.location.origin}/`
         }
       });
 
@@ -106,7 +102,7 @@ const AuthDebug = () => {
           onClick={testSignUp} 
           disabled={loading} 
           className="w-full"
-          style={{ backgroundColor: '#956ec3' }}
+          style={{ backgroundColor: '#9f73c7' }}
         >
           {loading ? 'Testing...' : 'Test Sign Up'}
         </Button>
