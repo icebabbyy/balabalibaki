@@ -66,8 +66,8 @@ const Auth = () => {
     }
   };
 
-  const onSignUp = async (email: string, password: string, confirmPassword: string) => {
-    await handleSignUp(email, password, confirmPassword);
+  const onSignUp = async (username: string, email: string, password: string, confirmPassword: string) => {
+    await handleSignUp(username, email, password, confirmPassword);
   };
 
   const onSignIn = async (emailOrUsername: string, password: string) => {

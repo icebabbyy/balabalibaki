@@ -5,20 +5,21 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface SignUpFormProps {
-  onSubmit: (email: string, password: string, confirmPassword: string) => Promise<void>;
+  onSubmit: (username: string, email: string, password: string, confirmPassword: string) => Promise<void>;
   loading: boolean;
   error: string;
 }
 
 const SignUpForm = ({ onSubmit, loading, error }: SignUpFormProps) => {
   const [formData, setFormData] = useState({ 
+    username: "",
     email: "", 
     password: "", 
     confirmPassword: "" 
   });
 
   const validateForm = () => {
-    if (!formData.email || !formData.password || !formData.confirmPassword) {
+    if (!formData.username || !formData.email || !formData.password || !formData.confirmPassword) {
       return false;
     }
     if (formData.password.length < 6) {
@@ -33,7 +34,7 @@ const SignUpForm = ({ onSubmit, loading, error }: SignUpFormProps) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
-    await onSubmit(formData.email, formData.password, formData.confirmPassword);
+    await onSubmit(formData.username, formData.email, formData.password, formData.confirmPassword);
   };
 
   return (
@@ -44,6 +45,18 @@ const SignUpForm = ({ onSubmit, loading, error }: SignUpFormProps) => {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-2 text-gray-700">ชื่อผู้ใช้</label>
+            <Input
+              type="text"
+              placeholder="กรุณากรอกชื่อผู้ใช้"
+              value={formData.username}
+              onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
+              autoComplete="username"
+              required
+              className="w-full"
+            />
+          </div>
           <div>
             <label className="block text-sm font-medium mb-2 text-gray-700">อีเมล</label>
             <Input

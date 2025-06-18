@@ -8,7 +8,11 @@ export const useAuthForm = () => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const validateSignupForm = (email: string, password: string, confirmPassword: string) => {
+  const validateSignupForm = (username: string, email: string, password: string, confirmPassword: string) => {
+    if (!username) {
+      setError('กรุณากรอกชื่อผู้ใช้');
+      return false;
+    }
     if (!email) {
       setError('กรุณากรอกอีเมล');
       return false;
@@ -42,8 +46,8 @@ export const useAuthForm = () => {
     return true;
   };
 
-  const handleSignUp = async (email: string, password: string, confirmPassword: string) => {
-    if (!validateSignupForm(email, password, confirmPassword)) return;
+  const handleSignUp = async (username: string, email: string, password: string, confirmPassword: string) => {
+    if (!validateSignupForm(username, email, password, confirmPassword)) return;
     
     setLoading(true);
     setError('');
@@ -55,6 +59,7 @@ export const useAuthForm = () => {
         options: {
           emailRedirectTo: `${window.location.origin}/`,
           data: {
+            username: username,
             role: 'user'
           }
         }
@@ -86,10 +91,10 @@ export const useAuthForm = () => {
       if (!emailOrUsername.includes('@')) {
         console.log('Looking up email for username:', emailOrUsername);
         
-        // Look up email by username
+        // Look up email by username from profiles table
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .select('id')
+          .select('email')
           .eq('username', emailOrUsername)
           .maybeSingle();
 
@@ -99,21 +104,12 @@ export const useAuthForm = () => {
           return;
         }
 
-        if (!profileData) {
+        if (!profileData || !profileData.email) {
           setError('ไม่พบชื่อผู้ใช้นี้');
           return;
         }
-
-        // Get the user's email from auth.users
-        const { data: userData, error: userError } = await supabase.auth.admin.getUserById(profileData.id);
         
-        if (userError || !userData.user) {
-          // Fallback: try to get email from profiles table or use a different approach
-          setError('ไม่พบข้อมูลผู้ใช้');
-          return;
-        }
-        
-        email = userData.user.email || emailOrUsername;
+        email = profileData.email;
       }
 
       const { data, error } = await supabase.auth.signInWithPassword({
