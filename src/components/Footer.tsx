@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 
 const Footer = () => {
   return (
-    <footer className="bg-gray-800 text-white py-12 mt-16">
+    <footer className="bg-purple-900 text-white py-12 mt-16">
       <div className="max-w-6xl mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Company Info */}
@@ -47,7 +47,7 @@ const Footer = () => {
 
           {/* บริการลูกค้า */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">บริการลูก้า</h3>
+            <h3 className="text-lg font-semibold mb-4">บริการลูกค้า</h3>
             <ul className="space-y-2">
               <li>
                 <Link to="/how-to-order" className="text-gray-300 hover:text-white transition-colors text-sm">
@@ -87,7 +87,7 @@ const Footer = () => {
           </div>
         </div>
 
-        <div className="border-t border-gray-700 mt-8 pt-6 text-center">
+        <div className="border-t border-purple-700 mt-8 pt-6 text-center">
           <p className="text-gray-400 text-sm">
             © 2024 Lucky Shop. สงวนลิขสิทธิ์ทั้งหมด.
           </p>

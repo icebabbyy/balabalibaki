@@ -1,93 +1,133 @@
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Search, Package, Truck, CheckCircle } from "lucide-react";
+import { Search, Package, Truck, CheckCircle, Clock, AlertCircle } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 const OrderStatus = () => {
   const [orderNumber, setOrderNumber] = useState('');
   const [searchResult, setSearchResult] = useState(null);
 
+  // Mock orders data
+  const mockOrders = [
+    {
+      orderNumber: 'LS001',
+      customerName: 'นาย สมชาย ใจดี',
+      status: 'รอชำระเงิน',
+      items: [
+        { name: 'เสื้อยืดคุณภาพพรีเมียม', quantity: 2, price: 599 },
+        { name: 'กระเป๋าสะพายหรู', quantity: 1, price: 1299 }
+      ],
+      total: 2497,
+      orderDate: '23 ธ.ค. 2024',
+      trackingNumber: null,
+      estimatedDelivery: null
+    },
+    {
+      orderNumber: 'LS002',
+      customerName: 'นางสาว วรรณา สวยงาม',
+      status: 'กำลังจัดส่ง',
+      items: [
+        { name: 'รองเท้าผ้าใบ', quantity: 1, price: 1599 },
+        { name: 'กระเป๋าใส่โทรศัพท์', quantity: 2, price: 299 }
+      ],
+      total: 2197,
+      orderDate: '22 ธ.ค. 2024',
+      trackingNumber: 'TH123456789',
+      estimatedDelivery: '25 ธ.ค. 2024'
+    },
+    {
+      orderNumber: 'LS003',
+      customerName: 'นาย ประเสริฐ รุ่งเรือง',
+      status: 'จัดส่งแล้ว',
+      items: [
+        { name: 'นาฬิกาข้อมือ', quantity: 1, price: 2599 }
+      ],
+      total: 2599,
+      orderDate: '21 ธ.ค. 2024',
+      trackingNumber: 'TH987654321',
+      estimatedDelivery: '24 ธ.ค. 2024'
+    }
+  ];
+
   const handleSearch = () => {
-    // Mock order data for demonstration
     if (orderNumber) {
-      setSearchResult({
-        orderNumber: orderNumber,
-        status: 'กำลังจัดส่ง',
-        items: [
-          { name: 'เสื้อยืดคุณภาพพรีเมียม', quantity: 2, price: 599 },
-          { name: 'กระเป๋าสะพายหรู', quantity: 1, price: 1299 }
-        ],
-        total: 2497,
-        trackingNumber: 'TH123456789',
-        estimatedDelivery: '25 ธ.ค. 2024'
-      });
+      const foundOrder = mockOrders.find(order => 
+        order.orderNumber.toLowerCase().includes(orderNumber.toLowerCase())
+      );
+      setSearchResult(foundOrder || null);
     }
   };
 
   const getStatusIcon = (status) => {
     switch (status) {
       case 'รอชำระเงิน':
-        return <Package className="h-5 w-5 text-yellow-500" />;
+        return <Clock className="h-4 w-4 text-yellow-500" />;
       case 'กำลังจัดส่ง':
-        return <Truck className="h-5 w-5 text-blue-500" />;
+        return <Truck className="h-4 w-4 text-blue-500" />;
       case 'จัดส่งแล้ว':
-        return <CheckCircle className="h-5 w-5 text-green-500" />;
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'ยกเลิก':
+        return <AlertCircle className="h-4 w-4 text-red-500" />;
       default:
-        return <Package className="h-5 w-5 text-gray-500" />;
+        return <Package className="h-4 w-4 text-gray-500" />;
     }
   };
 
   const getStatusColor = (status) => {
     switch (status) {
       case 'รอชำระเงิน':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'กำลังจัดส่ง':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'จัดส่งแล้ว':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'ยกเลิก':
+        return 'bg-red-100 text-red-800 border-red-200';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-purple-600 text-white shadow-lg sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 py-4">
-          <div className="flex items-center space-x-4">
-            <Link to="/">
-              <Button variant="ghost" size="icon" className="text-white hover:bg-purple-700">
-                <ArrowLeft className="h-6 w-6" />
-              </Button>
-            </Link>
-            <h1 className="text-xl font-bold">เช็คสถานะสินค้า</h1>
-          </div>
+      <Header />
+      
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">เช็คสถานะสินค้า</h1>
+          <p className="text-gray-600">ค้นหาและติดตามสถานะการสั่งซื้อของคุณ</p>
         </div>
-      </header>
 
-      <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Search Section */}
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle className="text-xl text-purple-800">ค้นหาหมายเลขออเดอร์</CardTitle>
+            <CardTitle className="text-xl" style={{ color: '#956ec3' }}>ค้นหาหมายเลขออเดอร์</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex space-x-4">
               <Input
                 type="text"
-                placeholder="กรอกหมายเลขออเดอร์..."
+                placeholder="กรอกหมายเลขออเดอร์ เช่น LS001, LS002..."
                 value={orderNumber}
                 onChange={(e) => setOrderNumber(e.target.value)}
                 className="flex-1"
               />
               <Button 
                 onClick={handleSearch}
-                className="bg-purple-600 hover:bg-purple-700"
+                style={{ backgroundColor: '#956ec3' }}
+                className="hover:opacity-90"
               >
                 <Search className="h-4 w-4 mr-2" />
                 ค้นหา
@@ -98,13 +138,16 @@ const OrderStatus = () => {
 
         {/* Search Result */}
         {searchResult && (
-          <Card className="border-purple-200">
+          <Card className="mb-8" style={{ borderColor: '#956ec3' }}>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg text-purple-800">
-                  ออเดอร์ #{searchResult.orderNumber}
-                </CardTitle>
-                <Badge className={getStatusColor(searchResult.status)}>
+                <div>
+                  <CardTitle className="text-lg" style={{ color: '#956ec3' }}>
+                    ออเดอร์ #{searchResult.orderNumber}
+                  </CardTitle>
+                  <p className="text-gray-600 mt-1">ลูกค้า: {searchResult.customerName}</p>
+                </div>
+                <Badge className={`${getStatusColor(searchResult.status)} border`}>
                   <div className="flex items-center space-x-1">
                     {getStatusIcon(searchResult.status)}
                     <span>{searchResult.status}</span>
@@ -123,91 +166,88 @@ const OrderStatus = () => {
                         <p className="font-medium text-gray-800">{item.name}</p>
                         <p className="text-sm text-gray-500">จำนวน: {item.quantity}</p>
                       </div>
-                      <p className="font-semibold text-purple-600">฿{item.price.toLocaleString()}</p>
+                      <p className="font-semibold" style={{ color: '#956ec3' }}>฿{item.price.toLocaleString()}</p>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Total */}
-              <div className="flex justify-between items-center pt-4 border-t border-gray-200">
-                <span className="text-lg font-semibold text-gray-800">ยอดรวม</span>
-                <span className="text-xl font-bold text-purple-600">฿{searchResult.total.toLocaleString()}</span>
-              </div>
-
-              {/* Tracking Info */}
-              {searchResult.trackingNumber && (
-                <div className="bg-purple-50 p-4 rounded-lg">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Order Summary */}
+              <div className="bg-purple-50 p-4 rounded-lg">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">วันที่สั่งซื้อ</p>
+                    <p className="text-lg font-semibold" style={{ color: '#956ec3' }}>{searchResult.orderDate}</p>
+                  </div>
+                  {searchResult.trackingNumber && (
                     <div>
                       <p className="text-sm font-medium text-gray-700">หมายเลขติดตาม</p>
-                      <p className="text-lg font-semibold text-purple-600">{searchResult.trackingNumber}</p>
+                      <p className="text-lg font-semibold" style={{ color: '#956ec3' }}>{searchResult.trackingNumber}</p>
                     </div>
+                  )}
+                  {searchResult.estimatedDelivery && (
                     <div>
                       <p className="text-sm font-medium text-gray-700">กำหนดการจัดส่ง</p>
-                      <p className="text-lg font-semibold text-purple-600">{searchResult.estimatedDelivery}</p>
+                      <p className="text-lg font-semibold" style={{ color: '#956ec3' }}>{searchResult.estimatedDelivery}</p>
                     </div>
-                  </div>
+                  )}
                 </div>
-              )}
-
-              {/* Status Timeline */}
-              <div>
-                <h4 className="font-semibold text-gray-800 mb-4">สถานะการจัดส่ง</h4>
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-3">
-                    <CheckCircle className="h-5 w-5 text-green-500" />
-                    <div>
-                      <p className="font-medium text-gray-800">ได้รับออเดอร์แล้ว</p>
-                      <p className="text-sm text-gray-500">23 ธ.ค. 2024, 14:30</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <CheckCircle className="h-5 w-5 text-green-500" />
-                    <div>
-                      <p className="font-medium text-gray-800">กำลังเตรียมสินค้า</p>
-                      <p className="text-sm text-gray-500">23 ธ.ค. 2024, 16:00</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <Truck className="h-5 w-5 text-blue-500" />
-                    <div>
-                      <p className="font-medium text-gray-800">กำลังจัดส่ง</p>
-                      <p className="text-sm text-gray-500">24 ธ.ค. 2024, 09:00</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <Package className="h-5 w-5 text-gray-400" />
-                    <div>
-                      <p className="font-medium text-gray-400">จัดส่งแล้ว</p>
-                      <p className="text-sm text-gray-400">รอการอัพเดท</p>
-                    </div>
-                  </div>
+                <div className="flex justify-between items-center pt-4 border-t border-purple-200 mt-4">
+                  <span className="text-lg font-semibold text-gray-800">ยอดรวม</span>
+                  <span className="text-xl font-bold" style={{ color: '#956ec3' }}>฿{searchResult.total.toLocaleString()}</span>
                 </div>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Help Section */}
-        <Card className="mt-8 border-purple-200">
+        {/* All Orders Table */}
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg text-purple-800">ต้องการความช่วยเหลือ?</CardTitle>
+            <CardTitle className="text-xl" style={{ color: '#956ec3' }}>รายการออเดอร์ทั้งหมด</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-gray-600 mb-4">
-              หากคุณมีคำถามเกี่ยวกับออเดอร์ของคุณ สามารถติดต่อเราได้ผ่านทางช่องทางต่อไปนี้
-            </p>
-            <div className="flex space-x-4">
-              <Link to="/qa">
-                <Button variant="outline" className="border-purple-300 text-purple-600 hover:bg-purple-50">
-                  คำถามที่พบบ่อย
-                </Button>
-              </Link>
-              <Button variant="outline" className="border-purple-300 text-purple-600 hover:bg-purple-50">
-                ติดต่อเรา
-              </Button>
-            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>หมายเลขออเดอร์</TableHead>
+                  <TableHead>ลูกค้า</TableHead>
+                  <TableHead>วันที่สั่งซื้อ</TableHead>
+                  <TableHead>ยอดรวม</TableHead>
+                  <TableHead>สถานะ</TableHead>
+                  <TableHead>การติดตาม</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {mockOrders.map((order, index) => (
+                  <TableRow key={index}>
+                    <TableCell className="font-medium" style={{ color: '#956ec3' }}>
+                      {order.orderNumber}
+                    </TableCell>
+                    <TableCell>{order.customerName}</TableCell>
+                    <TableCell>{order.orderDate}</TableCell>
+                    <TableCell className="font-semibold">฿{order.total.toLocaleString()}</TableCell>
+                    <TableCell>
+                      <Badge className={`${getStatusColor(order.status)} border`}>
+                        <div className="flex items-center space-x-1">
+                          {getStatusIcon(order.status)}
+                          <span>{order.status}</span>
+                        </div>
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {order.trackingNumber ? (
+                        <code className="bg-gray-100 px-2 py-1 rounded text-sm">
+                          {order.trackingNumber}
+                        </code>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       </div>
