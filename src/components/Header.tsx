@@ -21,7 +21,10 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
   const isAdmin = user?.email === 'admin@luckyshop.com' || user?.user_metadata?.role === 'admin';
 
   return (
-    <header className="bg-gradient-to-r from-purple-200 to-purple-300 text-gray-800 shadow-lg sticky top-0 z-50">
+    <header 
+      className="text-gray-800 shadow-lg sticky top-0 z-50"
+      style={{ background: 'linear-gradient(to right, #956ec3, #a576c9)' }}
+    >
       <div className="max-w-7xl mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-8">
@@ -37,40 +40,40 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
             <nav className="hidden md:flex space-x-6">
               <Link 
                 to="/" 
-                className={`hover:text-purple-700 transition-colors px-3 py-2 rounded font-medium ${
-                  isActive('/') ? 'bg-purple-200 text-purple-800' : ''
+                className={`hover:text-white transition-colors px-3 py-2 rounded font-medium ${
+                  isActive('/') ? 'bg-white bg-opacity-20 text-white' : ''
                 }`}
               >
                 หน้าแรก
               </Link>
               <Link 
                 to="/categories" 
-                className={`hover:text-purple-700 transition-colors px-3 py-2 rounded font-medium ${
-                  isActive('/categories') ? 'bg-purple-200 text-purple-800' : ''
+                className={`hover:text-white transition-colors px-3 py-2 rounded font-medium ${
+                  isActive('/categories') ? 'bg-white bg-opacity-20 text-white' : ''
                 }`}
               >
                 หมวดหมู่
               </Link>
               <Link 
                 to="/order-status" 
-                className={`hover:text-purple-700 transition-colors px-3 py-2 rounded font-medium ${
-                  isActive('/order-status') ? 'bg-purple-200 text-purple-800' : ''
+                className={`hover:text-white transition-colors px-3 py-2 rounded font-medium ${
+                  isActive('/order-status') ? 'bg-white bg-opacity-20 text-white' : ''
                 }`}
               >
                 เช็คสถานะสินค้า
               </Link>
               <Link 
                 to="/qa" 
-                className={`hover:text-purple-700 transition-colors px-3 py-2 rounded font-medium ${
-                  isActive('/qa') ? 'bg-purple-200 text-purple-800' : ''
+                className={`hover:text-white transition-colors px-3 py-2 rounded font-medium ${
+                  isActive('/qa') ? 'bg-white bg-opacity-20 text-white' : ''
                 }`}
               >
                 Q&A
               </Link>
               <Link 
                 to="/reviews" 
-                className={`hover:text-purple-700 transition-colors px-3 py-2 rounded font-medium ${
-                  isActive('/reviews') ? 'bg-purple-200 text-purple-800' : ''
+                className={`hover:text-white transition-colors px-3 py-2 rounded font-medium ${
+                  isActive('/reviews') ? 'bg-white bg-opacity-20 text-white' : ''
                 }`}
               >
                 รีวิว
@@ -79,8 +82,8 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
               {user && isAdmin && (
                 <Link 
                   to="/admin" 
-                  className={`hover:text-purple-700 transition-colors px-3 py-2 rounded font-medium ${
-                    isActive('/admin') ? 'bg-purple-200 text-purple-800' : ''
+                  className={`hover:text-white transition-colors px-3 py-2 rounded font-medium ${
+                    isActive('/admin') ? 'bg-white bg-opacity-20 text-white' : ''
                   }`}
                 >
                   แอดมิน
@@ -94,30 +97,31 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
               <input
                 type="text"
                 placeholder="ค้นหาสินค้า..."
-                className="w-64 px-4 py-2 rounded-lg text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-purple-400 border border-purple-200"
+                className="w-64 px-4 py-2 rounded-lg text-gray-800 bg-white focus:outline-none focus:ring-2 border border-white border-opacity-30"
+                style={{ focusRingColor: '#956ec3' }}
               />
               <Search className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
             </div>
             
-            <Button variant="ghost" size="icon" className="text-gray-800 hover:bg-purple-200">
+            <Button variant="ghost" size="icon" className="text-gray-800 hover:bg-white hover:bg-opacity-20">
               <ShoppingCart className="h-6 w-6" />
             </Button>
             
             {user ? (
               <div className="flex items-center space-x-2">
-                <span className="text-sm font-medium">สวัสดี, {user.email}</span>
+                <span className="text-sm font-medium text-white">สวัสดี, {user.email}</span>
                 <Button 
                   variant="ghost" 
                   size="sm" 
                   onClick={onSignOut}
-                  className="text-gray-800 hover:bg-purple-200"
+                  className="text-white hover:bg-white hover:bg-opacity-20"
                 >
                   ออกจากระบบ
                 </Button>
               </div>
             ) : (
               <Link to="/auth">
-                <Button variant="ghost" size="icon" className="text-gray-800 hover:bg-purple-200">
+                <Button variant="ghost" size="icon" className="text-white hover:bg-white hover:bg-opacity-20">
                   <User className="h-6 w-6" />
                 </Button>
               </Link>
@@ -127,7 +131,7 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden text-gray-800 hover:bg-purple-200"
+              className="md:hidden text-white hover:bg-white hover:bg-opacity-20"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             >
               {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -137,12 +141,12 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
 
         {/* Mobile Navigation */}
         {isMobileMenuOpen && (
-          <nav className="md:hidden mt-4 pt-4 border-t border-purple-300">
+          <nav className="md:hidden mt-4 pt-4 border-t border-white border-opacity-30">
             <div className="flex flex-col space-y-2">
               <Link 
                 to="/" 
-                className={`hover:text-purple-700 transition-colors px-3 py-2 rounded font-medium ${
-                  isActive('/') ? 'bg-purple-200 text-purple-800' : ''
+                className={`hover:text-white transition-colors px-3 py-2 rounded font-medium ${
+                  isActive('/') ? 'bg-white bg-opacity-20 text-white' : ''
                 }`}
                 onClick={() => setIsMobileMenuOpen(false)}
               >
@@ -150,8 +154,8 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
               </Link>
               <Link 
                 to="/categories" 
-                className={`hover:text-purple-700 transition-colors px-3 py-2 rounded font-medium ${
-                  isActive('/categories') ? 'bg-purple-200 text-purple-800' : ''
+                className={`hover:text-white transition-colors px-3 py-2 rounded font-medium ${
+                  isActive('/categories') ? 'bg-white bg-opacity-20 text-white' : ''
                 }`}
                 onClick={() => setIsMobileMenuOpen(false)}
               >
@@ -159,8 +163,8 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
               </Link>
               <Link 
                 to="/order-status" 
-                className={`hover:text-purple-700 transition-colors px-3 py-2 rounded font-medium ${
-                  isActive('/order-status') ? 'bg-purple-200 text-purple-800' : ''
+                className={`hover:text-white transition-colors px-3 py-2 rounded font-medium ${
+                  isActive('/order-status') ? 'bg-white bg-opacity-20 text-white' : ''
                 }`}
                 onClick={() => setIsMobileMenuOpen(false)}
               >
@@ -168,8 +172,8 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
               </Link>
               <Link 
                 to="/qa" 
-                className={`hover:text-purple-700 transition-colors px-3 py-2 rounded font-medium ${
-                  isActive('/qa') ? 'bg-purple-200 text-purple-800' : ''
+                className={`hover:text-white transition-colors px-3 py-2 rounded font-medium ${
+                  isActive('/qa') ? 'bg-white bg-opacity-20 text-white' : ''
                 }`}
                 onClick={() => setIsMobileMenuOpen(false)}
               >
@@ -177,8 +181,8 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
               </Link>
               <Link 
                 to="/reviews" 
-                className={`hover:text-purple-700 transition-colors px-3 py-2 rounded font-medium ${
-                  isActive('/reviews') ? 'bg-purple-200 text-purple-800' : ''
+                className={`hover:text-white transition-colors px-3 py-2 rounded font-medium ${
+                  isActive('/reviews') ? 'bg-white bg-opacity-20 text-white' : ''
                 }`}
                 onClick={() => setIsMobileMenuOpen(false)}
               >
@@ -188,8 +192,8 @@ const Header = ({ user, onSignOut }: HeaderProps) => {
               {user && isAdmin && (
                 <Link 
                   to="/admin" 
-                  className={`hover:text-purple-700 transition-colors px-3 py-2 rounded font-medium ${
-                    isActive('/admin') ? 'bg-purple-200 text-purple-800' : ''
+                  className={`hover:text-white transition-colors px-3 py-2 rounded font-medium ${
+                    isActive('/admin') ? 'bg-white bg-opacity-20 text-white' : ''
                   }`}
                   onClick={() => setIsMobileMenuOpen(false)}
                 >

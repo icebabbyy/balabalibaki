@@ -6,8 +6,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ShoppingCart, ArrowLeft, Search } from "lucide-react";
+import { ShoppingCart, Search } from "lucide-react";
 import { toast } from "sonner";
+import Header from "@/components/Header";
 
 const Categories = () => {
   const [searchParams] = useSearchParams();
@@ -92,21 +93,16 @@ const Categories = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-purple-600 text-white shadow-lg sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 py-4">
-          <div className="flex items-center space-x-4">
-            <Link to="/">
-              <Button variant="ghost" size="icon" className="text-white hover:bg-purple-700">
-                <ArrowLeft className="h-6 w-6" />
-              </Button>
-            </Link>
-            <h1 className="text-xl font-bold">หมวดหมู่สินค้า</h1>
-          </div>
-        </div>
-      </header>
+      <Header />
 
       <div className="max-w-6xl mx-auto px-4 py-8">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">หมวดหมู่สินค้า</h1>
+          <p className="text-gray-600">
+            {selectedCategory ? selectedCategory : filter === 'new' ? 'สินค้ามาใหม่' : filter === 'bestseller' ? 'สินค้าขายดี' : 'สินค้าทั้งหมด'}
+          </p>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Sidebar Filters */}
           <div className="lg:col-span-1">
@@ -137,7 +133,8 @@ const Categories = () => {
                   />
                   <label
                     htmlFor="show-all"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer text-purple-600"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                    style={{ color: '#956ec3' }}
                   >
                     ดูทั้งหมด
                   </label>
@@ -190,7 +187,10 @@ const Categories = () => {
                       />
                     </Link>
                     {product.status && (
-                      <span className="absolute top-2 left-2 bg-purple-500 text-white px-2 py-1 rounded text-xs font-medium">
+                      <span 
+                        className="absolute top-2 left-2 text-white px-2 py-1 rounded text-xs font-medium"
+                        style={{ backgroundColor: '#956ec3' }}
+                      >
                         {product.status}
                       </span>
                     )}
@@ -201,17 +201,29 @@ const Categories = () => {
                         {product.name}
                       </h4>
                     </Link>
-                    <p className="text-lg font-bold text-purple-600 mb-3">
+                    <p 
+                      className="text-lg font-bold mb-3"
+                      style={{ color: '#956ec3' }}
+                    >
                       ฿{product.selling_price?.toLocaleString()}
                     </p>
                     
                     <div className="space-y-2">
                       <Link to={`/product/${product.id}`}>
-                        <Button size="sm" className="w-full bg-purple-600 hover:bg-purple-700 text-white">
+                        <Button 
+                          size="sm" 
+                          className="w-full text-white hover:opacity-90"
+                          style={{ backgroundColor: '#956ec3' }}
+                        >
                           ซื้อเดี๋ยวนี้
                         </Button>
                       </Link>
-                      <Button variant="outline" size="sm" className="w-full border-purple-300 text-purple-600 hover:bg-purple-50">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full hover:bg-purple-50"
+                        style={{ borderColor: '#956ec3', color: '#956ec3' }}
+                      >
                         <ShoppingCart className="h-4 w-4 mr-2" />
                         เพิ่มลงตะกร้า
                       </Button>
