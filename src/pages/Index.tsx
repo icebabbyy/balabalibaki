@@ -18,74 +18,95 @@ import Autoplay from "embla-carousel-autoplay";
 
 const Index = () => {
   const [categories, setCategories] = useState<any[]>([]);
-  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [newProducts, setNewProducts] = useState<any[]>([]);
-  const [newProductsLoading, setNewProductsLoading] = useState(true);
+  const [categoryProducts, setCategoryProducts] = useState<any[]>([]);
+  const [categoryProducts2, setCategoryProducts2] = useState<any[]>([]);
+  const [categoryProducts3, setCategoryProducts3] = useState<any[]>([]);
   const [banners, setBanners] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   
-  // Fetch categories from Supabase
-  const fetchCategories = async () => {
+  // Fetch all data
+  const fetchData = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch categories
+      const { data: categoriesData } = await supabase
         .from('categories')
         .select('*')
         .order('name');
 
-      if (error) throw error;
-      setCategories(data || []);
-    } catch (error) {
-      console.error('Error fetching categories:', error);
-    } finally {
-      setCategoriesLoading(false);
-    }
-  };
-
-  // Fetch new products from Supabase
-  const fetchNewProducts = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('public_products')
-        .select('*')
-        .order('id', { ascending: false })
-        .limit(8);
-
-      if (error) throw error;
-      setNewProducts(data || []);
-    } catch (error) {
-      console.error('Error fetching new products:', error);
-    } finally {
-      setNewProductsLoading(false);
-    }
-  };
-
-  // Fetch banners from Supabase
-  const fetchBanners = async () => {
-    try {
-      const { data, error } = await supabase
+      // Fetch banners
+      const { data: bannersData } = await supabase
         .from('banners')
         .select('*')
         .eq('active', true)
         .order('position');
 
-      if (error) throw error;
-      setBanners(data || []);
+      // Fetch new products
+      const { data: newProductsData } = await supabase
+        .from('public_products')
+        .select('*')
+        .order('id', { ascending: false })
+        .limit(4);
+
+      // Fetch random category products for section 1
+      if (categoriesData && categoriesData.length > 0) {
+        const randomCategory1 = categoriesData[Math.floor(Math.random() * categoriesData.length)];
+        const { data: categoryData1 } = await supabase
+          .from('public_products')
+          .select('*')
+          .eq('category', randomCategory1.name)
+          .limit(4);
+
+        const randomCategory2 = categoriesData[Math.floor(Math.random() * categoriesData.length)];
+        const { data: categoryData2 } = await supabase
+          .from('public_products')
+          .select('*')
+          .eq('category', randomCategory2.name)
+          .limit(4);
+
+        const randomCategory3 = categoriesData[Math.floor(Math.random() * categoriesData.length)];
+        const { data: categoryData3 } = await supabase
+          .from('public_products')
+          .select('*')
+          .eq('category', randomCategory3.name)
+          .limit(4);
+
+        setCategoryProducts(categoryData1 || []);
+        setCategoryProducts2(categoryData2 || []);
+        setCategoryProducts3(categoryData3 || []);
+      }
+
+      setCategories(categoriesData || []);
+      setBanners(bannersData || []);
+      setNewProducts(newProductsData || []);
     } catch (error) {
-      console.error('Error fetching banners:', error);
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchCategories();
-    fetchNewProducts();
-    fetchBanners();
+    fetchData();
   }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-purple-600 font-medium">กำลังโหลด...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
       
       <div className="max-w-6xl mx-auto px-4 py-6">
-        {/* Hero Banner Carousel */}
+        {/* 1. Hero Banner Carousel */}
         <section className="mb-8">
           <Carousel
             className="w-full"
@@ -134,7 +155,34 @@ const Index = () => {
           </Carousel>
         </section>
 
-        {/* New Products Section */}
+        {/* 2. Categories Section */}
+        <section className="mb-8">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">หมวดหมู่สินค้า</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {categories.map((category) => (
+              <Link key={category.id} to={`/categories?category=${encodeURIComponent(category.name)}`}>
+                <Card className="hover:shadow-md transition-shadow duration-200 cursor-pointer">
+                  <CardContent className="p-3 text-center">
+                    <div className="h-16 w-16 mx-auto mb-2 bg-purple-100 rounded-lg flex items-center justify-center">
+                      {category.image ? (
+                        <img 
+                          src={category.image} 
+                          alt={category.name}
+                          className="h-full w-full object-cover rounded-lg"
+                        />
+                      ) : (
+                        <Package className="h-8 w-8" style={{ color: '#956ec3' }} />
+                      )}
+                    </div>
+                    <h3 className="text-sm font-medium text-gray-900">{category.name}</h3>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        {/* 3. New Products Section */}
         <section className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-gray-900">สินค้ามาใหม่</h2>
@@ -145,47 +193,104 @@ const Index = () => {
             </Link>
           </div>
           
-          {newProductsLoading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="animate-pulse">
-                  <div className="bg-gray-200 rounded-lg h-40 mb-2"></div>
-                  <div className="bg-gray-200 rounded h-4 mb-2"></div>
-                  <div className="bg-gray-200 rounded h-4"></div>
-                </div>
-              ))}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {newProducts.map((product) => (
+              <Link key={product.id} to={`/product/${product.id}`}>
+                <Card className="hover:shadow-md transition-shadow duration-200">
+                  <CardContent className="p-0">
+                    <div className="relative">
+                      <div className="w-full h-40 bg-gray-200 rounded-t-lg overflow-hidden">
+                        <img 
+                          src={product.image || '/placeholder.svg'} 
+                          alt={product.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      {product.status && (
+                        <Badge 
+                          className="absolute top-2 left-2 text-xs text-white"
+                          style={{ backgroundColor: '#956ec3' }}
+                        >
+                          {product.status}
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    <div className="p-3">
+                      <h3 className="font-medium text-sm mb-2 line-clamp-2">{product.name}</h3>
+                      <div className="mb-3">
+                        <span className="text-lg font-bold" style={{ color: '#956ec3' }}>
+                          ฿{product.selling_price?.toLocaleString()}
+                        </span>
+                      </div>
+                      
+                      <div className="flex space-x-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 text-xs text-white"
+                          style={{ backgroundColor: '#6B46C1', borderColor: '#6B46C1' }}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }}
+                        >
+                          <ShoppingCart className="h-3 w-3 mr-1" />
+                          ใส่ตะกร้า
+                        </Button>
+                        <Button 
+                          size="sm"
+                          className="flex-1 text-xs text-white"
+                          style={{ backgroundColor: '#6B46C1' }}
+                        >
+                          ซื้อเดี๋ยวนี้
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        {/* 4. Random Category Products 1 */}
+        {categoryProducts.length > 0 && (
+          <section className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">{categoryProducts[0]?.category}</h2>
+              <Link to={`/categories?category=${encodeURIComponent(categoryProducts[0]?.category || '')}`}>
+                <Button variant="outline" size="sm" style={{ borderColor: '#956ec3', color: '#956ec3' }}>
+                  ดูทั้งหมด
+                </Button>
+              </Link>
             </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {newProducts.slice(0, 4).map((product) => (
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {categoryProducts.map((product) => (
                 <Link key={product.id} to={`/product/${product.id}`}>
                   <Card className="hover:shadow-md transition-shadow duration-200">
                     <CardContent className="p-0">
                       <div className="relative">
                         <div className="w-full h-40 bg-gray-200 rounded-t-lg overflow-hidden">
-                          {product.image ? (
-                            <img 
-                              src={product.image} 
-                              alt={product.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Package className="h-12 w-12 text-gray-400" />
-                            </div>
-                          )}
+                          <img 
+                            src={product.image || '/placeholder.svg'} 
+                            alt={product.name}
+                            className="w-full h-full object-cover"
+                          />
                         </div>
-                        <Badge 
-                          className="absolute top-2 left-2 text-xs"
-                          style={{ backgroundColor: '#956ec3' }}
-                        >
-                          {product.status || 'ใหม่'}
-                        </Badge>
+                        {product.status && (
+                          <Badge 
+                            className="absolute top-2 left-2 text-xs text-white"
+                            style={{ backgroundColor: '#956ec3' }}
+                          >
+                            {product.status}
+                          </Badge>
+                        )}
                       </div>
                       
                       <div className="p-3">
                         <h3 className="font-medium text-sm mb-2 line-clamp-2">{product.name}</h3>
-                        
                         <div className="mb-3">
                           <span className="text-lg font-bold" style={{ color: '#956ec3' }}>
                             ฿{product.selling_price?.toLocaleString()}
@@ -196,8 +301,8 @@ const Index = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="flex-1 text-xs"
-                            style={{ borderColor: '#956ec3', color: '#956ec3' }}
+                            className="flex-1 text-xs text-white"
+                            style={{ backgroundColor: '#6B46C1', borderColor: '#6B46C1' }}
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
@@ -208,8 +313,8 @@ const Index = () => {
                           </Button>
                           <Button 
                             size="sm"
-                            className="flex-1 text-xs"
-                            style={{ backgroundColor: '#956ec3' }}
+                            className="flex-1 text-xs text-white"
+                            style={{ backgroundColor: '#6B46C1' }}
                           >
                             ซื้อเดี๋ยวนี้
                           </Button>
@@ -220,72 +325,164 @@ const Index = () => {
                 </Link>
               ))}
             </div>
-          )}
-        </section>
-
-        {/* First Banner */}
-        {banners[0] && (
-          <section className="mb-8">
-            <div className="rounded-lg overflow-hidden">
-              <img 
-                src={banners[0].image_url} 
-                alt="Banner 1"
-                className="w-full h-40 object-cover"
-              />
-            </div>
           </section>
         )}
 
-        {/* Categories Section */}
-        <section className="mb-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">หมวดหมู่สินค้า</h2>
-          
-          {categoriesLoading ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="animate-pulse">
-                  <div className="bg-gray-200 rounded-lg h-24 mb-2"></div>
-                  <div className="bg-gray-200 rounded h-3"></div>
-                </div>
-              ))}
+        {/* 5. Random Category Products 2 */}
+        {categoryProducts2.length > 0 && (
+          <section className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">{categoryProducts2[0]?.category}</h2>
+              <Link to={`/categories?category=${encodeURIComponent(categoryProducts2[0]?.category || '')}`}>
+                <Button variant="outline" size="sm" style={{ borderColor: '#956ec3', color: '#956ec3' }}>
+                  ดูทั้งหมด
+                </Button>
+              </Link>
             </div>
-          ) : categories && categories.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {categories.map((category) => (
-                <Link key={category.id} to={`/categories?category=${encodeURIComponent(category.name)}`}>
-                  <Card className="hover:shadow-md transition-shadow duration-200 cursor-pointer">
-                    <CardContent className="p-3 text-center">
-                      <div className="h-16 w-16 mx-auto mb-2 bg-purple-100 rounded-lg flex items-center justify-center">
-                        {category.image ? (
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {categoryProducts2.map((product) => (
+                <Link key={product.id} to={`/product/${product.id}`}>
+                  <Card className="hover:shadow-md transition-shadow duration-200">
+                    <CardContent className="p-0">
+                      <div className="relative">
+                        <div className="w-full h-40 bg-gray-200 rounded-t-lg overflow-hidden">
                           <img 
-                            src={category.image} 
-                            alt={category.name}
-                            className="h-full w-full object-cover rounded-lg"
+                            src={product.image || '/placeholder.svg'} 
+                            alt={product.name}
+                            className="w-full h-full object-cover"
                           />
-                        ) : (
-                          <Package className="h-8 w-8" style={{ color: '#956ec3' }} />
+                        </div>
+                        {product.status && (
+                          <Badge 
+                            className="absolute top-2 left-2 text-xs text-white"
+                            style={{ backgroundColor: '#956ec3' }}
+                          >
+                            {product.status}
+                          </Badge>
                         )}
                       </div>
-                      <h3 className="text-sm font-medium text-gray-900">{category.name}</h3>
+                      
+                      <div className="p-3">
+                        <h3 className="font-medium text-sm mb-2 line-clamp-2">{product.name}</h3>
+                        <div className="mb-3">
+                          <span className="text-lg font-bold" style={{ color: '#956ec3' }}>
+                            ฿{product.selling_price?.toLocaleString()}
+                          </span>
+                        </div>
+                        
+                        <div className="flex space-x-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 text-xs text-white"
+                            style={{ backgroundColor: '#6B46C1', borderColor: '#6B46C1' }}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                            }}
+                          >
+                            <ShoppingCart className="h-3 w-3 mr-1" />
+                            ใส่ตะกร้า
+                          </Button>
+                          <Button 
+                            size="sm"
+                            className="flex-1 text-xs text-white"
+                            style={{ backgroundColor: '#6B46C1' }}
+                          >
+                            ซื้อเดี๋ยวนี้
+                          </Button>
+                        </div>
+                      </div>
                     </CardContent>
                   </Card>
                 </Link>
               ))}
             </div>
-          ) : (
-            <div className="text-center py-6">
-              <p className="text-gray-500">ไม่พบหมวดหมู่สินค้า</p>
-            </div>
-          )}
-        </section>
+          </section>
+        )}
 
-        {/* Second Banner */}
-        {banners[1] && (
+        {/* 6. Random Category Products 3 */}
+        {categoryProducts3.length > 0 && (
+          <section className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">{categoryProducts3[0]?.category}</h2>
+              <Link to={`/categories?category=${encodeURIComponent(categoryProducts3[0]?.category || '')}`}>
+                <Button variant="outline" size="sm" style={{ borderColor: '#956ec3', color: '#956ec3' }}>
+                  ดูทั้งหมด
+                </Button>
+              </Link>
+            </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {categoryProducts3.map((product) => (
+                <Link key={product.id} to={`/product/${product.id}`}>
+                  <Card className="hover:shadow-md transition-shadow duration-200">
+                    <CardContent className="p-0">
+                      <div className="relative">
+                        <div className="w-full h-40 bg-gray-200 rounded-t-lg overflow-hidden">
+                          <img 
+                            src={product.image || '/placeholder.svg'} 
+                            alt={product.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        {product.status && (
+                          <Badge 
+                            className="absolute top-2 left-2 text-xs text-white"
+                            style={{ backgroundColor: '#956ec3' }}
+                          >
+                            {product.status}
+                          </Badge>
+                        )}
+                      </div>
+                      
+                      <div className="p-3">
+                        <h3 className="font-medium text-sm mb-2 line-clamp-2">{product.name}</h3>
+                        <div className="mb-3">
+                          <span className="text-lg font-bold" style={{ color: '#956ec3' }}>
+                            ฿{product.selling_price?.toLocaleString()}
+                          </span>
+                        </div>
+                        
+                        <div className="flex space-x-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 text-xs text-white"
+                            style={{ backgroundColor: '#6B46C1', borderColor: '#6B46C1' }}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                            }}
+                          >
+                            <ShoppingCart className="h-3 w-3 mr-1" />
+                            ใส่ตะกร้า
+                          </Button>
+                          <Button 
+                            size="sm"
+                            className="flex-1 text-xs text-white"
+                            style={{ backgroundColor: '#6B46C1' }}
+                          >
+                            ซื้อเดี๋ยวนี้
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* 7. Bottom Banner */}
+        {banners[banners.length - 1] && (
           <section className="mb-8">
             <div className="rounded-lg overflow-hidden">
               <img 
-                src={banners[1].image_url} 
-                alt="Banner 2"
+                src={banners[banners.length - 1].image_url} 
+                alt="Bottom Banner"
                 className="w-full h-40 object-cover"
               />
             </div>

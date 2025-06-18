@@ -5,7 +5,7 @@ import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Minus, Plus, ArrowLeft, Calendar } from "lucide-react";
+import { ShoppingCart, Minus, Plus, ArrowLeft, Calendar, Heart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -16,7 +16,9 @@ const ProductDetail = () => {
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const [product, setProduct] = useState<any>(null);
+  const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isFavorite, setIsFavorite] = useState(false);
   const { user, signOut } = useAuth();
 
   useEffect(() => {
@@ -48,6 +50,28 @@ const ProductDetail = () => {
       }
 
       setProduct(data);
+      
+      // Fetch related products from same category
+      if (data?.category) {
+        const { data: relatedData } = await supabase
+          .from('public_products')
+          .select('*')
+          .eq('category', data.category)
+          .neq('id', parseInt(id))
+          .limit(4);
+        
+        if (relatedData && relatedData.length > 0) {
+          setRelatedProducts(relatedData);
+        } else {
+          // If no products in same category, get random products
+          const { data: randomData } = await supabase
+            .from('public_products')
+            .select('*')
+            .neq('id', parseInt(id))
+            .limit(4);
+          setRelatedProducts(randomData || []);
+        }
+      }
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -67,6 +91,14 @@ const ProductDetail = () => {
   const handleBuyNow = () => {
     if (!product) return;
     window.location.href = `/payment?product=${product.id}&quantity=${quantity}`;
+  };
+
+  const toggleFavorite = () => {
+    setIsFavorite(!isFavorite);
+    toast({
+      title: isFavorite ? "ลบออกจากรายการโปรด" : "เพิ่มลงรายการโปรด",
+      description: product?.name,
+    });
   };
 
   if (loading) {
@@ -114,21 +146,21 @@ const ProductDetail = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Product Images */}
+          {/* Product Images - Made smaller */}
           <div className="space-y-4">
-            <div className="aspect-square bg-white rounded-lg overflow-hidden shadow-sm">
+            <div className="aspect-square bg-white rounded-lg overflow-hidden shadow-sm max-w-md mx-auto">
               <img
                 src={productImages[selectedImage]}
                 alt={product.name}
                 className="w-full h-full object-cover"
               />
             </div>
-            <div className="flex space-x-2">
+            <div className="flex space-x-2 justify-center">
               {productImages.map((image, index) => (
                 <button
                   key={index}
                   onClick={() => setSelectedImage(index)}
-                  className={`w-20 h-20 rounded-lg overflow-hidden border-2 ${
+                  className={`w-16 h-16 rounded-lg overflow-hidden border-2 ${
                     selectedImage === index ? 'border-purple-500' : 'border-gray-200'
                   }`}
                 >
@@ -145,7 +177,17 @@ const ProductDetail = () => {
           {/* Product Info */}
           <div className="space-y-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">{product.name}</h1>
+              <div className="flex items-start justify-between mb-2">
+                <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={toggleFavorite}
+                  className={`${isFavorite ? 'text-red-500 border-red-500' : 'text-gray-400'}`}
+                >
+                  <Heart className={`h-5 w-5 ${isFavorite ? 'fill-current' : ''}`} />
+                </Button>
+              </div>
               <div className="flex items-center space-x-4 mb-4">
                 <Badge variant="secondary">{product.category}</Badge>
               </div>
@@ -200,16 +242,16 @@ const ProductDetail = () => {
                     <Button
                       onClick={handleAddToCart}
                       variant="outline"
-                      className="flex-1"
-                      style={{ borderColor: '#956ec3', color: '#956ec3' }}
+                      className="flex-1 text-white"
+                      style={{ backgroundColor: '#6B46C1', borderColor: '#6B46C1' }}
                     >
                       <ShoppingCart className="h-4 w-4 mr-2" />
                       เพิ่มลงตะกร้า
                     </Button>
                     <Button
                       onClick={handleBuyNow}
-                      className="flex-1"
-                      style={{ backgroundColor: '#956ec3' }}
+                      className="flex-1 text-white"
+                      style={{ backgroundColor: '#6B46C1' }}
                     >
                       ซื้อเดี๋ยวนี้
                     </Button>
@@ -229,6 +271,47 @@ const ProductDetail = () => {
             )}
           </div>
         </div>
+
+        {/* Related Products */}
+        {relatedProducts.length > 0 && (
+          <div className="mt-12">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">สินค้าที่เกี่ยวข้อง</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {relatedProducts.map((relatedProduct) => (
+                <Link key={relatedProduct.id} to={`/product/${relatedProduct.id}`}>
+                  <Card className="hover:shadow-md transition-shadow duration-200">
+                    <CardContent className="p-0">
+                      <div className="relative">
+                        <div className="w-full h-40 bg-gray-200 rounded-t-lg overflow-hidden">
+                          <img 
+                            src={relatedProduct.image || '/placeholder.svg'} 
+                            alt={relatedProduct.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        {relatedProduct.status && (
+                          <Badge 
+                            className="absolute top-2 left-2 text-xs text-white"
+                            style={{ backgroundColor: '#956ec3' }}
+                          >
+                            {relatedProduct.status}
+                          </Badge>
+                        )}
+                      </div>
+                      
+                      <div className="p-3">
+                        <h3 className="font-medium text-sm mb-2 line-clamp-2">{relatedProduct.name}</h3>
+                        <span className="text-lg font-bold" style={{ color: '#956ec3' }}>
+                          ฿{relatedProduct.selling_price?.toLocaleString()}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Back Button */}
         <div className="mt-8">
