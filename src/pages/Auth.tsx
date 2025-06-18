@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -9,8 +10,9 @@ import Header from "@/components/Header";
 import AuthDebug from "@/components/AuthDebug";
 
 const Auth = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  // Separate state for signin and signup
+  const [signinData, setSigninData] = useState({ email: "", password: "" });
+  const [signupData, setSignupData] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState(null);
   const [error, setError] = useState("");
@@ -35,17 +37,26 @@ const Auth = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  const validateForm = () => {
-    if (!email) {
+  const validateSignupForm = () => {
+    if (!signupData.email) {
       setError('กรุณากรอกอีเมล');
       return false;
     }
-    if (!password) {
+    if (!signupData.password) {
       setError('กรุณากรอกรหัสผ่าน');
       return false;
     }
-    if (password.length < 6) {
+    if (signupData.password.length < 6) {
       setError('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');
+      return false;
+    }
+    setError('');
+    return true;
+  };
+
+  const validateSigninForm = () => {
+    if (!signinData.email || !signinData.password) {
+      setError('กรุณากรอกอีเมลและรหัสผ่าน');
       return false;
     }
     setError('');
@@ -54,19 +65,19 @@ const Auth = () => {
 
   const handleSignUp = async (e) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    if (!validateSignupForm()) return;
     
     setLoading(true);
     setError('');
 
     try {
       const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
+        email: signupData.email,
+        password: signupData.password,
         options: {
           emailRedirectTo: `${window.location.origin}/`,
           data: {
-            role: 'user' // ทุกคนเริ่มต้นเป็น user
+            role: 'user'
           }
         }
       });
@@ -86,18 +97,15 @@ const Auth = () => {
 
   const handleSignIn = async (e) => {
     e.preventDefault();
-    if (!email || !password) {
-      setError('กรุณากรอกอีเมลและรหัสผ่าน');
-      return;
-    }
+    if (!validateSigninForm()) return;
     
     setLoading(true);
     setError('');
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+        email: signinData.email,
+        password: signinData.password,
       });
 
       if (error) {
@@ -129,8 +137,7 @@ const Auth = () => {
               <div className="space-y-2">
                 <Button 
                   onClick={() => navigate('/profile')} 
-                  className="w-full" 
-                  style={{ backgroundColor: '#9f73c7' }}
+                  className="w-full"
                 >
                   จัดการโปรไฟล์
                 </Button>
@@ -173,8 +180,8 @@ const Auth = () => {
                       <Input
                         type="email"
                         placeholder="กรุณากรอกอีเมล"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        value={signinData.email}
+                        onChange={(e) => setSigninData(prev => ({ ...prev, email: e.target.value }))}
                         required
                       />
                     </div>
@@ -183,8 +190,8 @@ const Auth = () => {
                       <Input
                         type="password"
                         placeholder="กรุณากรอกรหัสผ่าน"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        value={signinData.password}
+                        onChange={(e) => setSigninData(prev => ({ ...prev, password: e.target.value }))}
                         required
                       />
                     </div>
@@ -195,7 +202,6 @@ const Auth = () => {
                       type="submit" 
                       className="w-full" 
                       disabled={loading}
-                      style={{ backgroundColor: '#9f73c7' }}
                     >
                       {loading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
                     </Button>
@@ -217,8 +223,8 @@ const Auth = () => {
                       <Input
                         type="email"
                         placeholder="กรุณากรอกอีเมล"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        value={signupData.email}
+                        onChange={(e) => setSignupData(prev => ({ ...prev, email: e.target.value }))}
                         required
                       />
                     </div>
@@ -227,8 +233,8 @@ const Auth = () => {
                       <Input
                         type="password"
                         placeholder="อย่างน้อย 6 ตัวอักษร"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        value={signupData.password}
+                        onChange={(e) => setSignupData(prev => ({ ...prev, password: e.target.value }))}
                         required
                         minLength={6}
                       />
@@ -240,7 +246,6 @@ const Auth = () => {
                       type="submit" 
                       className="w-full" 
                       disabled={loading}
-                      style={{ backgroundColor: '#9f73c7' }}
                     >
                       {loading ? 'กำลังสมัครสมาชิก...' : 'สมัครสมาชิก'}
                     </Button>
