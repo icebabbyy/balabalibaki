@@ -101,40 +101,34 @@ const Header = () => {
           
           <nav className="hidden md:flex space-x-6">
             <button
+              onClick={() => navigate('/')}
+              className="hover:text-purple-200 transition-colors"
+            >
+              หน้าแรก
+            </button>
+            <button
               onClick={() => navigate('/categories')}
               className="hover:text-purple-200 transition-colors"
             >
               หมวดหมู่สินค้า
             </button>
             <button
-              onClick={() => navigate('/how-to-order')}
+              onClick={() => navigate('/qa')}
               className="hover:text-purple-200 transition-colors"
             >
-              วิธีการสั่งซื้อ
+              Q&A
             </button>
             <button
-              onClick={() => navigate('/shipping')}
+              onClick={() => navigate('/order-status')}
               className="hover:text-purple-200 transition-colors"
             >
-              การจัดส่ง
-            </button>
-            <button
-              onClick={() => navigate('/returns')}
-              className="hover:text-purple-200 transition-colors"
-            >
-              การคืนสินค้า
+              เช็คสถานะ
             </button>
             <button
               onClick={() => navigate('/reviews')}
               className="hover:text-purple-200 transition-colors"
             >
               รีวิว
-            </button>
-            <button
-              onClick={() => navigate('/qa')}
-              className="hover:text-purple-200 transition-colors"
-            >
-              Q&A
             </button>
           </nav>
 
