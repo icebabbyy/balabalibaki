@@ -1,9 +1,10 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import { ArrowRight, ShoppingCart, Zap, Clock, Shield } from "lucide-react";
+import { ArrowRight, ShoppingCart } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
@@ -80,7 +81,7 @@ const Index = () => {
       const { data } = await supabase
         .from('categories')
         .select('*')
-        .limit(8);
+        .limit(12);
       
       setCategories(data || []);
     } catch (error) {
@@ -118,80 +119,83 @@ const Index = () => {
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      {/* Hero Section with Banner Carousel */}
+      {/* แบนเนอร์ขนาดกลาง */}
       <section className="relative">
         {banners.length > 0 ? (
-          <Carousel className="w-full h-96 md:h-[500px]">
-            <CarouselContent>
-              {banners.map((banner) => (
-                <CarouselItem key={banner.id}>
-                  <div className="relative h-96 md:h-[500px] overflow-hidden">
-                    <img
-                      src={banner.image_url || '/placeholder.svg'}
-                      alt={banner.title || 'Banner'}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-                      <div className="text-center text-white max-w-2xl px-4">
-                        <h1 className="text-4xl md:text-6xl font-bold mb-4">{banner.title || 'ยินดีต้อนรับสู่ Lucky Shop'}</h1>
-                        <p className="text-xl mb-6">{banner.description || 'สินค้าจากจีนคุณภาพดี ราคาดี ส่งตรงถึงบ้าน'}</p>
-                        {banner.link_url && (
-                          <Button 
-                            size="lg" 
-                            className="bg-purple-600 hover:bg-purple-700"
-                            onClick={() => window.open(banner.link_url, '_blank')}
-                          >
-                            ดูรายละเอียด
-                            <ArrowRight className="ml-2 h-5 w-5" />
-                          </Button>
-                        )}
-                      </div>
+          <div className="max-w-4xl mx-auto px-4 py-8">
+            <Carousel className="w-full h-64 md:h-80">
+              <CarouselContent>
+                {banners.map((banner) => (
+                  <CarouselItem key={banner.id}>
+                    <div className="relative h-64 md:h-80 overflow-hidden rounded-lg">
+                      <img
+                        src={banner.image_url || '/placeholder.svg'}
+                        alt={banner.title || 'Banner'}
+                        className="w-full h-full object-cover"
+                      />
+                      {(banner.title || banner.description) && (
+                        <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
+                          <div className="text-center text-white max-w-md px-4">
+                            {banner.title && <h2 className="text-2xl md:text-3xl font-bold mb-2">{banner.title}</h2>}
+                            {banner.description && <p className="text-sm md:text-base">{banner.description}</p>}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-            <CarouselPrevious className="left-4" />
-            <CarouselNext className="right-4" />
-          </Carousel>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious className="left-4" />
+              <CarouselNext className="right-4" />
+            </Carousel>
+          </div>
         ) : (
-          <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
-            <div className="max-w-7xl mx-auto px-4 py-20 text-center">
-              <h1 className="text-4xl md:text-6xl font-bold mb-6">
-                ยินดีต้อนรับสู่ Lucky Shop
-              </h1>
-              <p className="text-xl md:text-2xl mb-8">
-                สินค้าจากจีนคุณภาพดี ราคาดี ส่งตรงถึงบ้าน
-              </p>
-              <Button 
-                size="lg" 
-                className="bg-white text-purple-600 hover:bg-gray-100"
-                onClick={() => navigate('/categories')}
-              >
-                เริ่มช้อปปิ้ง
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
+          <div className="max-w-4xl mx-auto px-4 py-8">
+            <div className="h-64 md:h-80 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
+              <div className="text-center text-white">
+                <h2 className="text-2xl md:text-3xl font-bold mb-2">ยินดีต้อนรับสู่ Lucky Shop</h2>
+                <p className="text-sm md:text-base">สินค้าจากจีนคุณภาพดี ราคาดี</p>
+              </div>
             </div>
           </div>
         )}
       </section>
 
-      {/* สินค้ามาใหม่ */}
-      <section className="py-16 bg-white">
+      {/* หมวดหมู่สินค้า (ใส่รูป thumbnail) */}
+      <section className="py-12 bg-white">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-3xl font-bold">สินค้ามาใหม่</h2>
-            <Link to="/categories?filter=new">
-              <Button variant="outline">
-                ดูทั้งหมด
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
+          <h2 className="text-2xl font-bold mb-8 text-center">หมวดหมู่สินค้า</h2>
+          <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
+            {categories.slice(0, 6).map((category) => (
+              <Link key={category.id} to={`/categories?category=${encodeURIComponent(category.name)}`}>
+                <Card className="hover:shadow-lg transition-shadow text-center p-4">
+                  <div className="w-16 h-16 mx-auto mb-3 bg-purple-100 rounded-full flex items-center justify-center overflow-hidden">
+                    {category.image ? (
+                      <img 
+                        src={category.image} 
+                        alt={category.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 bg-purple-600 rounded"></div>
+                    )}
+                  </div>
+                  <h3 className="font-medium text-sm">{category.name}</h3>
+                </Card>
+              </Link>
+            ))}
           </div>
+        </div>
+      </section>
+
+      {/* สินค้ามาใหม่ */}
+      <section className="py-12 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4">
+          <h2 className="text-2xl font-bold mb-8 text-center">สินค้ามาใหม่</h2>
           
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[...Array(8)].map((_, i) => (
+              {[...Array(4)].map((_, i) => (
                 <Card key={i} className="animate-pulse">
                   <div className="h-48 bg-gray-200 rounded-t-lg"></div>
                   <CardContent className="p-4">
@@ -254,24 +258,15 @@ const Index = () => {
         </div>
       </section>
 
-      {/* หมวดหมู่สินค้า */}
-      <section className="py-16 bg-gray-50">
+      {/* หมวดหมู่สินค้า (สุ่ม) */}
+      <section className="py-12 bg-white">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-3xl font-bold">หมวดหมู่สินค้า</h2>
-            <Link to="/categories">
-              <Button variant="outline">
-                ดูทั้งหมด
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {categories.map((category) => (
+          <h2 className="text-2xl font-bold mb-8 text-center">หมวดหมู่ยอดนิยม</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {categories.slice(6, 10).map((category) => (
               <Link key={category.id} to={`/categories?category=${encodeURIComponent(category.name)}`}>
-                <Card className="hover:shadow-lg transition-shadow text-center p-4">
-                  <div className="w-16 h-16 mx-auto mb-3 bg-purple-100 rounded-full flex items-center justify-center overflow-hidden">
+                <Card className="hover:shadow-lg transition-shadow text-center p-6">
+                  <div className="w-20 h-20 mx-auto mb-4 bg-purple-100 rounded-full flex items-center justify-center overflow-hidden">
                     {category.image ? (
                       <img 
                         src={category.image} 
@@ -279,10 +274,10 @@ const Index = () => {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-8 h-8 bg-purple-600 rounded"></div>
+                      <div className="w-10 h-10 bg-purple-600 rounded"></div>
                     )}
                   </div>
-                  <h3 className="font-medium text-sm">{category.name}</h3>
+                  <h3 className="font-medium">{category.name}</h3>
                 </Card>
               </Link>
             ))}
@@ -290,113 +285,54 @@ const Index = () => {
         </div>
       </section>
 
-      {/* สินค้าแนะนำ */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-3xl font-bold">สินค้าแนะนำ</h2>
-            <Link to="/categories">
-              <Button variant="outline">
-                ดูทั้งหมด
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
+      {/* แบนเนอร์รูปภาพ */}
+      <section className="py-8 bg-gray-50">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="h-40 md:h-60 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+            <div className="text-center text-white">
+              <h3 className="text-xl md:text-2xl font-bold mb-2">ส่วนลดพิเศษ</h3>
+              <p className="text-sm md:text-base">สินค้าคุณภาพ ราคาดีที่สุด</p>
+            </div>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredProducts.slice(4, 8).map((product) => (
-              <Card 
-                key={product.id} 
-                className="hover:shadow-lg transition-shadow cursor-pointer"
-              >
-                <div className="relative">
-                  <img
-                    src={product.image || '/placeholder.svg'}
-                    alt={product.name}
-                    className="w-full h-48 object-cover rounded-t-lg"
-                    onClick={() => handleProductClick(product.id)}
-                  />
-                  {product.status && (
-                    <Badge className="absolute top-2 left-2 bg-purple-600">
-                      {product.status}
-                    </Badge>
-                  )}
-                </div>
-                <CardContent className="p-4">
-                  <h3 className="font-semibold mb-2 line-clamp-2" onClick={() => handleProductClick(product.id)}>{product.name}</h3>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-lg font-bold text-purple-600">
-                      ฿{product.selling_price?.toLocaleString()}
-                    </span>
+        </div>
+      </section>
+
+      {/* หมวดหมู่สินค้า (สุ่ม) */}
+      <section className="py-12 bg-white">
+        <div className="max-w-7xl mx-auto px-4">
+          <h2 className="text-2xl font-bold mb-8 text-center">หมวดหมู่แนะนำ</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {categories.slice(2, 6).map((category) => (
+              <Link key={category.id} to={`/categories?category=${encodeURIComponent(category.name)}`}>
+                <Card className="hover:shadow-lg transition-shadow text-center p-6">
+                  <div className="w-20 h-20 mx-auto mb-4 bg-purple-100 rounded-full flex items-center justify-center overflow-hidden">
+                    {category.image ? (
+                      <img 
+                        src={category.image} 
+                        alt={category.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 bg-purple-600 rounded"></div>
+                    )}
                   </div>
-                  <div className="space-y-2">
-                    <Button 
-                      size="sm" 
-                      className="w-full bg-purple-600 hover:bg-purple-700"
-                      onClick={() => handleProductClick(product.id)}
-                    >
-                      ซื้อเดี๋ยวนี้
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="w-full"
-                      onClick={() => addToCart(product)}
-                    >
-                      <ShoppingCart className="h-4 w-4 mr-2" />
-                      เพิ่มลงตะกร้า
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                  <h3 className="font-medium">{category.name}</h3>
+                </Card>
+              </Link>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12">ทำไมต้องเลือก Lucky Shop?</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Zap className="h-8 w-8 text-purple-600" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">ราคาดีที่สุด</h3>
-              <p className="text-gray-600">นำเข้าตรงจากแหล่งผลิต ราคาถูกกว่าช้อปปิ้งออนไลน์ทั่วไป</p>
-            </div>
-            <div className="text-center">
-              <div className="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Clock className="h-8 w-8 text-purple-600" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">จัดส่งรวดเร็ว</h3>
-              <p className="text-gray-600">ระบบจัดส่งที่มีประสิทธิภาพ ส่งถึงบ้านคุณอย่างรวดเร็ว</p>
-            </div>
-            <div className="text-center">
-              <div className="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Shield className="h-8 w-8 text-purple-600" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">รับประกันคุณภาพ</h3>
-              <p className="text-gray-600">คัดเลือกสินค้าคุณภาพดี พร้อมการันตีความพึงพอใจ</p>
+      {/* แบนเนอร์รูปภาพ */}
+      <section className="py-8 bg-gray-50">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="h-40 md:h-60 bg-gradient-to-r from-green-600 to-blue-600 rounded-lg flex items-center justify-center">
+            <div className="text-center text-white">
+              <h3 className="text-xl md:text-2xl font-bold mb-2">จัดส่งฟรี</h3>
+              <p className="text-sm md:text-base">สั่งซื้อตั้งแต่ 500 บาทขึ้นไป</p>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-16 bg-purple-600 text-white">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-4">พร้อมเริ่มช้อปปิ้งแล้วหรือยัง?</h2>
-          <p className="text-xl mb-8">สำรวจสินค้าหลากหลายและเริ่มสั่งซื้อได้เลยวันนี้</p>
-          <Button 
-            size="lg" 
-            className="bg-white text-purple-600 hover:bg-gray-100"
-            onClick={() => navigate('/categories')}
-          >
-            เริ่มช้อปปิ้ง
-            <ShoppingCart className="ml-2 h-5 w-5" />
-          </Button>
         </div>
       </section>
     </div>
