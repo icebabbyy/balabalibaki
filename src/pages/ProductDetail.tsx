@@ -21,10 +21,12 @@ const ProductDetail = () => {
 
   const fetchProduct = async () => {
     try {
+      if (!id) return;
+      
       const { data, error } = await supabase
         .from('public_products')
         .select('*')
-        .eq('id', id)
+        .eq('id', parseInt(id))
         .single();
 
       if (error) throw error;
@@ -159,10 +161,10 @@ const ProductDetail = () => {
                             : "border-purple-300 text-purple-600 hover:bg-purple-50"
                           }
                         >
-                          {value}
+                          {String(value)}
                         </Button>
                       )) : (
-                        <span className="text-sm text-gray-600">{values}</span>
+                        <span className="text-sm text-gray-600">{String(values)}</span>
                       )}
                     </div>
                   </div>
