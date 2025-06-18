@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import Header from "@/components/Header";
@@ -56,9 +57,10 @@ const ProductDetail = () => {
 
       // Initialize selected option from first option with proper type checking
       if (data?.options && Array.isArray(data.options) && data.options.length > 0) {
-        const firstOption = data.options[0] as ProductOption;
-        if (firstOption && typeof firstOption === 'object' && 'name' in firstOption) {
-          setSelectedOptions({ default: firstOption.name });
+        const firstOption = data.options[0];
+        if (firstOption && typeof firstOption === 'object' && firstOption !== null && 'name' in firstOption) {
+          const typedOption = firstOption as { name: string };
+          setSelectedOptions({ default: typedOption.name });
         }
       }
 
@@ -142,9 +144,17 @@ const ProductDetail = () => {
   const getProductOptions = (): ProductOption[] => {
     if (!product?.options) return [];
     if (Array.isArray(product.options)) {
-      return product.options.filter((opt): opt is ProductOption => 
-        opt && typeof opt === 'object' && 'name' in opt
-      );
+      return product.options.filter((opt): opt is ProductOption => {
+        return opt && 
+               typeof opt === 'object' && 
+               opt !== null &&
+               'name' in opt &&
+               'id' in opt &&
+               typeof (opt as any).name === 'string';
+      }).map(opt => ({
+        id: (opt as any).id,
+        name: (opt as any).name
+      }));
     }
     return [];
   };
