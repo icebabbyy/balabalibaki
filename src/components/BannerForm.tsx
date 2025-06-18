@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus } from "lucide-react";
 import { NewBannerForm } from "@/types/banner";
 
@@ -19,7 +20,19 @@ const BannerForm = ({ onSubmit }: BannerFormProps) => {
     active: true
   });
 
+  const bannerPositions = [
+    { value: 1, label: "หน้าแรก - แบนเนอร์หลัก (รูปเดียว)" },
+    { value: 2, label: "หน้าแรก - แบนเนอร์ข้าง" },
+    { value: 3, label: "หน้าหมวดหมู่ - แบนเนอร์บน" },
+    { value: 4, label: "หน้าสินค้า - แบนเนอร์โปรโมชั่น" },
+    { value: 5, label: "หน้าแรก - แบนเนอร์ล่าง" }
+  ];
+
   const handleSubmit = () => {
+    if (!newBanner.image_url) {
+      alert('กรุณาใส่ URL รูปภาพ');
+      return;
+    }
     onSubmit(newBanner);
     setNewBanner({
       image_url: '',
@@ -44,7 +57,7 @@ const BannerForm = ({ onSubmit }: BannerFormProps) => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4">
           <div className="space-y-2">
             <Label htmlFor="banner-url">URL รูปภาพ</Label>
             <Input
@@ -53,16 +66,33 @@ const BannerForm = ({ onSubmit }: BannerFormProps) => {
               value={newBanner.image_url}
               onChange={(e) => updateField('image_url', e.target.value)}
             />
+            {newBanner.image_url && (
+              <div className="mt-2">
+                <img 
+                  src={newBanner.image_url} 
+                  alt="Preview" 
+                  className="w-48 h-32 object-cover rounded border"
+                />
+              </div>
+            )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="banner-position">ตำแหน่ง</Label>
-            <Input
-              id="banner-position"
-              type="number"
-              min="1"
-              value={newBanner.position}
-              onChange={(e) => updateField('position', parseInt(e.target.value) || 1)}
-            />
+            <Label htmlFor="banner-position">ตำแหน่งแบนเนอร์</Label>
+            <Select 
+              value={newBanner.position.toString()} 
+              onValueChange={(value) => updateField('position', parseInt(value))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {bannerPositions.map((pos) => (
+                  <SelectItem key={pos.value} value={pos.value.toString()}>
+                    {pos.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <div className="flex items-center space-x-2">
