@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, Minus, Plus, ArrowLeft, Calendar, Heart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -18,7 +17,6 @@ const ProductDetail = () => {
   const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
-  const { user, signOut } = useAuth();
 
   useEffect(() => {
     fetchProduct();
@@ -114,7 +112,7 @@ const ProductDetail = () => {
   if (!product) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Header user={user} onSignOut={signOut} />
+        <Header />
         <div className="max-w-7xl mx-auto px-4 py-8">
           <p className="text-center text-gray-500">ไม่พบสินค้าที่คุณต้องการ</p>
         </div>
@@ -130,7 +128,7 @@ const ProductDetail = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header user={user} onSignOut={signOut} />
+      <Header />
       
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Breadcrumb */}

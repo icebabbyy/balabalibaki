@@ -14,7 +14,7 @@ const UserWelcomeScreen = ({ user, onSignOut, onProfileClick }: UserWelcomeScree
   
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header user={user} onSignOut={onSignOut} />
+      <Header />
       <div className="container mx-auto px-4 py-8">
         <Card className="max-w-md mx-auto">
           <CardHeader>

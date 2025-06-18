@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,14 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Upload } from "lucide-react";
 import { toast } from "sonner";
 import Header from "@/components/Header";
-import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
 const Payment = () => {
   const [orderData, setOrderData] = useState<any>(null);
   const [paymentSlip, setPaymentSlip] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  const { user, signOut } = useAuth();
 
   useEffect(() => {
     const savedOrder = localStorage.getItem('pendingOrder');
@@ -98,7 +95,7 @@ const Payment = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header user={user} onSignOut={signOut} />
+      <Header />
       
       <div className="max-w-4xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold text-gray-800 mb-8">ชำระเงิน</h1>

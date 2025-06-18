@@ -1,4 +1,3 @@
-
 import Header from "@/components/Header";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,7 +24,7 @@ const Shipping = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header user={user} onSignOut={signOut} />
+      <Header />
       
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="text-center mb-8">

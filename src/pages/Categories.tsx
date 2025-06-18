@@ -8,7 +8,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ShoppingCart, Search } from "lucide-react";
 import { toast } from "sonner";
 import Header from "@/components/Header";
-import { useAuth } from "@/hooks/useAuth";
 
 const Categories = () => {
   const [searchParams] = useSearchParams();
@@ -21,7 +20,6 @@ const Categories = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategories, setSelectedCategories] = useState(new Set(selectedCategory ? [selectedCategory] : []));
   const [showAll, setShowAll] = useState(false);
-  const { user, signOut } = useAuth();
 
   useEffect(() => {
     fetchData();
@@ -117,7 +115,7 @@ const Categories = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header user={user} onSignOut={signOut} />
+      <Header />
 
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="mb-6">

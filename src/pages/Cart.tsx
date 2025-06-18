@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,7 +7,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Trash2, Plus, Minus } from "lucide-react";
 import { toast } from "sonner";
 import Header from "@/components/Header";
-import { useAuth } from "@/hooks/useAuth";
 
 interface CartItem {
   id: number;
@@ -27,7 +25,6 @@ const Cart = () => {
     address: "",
     note: ""
   });
-  const { user, signOut } = useAuth();
 
   useEffect(() => {
     // Load cart from localStorage
@@ -87,7 +84,7 @@ const Cart = () => {
   if (cartItems.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Header user={user} onSignOut={signOut} />
+        <Header />
         <div className="max-w-4xl mx-auto px-4 py-8">
           <div className="text-center py-12">
             <h1 className="text-2xl font-bold text-gray-800 mb-4">ตะกร้าสินค้า</h1>
@@ -108,7 +105,7 @@ const Cart = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header user={user} onSignOut={signOut} />
+      <Header />
       
       <div className="max-w-6xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold text-gray-800 mb-8">ตะกร้าสินค้า</h1>
