@@ -9,11 +9,21 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+interface WishlistProduct {
+  id: number;
+  name: string;
+  selling_price: number;
+  category: string;
+  image: string;
+  sku: string;
+  status: string;
+}
+
 const Wishlist = () => {
   const { user, loading: authLoading } = useAuth();
-  const [wishlistItems, setWishlistItems] = useState([]);
+  const [wishlistItems, setWishlistItems] = useState<WishlistProduct[]>([]);
   const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState(null);
+  const [profile, setProfile] = useState<any>(null);
 
   useEffect(() => {
     if (user) {
@@ -34,7 +44,7 @@ const Wishlist = () => {
       if (data) {
         setProfile(data);
         // Parse wishlist from string (comma-separated IDs) to array
-        const wishlistIds = data.wishlist ? data.wishlist.split(',').filter(id => id.trim()) : [];
+        const wishlistIds = data.wishlist ? data.wishlist.split(',').filter((id: string) => id.trim()) : [];
         await fetchWishlistProducts(wishlistIds);
       }
     } catch (error) {
@@ -44,31 +54,36 @@ const Wishlist = () => {
     }
   };
 
-  const fetchWishlistProducts = async (productIds) => {
+  const fetchWishlistProducts = async (productIds: string[]) => {
     if (productIds.length === 0) {
       setWishlistItems([]);
       return;
     }
 
     try {
+      // Convert string IDs to numbers for the query
+      const numericIds = productIds.map(id => parseInt(id)).filter(id => !isNaN(id));
+      
       const { data: products } = await supabase
-        .from('products')
+        .from('public_products')
         .select('*')
-        .in('id', productIds);
+        .in('id', numericIds);
 
-      setWishlistItems(products || []);
+      if (products) {
+        setWishlistItems(products);
+      }
     } catch (error) {
       console.error('Error fetching wishlist products:', error);
       setWishlistItems([]);
     }
   };
 
-  const removeFromWishlist = async (itemId) => {
+  const removeFromWishlist = async (itemId: number) => {
     try {
       // Get current wishlist
-      const currentWishlist = profile?.wishlist ? profile.wishlist.split(',').filter(id => id.trim()) : [];
+      const currentWishlist = profile?.wishlist ? profile.wishlist.split(',').filter((id: string) => id.trim()) : [];
       // Remove the item
-      const updatedWishlist = currentWishlist.filter(id => id !== itemId.toString());
+      const updatedWishlist = currentWishlist.filter((id: string) => id !== itemId.toString());
       
       // Update in database
       const { error } = await supabase
@@ -80,7 +95,7 @@ const Wishlist = () => {
 
       // Update local state
       setWishlistItems(items => items.filter(item => item.id !== itemId));
-      setProfile(prev => ({ ...prev, wishlist: updatedWishlist.join(',') }));
+      setProfile((prev: any) => ({ ...prev, wishlist: updatedWishlist.join(',') }));
       
       toast.success('ลบออกจากรายการโปรดแล้ว');
     } catch (error) {
@@ -89,8 +104,39 @@ const Wishlist = () => {
     }
   };
 
-  const addToCart = (item) => {
-    toast.success(`เพิ่ม ${item.name} ลงในตะกร้าแล้ว`);
+  const addToCart = (item: WishlistProduct) => {
+    try {
+      const cart = localStorage.getItem('cart');
+      let cartItems = cart ? JSON.parse(cart) : [];
+      
+      // Check if item already exists in cart
+      const existingItemIndex = cartItems.findIndex((cartItem: any) => cartItem.id === item.id);
+      
+      if (existingItemIndex > -1) {
+        // Item exists, increase quantity
+        cartItems[existingItemIndex].quantity += 1;
+      } else {
+        // New item, add to cart
+        cartItems.push({
+          id: item.id,
+          name: item.name,
+          price: item.selling_price,
+          quantity: 1,
+          image: item.image,
+          sku: item.sku
+        });
+      }
+      
+      localStorage.setItem('cart', JSON.stringify(cartItems));
+      
+      // Dispatch custom event to update cart count
+      window.dispatchEvent(new CustomEvent('cartUpdated'));
+      
+      toast.success(`เพิ่ม ${item.name} ลงในตะกร้าแล้ว`);
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      toast.error('เกิดข้อผิดพลาดในการเพิ่มสินค้าลงตะกร้า');
+    }
   };
 
   if (authLoading) {
@@ -142,34 +188,36 @@ const Wishlist = () => {
                   <p className="text-gray-500">เพิ่มสินค้าที่คุณชอบลงในรายการโปรดเพื่อติดตามได้ง่าย</p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {wishlistItems.map((item) => (
-                    <div key={item.id} className="flex items-center space-x-4 p-4 border rounded-lg hover:shadow-md transition-shadow">
+                    <div key={item.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
                       <img
-                        src={item.image}
+                        src={item.image || '/placeholder.svg'}
                         alt={item.name}
-                        className="w-20 h-20 object-cover rounded-lg"
+                        className="w-full h-48 object-cover rounded-lg mb-4"
                       />
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900">{item.name}</h3>
+                      <div className="space-y-2">
+                        <h3 className="font-semibold text-gray-900 line-clamp-2">{item.name}</h3>
                         <p className="text-sm text-gray-500">{item.category}</p>
-                        <p className="font-bold text-purple-600 mt-1">฿{item.selling_price?.toLocaleString()}</p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          onClick={() => addToCart(item)}
-                          className="bg-purple-600 hover:bg-purple-700"
-                        >
-                          <ShoppingCart className="h-4 w-4 mr-2" />
-                          เพิ่มลงตะกร้า
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => removeFromWishlist(item.id)}
-                          className="text-red-600 border-red-600 hover:bg-red-50"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <p className="font-bold text-purple-600 text-lg">฿{item.selling_price?.toLocaleString()}</p>
+                        <div className="flex items-center justify-between pt-2">
+                          <Button
+                            onClick={() => addToCart(item)}
+                            className="bg-purple-600 hover:bg-purple-700 flex-1 mr-2"
+                            size="sm"
+                          >
+                            <ShoppingCart className="h-4 w-4 mr-1" />
+                            เพิ่มลงตะกร้า
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => removeFromWishlist(item.id)}
+                            className="text-red-600 border-red-600 hover:bg-red-50"
+                            size="sm"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ))}

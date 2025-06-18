@@ -1,305 +1,224 @@
 
 import { useState, useEffect } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, User, Search, Menu, X, Settings, Package, Heart } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
+import { ShoppingCart, User, Heart, Package, LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const Header = () => {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [profile, setProfile] = useState(null);
-  const location = useLocation();
-  const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const [cartCount, setCartCount] = useState(0);
+  const [profile, setProfile] = useState<any>(null);
 
-  // Fetch user profile to get username
   useEffect(() => {
     if (user) {
-      fetchUserProfile();
+      fetchProfile();
     }
   }, [user]);
 
-  const fetchUserProfile = async () => {
+  useEffect(() => {
+    // Update cart count from localStorage
+    const updateCartCount = () => {
+      const cart = localStorage.getItem('cart');
+      if (cart) {
+        const cartItems = JSON.parse(cart);
+        const totalCount = cartItems.reduce((sum: number, item: any) => sum + item.quantity, 0);
+        setCartCount(totalCount);
+      } else {
+        setCartCount(0);
+      }
+    };
+
+    updateCartCount();
+
+    // Listen for storage changes
+    window.addEventListener('storage', updateCartCount);
+    
+    // Custom event for cart updates
+    window.addEventListener('cartUpdated', updateCartCount);
+
+    return () => {
+      window.removeEventListener('storage', updateCartCount);
+      window.removeEventListener('cartUpdated', updateCartCount);
+    };
+  }, []);
+
+  const fetchProfile = async () => {
     if (!user) return;
     
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select('username, role')
         .eq('id', user.id)
         .maybeSingle();
-      
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return;
+      }
+
       if (data) {
         setProfile(data);
       }
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      console.error('Error fetching profile:', error);
     }
   };
 
-  const isActive = (path: string) => {
-    return location.pathname === path;
-  };
-
-  // Check if user is admin - consistent with Auth.tsx and Admin.tsx
-  const isAdmin = user?.email === 'wishyouluckyshop@gmail.com' || profile?.role === 'admin';
-
-  const handleProfileClick = () => {
-    if (user) {
-      navigate('/profile');
-    } else {
-      navigate('/auth');
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate('/');
+      toast.success('ออกจากระบบเรียบร้อยแล้ว');
+    } catch (error) {
+      toast.error('เกิดข้อผิดพลาดในการออกจากระบบ');
     }
   };
 
   // Get display name - show username only, fallback to email username part
   const getDisplayName = () => {
-    if (profile?.username) {
+    if (profile?.username && profile.username.trim() !== '') {
       return profile.username;
     }
     return user?.email?.split('@')[0] || 'ผู้ใช้';
   };
 
   return (
-    <header 
-      className="text-white shadow-lg sticky top-0 z-50"
-      style={{ background: 'linear-gradient(to right, #956ec3, #a576c9)' }}
-    >
-      <div className="max-w-7xl mx-auto px-4 py-4">
+    <header className="bg-purple-600 text-white shadow-lg sticky top-0 z-50">
+      <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-8">
-            <Link to="/" className="flex items-center">
-              <img 
-                src="/lovable-uploads/ecaac6f9-54fc-484a-b4fa-bfb1cd61c348.png" 
-                alt="Lucky Shop Logo" 
-                className="h-12 w-auto"
-              />
-            </Link>
-            
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex space-x-6">
-              <Link 
-                to="/" 
-                className={`hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium ${
-                  isActive('/') ? 'bg-white bg-opacity-20 text-white' : ''
-                }`}
-              >
-                หน้าแรก
-              </Link>
-              <Link 
-                to="/categories" 
-                className={`hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium ${
-                  isActive('/categories') ? 'bg-white bg-opacity-20 text-white' : ''
-                }`}
-              >
-                หมวดหมู่
-              </Link>
-              <Link 
-                to="/order-status" 
-                className={`hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium ${
-                  isActive('/order-status') ? 'bg-white bg-opacity-20 text-white' : ''
-                }`}
-              >
-                เช็คสถานะสินค้า
-              </Link>
-              <Link 
-                to="/qa" 
-                className={`hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium ${
-                  isActive('/qa') ? 'bg-white bg-opacity-20 text-white' : ''
-                }`}
-              >
-                Q&A
-              </Link>
-              <Link 
-                to="/reviews" 
-                className={`hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium ${
-                  isActive('/reviews') ? 'bg-white bg-opacity-20 text-white' : ''
-                }`}
-              >
-                รีวิว
-              </Link>
-            </nav>
+          <div 
+            className="text-2xl font-bold cursor-pointer hover:text-purple-200 transition-colors"
+            onClick={() => navigate('/')}
+          >
+            LuckyShop
           </div>
           
+          <nav className="hidden md:flex space-x-6">
+            <button
+              onClick={() => navigate('/categories')}
+              className="hover:text-purple-200 transition-colors"
+            >
+              หมวดหมู่สินค้า
+            </button>
+            <button
+              onClick={() => navigate('/how-to-order')}
+              className="hover:text-purple-200 transition-colors"
+            >
+              วิธีการสั่งซื้อ
+            </button>
+            <button
+              onClick={() => navigate('/shipping')}
+              className="hover:text-purple-200 transition-colors"
+            >
+              การจัดส่ง
+            </button>
+            <button
+              onClick={() => navigate('/returns')}
+              className="hover:text-purple-200 transition-colors"
+            >
+              การคืนสินค้า
+            </button>
+            <button
+              onClick={() => navigate('/reviews')}
+              className="hover:text-purple-200 transition-colors"
+            >
+              รีวิว
+            </button>
+            <button
+              onClick={() => navigate('/qa')}
+              className="hover:text-purple-200 transition-colors"
+            >
+              Q&A
+            </button>
+          </nav>
+
           <div className="flex items-center space-x-4">
-            <div className="relative hidden md:block">
-              <input
-                type="text"
-                placeholder="ค้นหาสินค้า..."
-                className="w-64 px-4 py-2 rounded-lg text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-purple-300 border border-white border-opacity-30"
-              />
-              <Search className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
-            </div>
-            
-            <Link to="/cart">
-              <Button variant="ghost" size="icon" className="text-white hover:bg-white hover:bg-opacity-20">
-                <ShoppingCart className="h-6 w-6" />
-              </Button>
-            </Link>
-            
-            {user ? (
-              <div className="flex items-center space-x-2">
-                <span className="text-sm font-medium text-white">{getDisplayName()}</span>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="text-white hover:bg-white hover:bg-opacity-20"
+            {user && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate('/wishlist')}
+                  className="text-white hover:bg-purple-700 hover:text-white"
+                >
+                  <Heart className="h-4 w-4" />
+                </Button>
+                
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate('/order-history')}
+                  className="text-white hover:bg-purple-700 hover:text-white"
+                >
+                  <Package className="h-4 w-4" />
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate('/cart')}
+                  className="text-white hover:bg-purple-700 hover:text-white relative"
+                >
+                  <ShoppingCart className="h-4 w-4" />
+                  {cartCount > 0 && (
+                    <Badge 
+                      variant="destructive" 
+                      className="absolute -top-2 -right-2 px-1 min-w-[1.2rem] h-5 flex items-center justify-center text-xs"
                     >
-                      <User className="h-6 w-6" />
+                      {cartCount}
+                    </Badge>
+                  )}
+                </Button>
+
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm">สวัสดี, {getDisplayName()}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigate('/profile')}
+                    className="text-white hover:bg-purple-700 hover:text-white"
+                  >
+                    <User className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleSignOut}
+                    className="text-white hover:bg-purple-700 hover:text-white"
+                  >
+                    <LogOut className="h-4 w-4" />
+                  </Button>
+                  {profile?.role === 'admin' && (
+                    <Button
+                      onClick={() => navigate('/admin')}
+                      variant="secondary"
+                      size="sm"
+                      className="ml-2"
+                    >
+                      Admin
                     </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuItem onClick={handleProfileClick}>
-                      <User className="h-4 w-4 mr-2" />
-                      ข้อมูลโปรไฟล์
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/order-history')}>
-                      <Package className="h-4 w-4 mr-2" />
-                      ประวัติการสั่งซื้อ
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/wishlist')}>
-                      <Heart className="h-4 w-4 mr-2" />
-                      รายการโปรด
-                    </DropdownMenuItem>
-                    {isAdmin && (
-                      <>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => navigate('/admin')}>
-                          <Settings className="h-4 w-4 mr-2" />
-                          ระบบหลังบ้าน
-                        </DropdownMenuItem>
-                      </>
-                    )}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={signOut}>
-                      ออกจากระบบ
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            ) : (
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={handleProfileClick}
-                className="text-white hover:bg-white hover:bg-opacity-20"
-                title="เข้าสู่ระบบ"
+                  )}
+                </div>
+              </>
+            )}
+            
+            {!user && (
+              <Button
+                onClick={() => navigate('/auth')}
+                variant="secondary"
+                size="sm"
               >
-                <User className="h-6 w-6" />
+                เข้าสู่ระบบ
               </Button>
             )}
-
-            {/* Mobile menu button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden text-white hover:bg-white hover:bg-opacity-20"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            >
-              {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            </Button>
           </div>
         </div>
-
-        {/* Mobile Navigation */}
-        {isMobileMenuOpen && (
-          <nav className="md:hidden mt-4 pt-4 border-t border-white border-opacity-30">
-            <div className="flex flex-col space-y-2">
-              <Link 
-                to="/" 
-                className={`hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium ${
-                  isActive('/') ? 'bg-white bg-opacity-20 text-white' : ''
-                }`}
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                หน้าแรก
-              </Link>
-              <Link 
-                to="/categories" 
-                className={`hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium ${
-                  isActive('/categories') ? 'bg-white bg-opacity-20 text-white' : ''
-                }`}
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                หมวดหมู่
-              </Link>
-              <Link 
-                to="/order-status" 
-                className={`hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium ${
-                  isActive('/order-status') ? 'bg-white bg-opacity-20 text-white' : ''
-                }`}
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                เช็คสถานะสินค้า
-              </Link>
-              <Link 
-                to="/qa" 
-                className={`hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium ${
-                  isActive('/qa') ? 'bg-white bg-opacity-20 text-white' : ''
-                }`}
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Q&A
-              </Link>
-              <Link 
-                to="/reviews" 
-                className={`hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium ${
-                  isActive('/reviews') ? 'bg-white bg-opacity-20 text-white' : ''
-                }`}
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                รีวิว
-              </Link>
-              {user && (
-                <>
-                  <button
-                    onClick={() => {
-                      handleProfileClick();
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="text-left hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium"
-                  >
-                    ข้อมูลโปรไฟล์
-                  </button>
-                  <button
-                    onClick={() => {
-                      navigate('/order-history');
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="text-left hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium"
-                  >
-                    ประวัติการสั่งซื้อ
-                  </button>
-                  <button
-                    onClick={() => {
-                      navigate('/wishlist');
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="text-left hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium"
-                  >
-                    รายการโปรด
-                  </button>
-                  {isAdmin && (
-                    <button
-                      onClick={() => {
-                        navigate('/admin');
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="text-left hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium flex items-center"
-                    >
-                      <Settings className="h-4 w-4 mr-2" />
-                      ระบบหลังบ้าน
-                    </button>
-                  )}
-                </>
-              )}
-            </div>
-          </nav>
-        )}
       </div>
     </header>
   );

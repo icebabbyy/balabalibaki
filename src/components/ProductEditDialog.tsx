@@ -7,6 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ImageUpload from "@/components/ImageUpload";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface Product {
   id: number;
@@ -27,17 +29,49 @@ interface ProductEditDialogProps {
 }
 
 const ProductEditDialog = ({ product, isOpen, onClose, onSave }: ProductEditDialogProps) => {
-  const [editingProduct, setEditingProduct] = useState<Product | null>(product);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [saving, setSaving] = useState(false);
 
   // Update editing product when product prop changes
   useEffect(() => {
-    setEditingProduct(product);
+    if (product) {
+      setEditingProduct({ ...product });
+    }
   }, [product]);
 
-  const handleSave = () => {
-    if (editingProduct) {
+  const handleSave = async () => {
+    if (!editingProduct) return;
+
+    setSaving(true);
+    try {
+      // Update in public_products table
+      const { error } = await supabase
+        .from('public_products')
+        .update({
+          name: editingProduct.name,
+          selling_price: editingProduct.selling_price,
+          category: editingProduct.category,
+          description: editingProduct.description,
+          image: editingProduct.image,
+          status: editingProduct.status,
+          sku: editingProduct.sku
+        })
+        .eq('id', editingProduct.id);
+
+      if (error) {
+        console.error('Error updating product:', error);
+        toast.error('เกิดข้อผิดพลาดในการบันทึกสินค้า');
+        return;
+      }
+
+      toast.success('บันทึกข้อมูลสินค้าเรียบร้อยแล้ว');
       onSave(editingProduct);
       onClose();
+    } catch (error) {
+      console.error('Error saving product:', error);
+      toast.error('เกิดข้อผิดพลาดในการบันทึกสินค้า');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -54,16 +88,16 @@ const ProductEditDialog = ({ product, isOpen, onClose, onSave }: ProductEditDial
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>แก้ไขสินค้า</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+        <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label>ชื่อสินค้า</Label>
               <Input
-                value={editingProduct.name}
+                value={editingProduct.name || ''}
                 onChange={(e) => updateField('name', e.target.value)}
               />
             </div>
@@ -71,27 +105,27 @@ const ProductEditDialog = ({ product, isOpen, onClose, onSave }: ProductEditDial
               <Label>ราคา</Label>
               <Input
                 type="number"
-                value={editingProduct.selling_price}
+                value={editingProduct.selling_price || 0}
                 onChange={(e) => updateField('selling_price', parseFloat(e.target.value) || 0)}
               />
             </div>
             <div>
               <Label>หมวดหมู่</Label>
               <Input
-                value={editingProduct.category}
+                value={editingProduct.category || ''}
                 onChange={(e) => updateField('category', e.target.value)}
               />
             </div>
             <div>
               <Label>SKU</Label>
               <Input
-                value={editingProduct.sku}
+                value={editingProduct.sku || ''}
                 onChange={(e) => updateField('sku', e.target.value)}
               />
             </div>
             <div>
               <Label>สถานะ</Label>
-              <Select value={editingProduct.status} onValueChange={(value) => updateField('status', value)}>
+              <Select value={editingProduct.status || 'พรีออเดอร์'} onValueChange={(value) => updateField('status', value)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -121,10 +155,14 @@ const ProductEditDialog = ({ product, isOpen, onClose, onSave }: ProductEditDial
           </div>
         </div>
         <div className="flex space-x-2 pt-4">
-          <Button onClick={handleSave} className="bg-purple-600 hover:bg-purple-700">
-            บันทึก
+          <Button 
+            onClick={handleSave} 
+            className="bg-purple-600 hover:bg-purple-700"
+            disabled={saving}
+          >
+            {saving ? 'กำลังบันทึก...' : 'บันทึก'}
           </Button>
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={onClose} disabled={saving}>
             ยกเลิก
           </Button>
         </div>
