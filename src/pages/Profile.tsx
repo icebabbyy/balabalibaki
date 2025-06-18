@@ -1,18 +1,19 @@
+
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Header from "@/components/Header";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 const Profile = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
+  const { user, loading: authLoading, signOut } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
-  const [authChecked, setAuthChecked] = useState(false);
   const [formData, setFormData] = useState({
     username: '',
     full_name: '',
@@ -20,36 +21,23 @@ const Profile = () => {
     address: ''
   });
 
+  console.log('Profile page: Component mounted', { user, authLoading });
+
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        console.log('Profile page: Checking authentication...');
-        
-        // Check current session first
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        console.log('Profile page - Session:', session, 'Session Error:', sessionError);
-        
-        if (!session?.user) {
-          console.log('Profile page: No session found, redirecting to auth');
-          navigate('/auth');
-          return;
-        }
+    if (authLoading) {
+      console.log('Profile page: Still loading auth state');
+      return;
+    }
 
-        console.log('Profile page: User found:', session.user);
-        setUser(session.user);
-        await loadProfile(session.user.id);
-        
-      } catch (error) {
-        console.error('Profile page: Auth check error:', error);
-        navigate('/auth');
-      } finally {
-        setAuthChecked(true);
-        setLoading(false);
-      }
-    };
+    if (!user) {
+      console.log('Profile page: No user found, redirecting to auth');
+      navigate('/auth');
+      return;
+    }
 
-    checkAuth();
-  }, [navigate]);
+    console.log('Profile page: User found, loading profile:', user);
+    loadProfile(user.id);
+  }, [user, authLoading, navigate]);
 
   const loadProfile = async (userId) => {
     try {
@@ -59,13 +47,12 @@ const Profile = () => {
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .maybeSingle(); // Use maybeSingle instead of single to handle no data case
+        .maybeSingle();
 
       console.log('Profile page - Profile data:', data, 'Profile Error:', error);
 
       if (error) {
         console.error('Profile page: Error loading profile:', error);
-        // Don't return here, continue to show the form even if no profile exists
       }
 
       if (data) {
@@ -79,10 +66,11 @@ const Profile = () => {
         });
       } else {
         console.log('Profile page: No profile found, showing empty form');
-        // Keep empty form data for new profile creation
       }
     } catch (err) {
       console.error('Profile page: Unexpected error in loadProfile:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -116,14 +104,8 @@ const Profile = () => {
     }
   };
 
-  const handleSignOut = async () => {
-    console.log('Profile page: Signing out...');
-    await supabase.auth.signOut();
-    navigate('/auth');
-  };
-
   // Show loading while checking auth
-  if (!authChecked || loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="container mx-auto px-4 py-8">
@@ -146,7 +128,7 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header user={user} onSignOut={handleSignOut} />
+      <Header user={user} onSignOut={signOut} />
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-md mx-auto">
           <Card>

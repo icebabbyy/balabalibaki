@@ -36,7 +36,7 @@ const Auth = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('Auth page - Auth state changed:', event, session?.user);
       setUser(session?.user ?? null);
-      if (session?.user) {
+      if (session?.user && event === 'SIGNED_IN') {
         console.log('Auth page: User signed in, redirecting to home');
         navigate('/');
       }
@@ -146,14 +146,8 @@ const Auth = () => {
   };
 
   const handleProfileClick = () => {
-    console.log('Auth page: Profile button clicked, user:', user);
-    if (user) {
-      console.log('Auth page: Navigating to profile page');
-      navigate('/profile');
-    } else {
-      console.error('Auth page: No user found, cannot navigate to profile');
-      setError('ไม่พบข้อมูลผู้ใช้');
-    }
+    console.log('Auth page: Profile button clicked, navigating to profile');
+    navigate('/profile');
   };
 
   if (user) {
