@@ -7,15 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Plus, Edit, Trash2, Upload } from "lucide-react";
+import { Plus, Edit, Trash2 } from "lucide-react";
 
 interface Banner {
-  id: number;
+  "id BIGSERIAL": string;
   image_url: string;
   position: number;
   active: boolean;
-  title?: string;
-  description?: string;
+  created_at: string;
+  updated_at: string | null;
 }
 
 const BannerManager = () => {
@@ -24,8 +24,6 @@ const BannerManager = () => {
   const [editingBanner, setEditingBanner] = useState<Banner | null>(null);
   const [newBanner, setNewBanner] = useState({
     image_url: '',
-    title: '',
-    description: '',
     position: 1,
     active: true
   });
@@ -62,8 +60,6 @@ const BannerManager = () => {
       toast.success('เพิ่มแบนเนอร์เรียบร้อยแล้ว');
       setNewBanner({
         image_url: '',
-        title: '',
-        description: '',
         position: 1,
         active: true
       });
@@ -81,11 +77,9 @@ const BannerManager = () => {
         .update({
           image_url: banner.image_url,
           position: banner.position,
-          active: banner.active,
-          title: banner.title,
-          description: banner.description
+          active: banner.active
         })
-        .eq('id', banner.id);
+        .eq('"id BIGSERIAL"', banner["id BIGSERIAL"]);
 
       if (error) throw error;
 
@@ -98,14 +92,14 @@ const BannerManager = () => {
     }
   };
 
-  const handleDeleteBanner = async (id: number) => {
+  const handleDeleteBanner = async (id: string) => {
     if (!confirm('คุณต้องการลบแบนเนอร์นี้หรือไม่?')) return;
 
     try {
       const { error } = await supabase
         .from('banners')
         .delete()
-        .eq('id', id);
+        .eq('"id BIGSERIAL"', id);
 
       if (error) throw error;
 
@@ -152,24 +146,6 @@ const BannerManager = () => {
                 onChange={(e) => setNewBanner({...newBanner, position: parseInt(e.target.value) || 1})}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="banner-title">หัวข้อ (ไม่บังคับ)</Label>
-              <Input
-                id="banner-title"
-                placeholder="หัวข้อแบนเนอร์"
-                value={newBanner.title}
-                onChange={(e) => setNewBanner({...newBanner, title: e.target.value})}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="banner-desc">รายละเอียด (ไม่บังคับ)</Label>
-              <Input
-                id="banner-desc"
-                placeholder="รายละเอียดแบนเนอร์"
-                value={newBanner.description}
-                onChange={(e) => setNewBanner({...newBanner, description: e.target.value})}
-              />
-            </div>
           </div>
           <div className="flex items-center space-x-2">
             <Switch
@@ -192,7 +168,7 @@ const BannerManager = () => {
         <CardContent>
           <div className="space-y-4">
             {banners.map((banner) => (
-              <div key={banner.id} className="flex items-center justify-between p-4 border rounded-lg">
+              <div key={banner["id BIGSERIAL"]} className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="flex items-center space-x-4">
                   <img
                     src={banner.image_url || '/placeholder.svg'}
@@ -200,7 +176,7 @@ const BannerManager = () => {
                     className="w-20 h-12 object-cover rounded"
                   />
                   <div>
-                    <h4 className="font-medium">แบนเนอร์ #{banner.id}</h4>
+                    <h4 className="font-medium">แบนเนอร์ #{banner["id BIGSERIAL"]}</h4>
                     <p className="text-sm text-gray-500">ตำแหน่ง: {banner.position}</p>
                     <p className="text-sm text-gray-500">
                       สถานะ: {banner.active ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
@@ -219,7 +195,7 @@ const BannerManager = () => {
                     variant="outline"
                     size="sm"
                     className="text-red-600"
-                    onClick={() => handleDeleteBanner(banner.id)}
+                    onClick={() => handleDeleteBanner(banner["id BIGSERIAL"])}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
