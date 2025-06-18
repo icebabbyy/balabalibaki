@@ -5,7 +5,7 @@ import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Star, Heart, ShoppingCart, Minus, Plus, ArrowLeft } from "lucide-react";
+import { ShoppingCart, Minus, Plus, ArrowLeft, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -147,16 +147,6 @@ const ProductDetail = () => {
             <div>
               <h1 className="text-3xl font-bold text-gray-900 mb-2">{product.name}</h1>
               <div className="flex items-center space-x-4 mb-4">
-                <div className="flex items-center space-x-1">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`h-5 w-5 ${
-                        i < 4 ? 'text-yellow-400 fill-current' : 'text-gray-300'
-                      }`}
-                    />
-                  ))}
-                </div>
                 <Badge variant="secondary">{product.category}</Badge>
               </div>
             </div>
@@ -169,16 +159,16 @@ const ProductDetail = () => {
                 </span>
               </div>
               <p className="text-gray-600">รหัสสินค้า: {product.sku}</p>
-              <p className="text-gray-600">สถานะ: {product.status || 'พร้อมส่ง'}</p>
-            </div>
-
-            {/* Description */}
-            {product.description && (
-              <div>
-                <h3 className="text-lg font-semibold mb-2">รายละเอียดสินค้า</h3>
-                <p className="text-gray-700 leading-relaxed">{product.description}</p>
+              <div className="flex items-center space-x-2">
+                <p className="text-gray-600">สถานะ: {product.status || 'พร้อมส่ง'}</p>
+                {product.shipment_date && (
+                  <div className="flex items-center space-x-1 text-orange-600">
+                    <Calendar className="h-4 w-4" />
+                    <span className="text-sm font-medium">กำหนดส่ง: {new Date(product.shipment_date).toLocaleDateString('th-TH')}</span>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
 
             {/* Quantity & Actions */}
             <Card>
@@ -221,17 +211,22 @@ const ProductDetail = () => {
                       className="flex-1"
                       style={{ backgroundColor: '#956ec3' }}
                     >
-                      ซื้อเลย
+                      ซื้อเดี๋ยวนี้
                     </Button>
                   </div>
-
-                  <Button variant="ghost" className="w-full text-gray-600">
-                    <Heart className="h-4 w-4 mr-2" />
-                    เพิ่มลงรายการโปรด
-                  </Button>
                 </div>
               </CardContent>
             </Card>
+
+            {/* Description */}
+            {product.description && (
+              <Card>
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-semibold mb-3">รายละเอียดสินค้า</h3>
+                  <p className="text-gray-700 leading-relaxed whitespace-pre-line">{product.description}</p>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
 
