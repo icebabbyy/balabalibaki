@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { Plus, Edit, Trash2 } from "lucide-react";
 
 interface Banner {
-  "id BIGSERIAL": string;
+  id: string;
   image_url: string;
   position: number;
   active: boolean;
@@ -46,7 +46,18 @@ const BannerManager = () => {
         .order('position');
 
       if (error) throw error;
-      setBanners(data || []);
+      
+      // Transform the data to match our Banner interface
+      const transformedData = (data || []).map((item: any) => ({
+        id: item["id BIGSERIAL"],
+        image_url: item.image_url,
+        position: item.position,
+        active: item.active,
+        created_at: item.created_at,
+        updated_at: item.updated_at
+      }));
+      
+      setBanners(transformedData);
     } catch (error) {
       console.error('Error fetching banners:', error);
       toast.error('เกิดข้อผิดพลาดในการโหลดแบนเนอร์');
@@ -87,7 +98,7 @@ const BannerManager = () => {
       const { error } = await supabase
         .from('banners')
         .update(updateData)
-        .eq('"id BIGSERIAL"', banner["id BIGSERIAL"]);
+        .eq('"id BIGSERIAL"', banner.id);
 
       if (error) throw error;
 
@@ -119,20 +130,20 @@ const BannerManager = () => {
     }
   };
 
-  const updateNewBanner = (field: keyof NewBannerForm, value: string | number | boolean) => {
+  const updateNewBanner = (field: string, value: string | number | boolean) => {
     setNewBanner(prev => ({
       ...prev,
       [field]: value
     }));
   };
 
-  const updateEditingBanner = (field: keyof Banner, value: string | number | boolean) => {
+  const updateEditingBanner = (field: string, value: string | number | boolean) => {
     if (!editingBanner) return;
     
-    setEditingBanner(prev => prev ? {
-      ...prev,
+    setEditingBanner({
+      ...editingBanner,
       [field]: value
-    } : null);
+    });
   };
 
   if (loading) {
@@ -192,7 +203,7 @@ const BannerManager = () => {
         <CardContent>
           <div className="space-y-4">
             {banners.map((banner) => (
-              <div key={banner["id BIGSERIAL"]} className="flex items-center justify-between p-4 border rounded-lg">
+              <div key={banner.id} className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="flex items-center space-x-4">
                   <img
                     src={banner.image_url || '/placeholder.svg'}
@@ -200,7 +211,7 @@ const BannerManager = () => {
                     className="w-20 h-12 object-cover rounded"
                   />
                   <div>
-                    <h4 className="font-medium">แบนเนอร์ #{banner["id BIGSERIAL"]}</h4>
+                    <h4 className="font-medium">แบนเนอร์ #{banner.id}</h4>
                     <p className="text-sm text-gray-500">ตำแหน่ง: {banner.position}</p>
                     <p className="text-sm text-gray-500">
                       สถานะ: {banner.active ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
@@ -219,7 +230,7 @@ const BannerManager = () => {
                     variant="outline"
                     size="sm"
                     className="text-red-600"
-                    onClick={() => handleDeleteBanner(banner["id BIGSERIAL"])}
+                    onClick={() => handleDeleteBanner(banner.id)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
