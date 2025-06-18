@@ -95,3 +95,15 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Custom gradient button style to match header */
+@layer components {
+  .btn-gradient {
+    background: linear-gradient(to right, #956ec3, #a576c9);
+    color: white;
+  }
+  
+  .btn-gradient:hover {
+    background: linear-gradient(to right, #8a63b8, #9a6bbe);
+  }
+}
