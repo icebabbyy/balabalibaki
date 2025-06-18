@@ -7,6 +7,7 @@ import { ArrowRight, ShoppingCart } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
+import Autoplay from "embla-carousel-autoplay";
 
 interface Banner {
   id: string;
@@ -224,11 +225,23 @@ const Index = () => {
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      {/* แบนเนอร์ขนาดกลาง */}
+      {/* แบนเนอร์ขนาดกลางแบบ Auto Carousel */}
       <section className="relative">
         {banners.length > 0 ? (
           <div className="max-w-4xl mx-auto px-4 py-8">
-            <Carousel className="w-full h-64 md:h-80">
+            <Carousel 
+              className="w-full h-64 md:h-80"
+              plugins={[
+                Autoplay({
+                  delay: 4000,
+                  stopOnInteraction: true,
+                })
+              ]}
+              opts={{
+                align: "start",
+                loop: true,
+              }}
+            >
               <CarouselContent>
                 {banners.map((banner) => (
                   <CarouselItem key={banner.id}>
@@ -266,26 +279,34 @@ const Index = () => {
         )}
       </section>
 
-      {/* หมวดหมู่สินค้าทั้งหมด */}
+      {/* หมวดหมู่สินค้าทั้งหมด - เน้นรูปภาพ */}
       <section className="py-12 bg-white">
         <div className="max-w-7xl mx-auto px-4">
           <h2 className="text-2xl font-bold mb-8 text-center">หมวดหมู่สินค้า</h2>
-          <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
+          <div className="grid grid-cols-5 md:grid-cols-6 gap-4">
             {categories.map((category) => (
               <Link key={category.id} to={`/categories?category=${encodeURIComponent(category.name)}`}>
-                <Card className="hover:shadow-lg transition-shadow text-center p-4">
-                  <div className="w-16 h-16 mx-auto mb-3 bg-purple-100 rounded-full flex items-center justify-center overflow-hidden">
-                    {category.image ? (
-                      <img 
-                        src={category.image} 
-                        alt={category.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-8 h-8 bg-purple-600 rounded"></div>
-                    )}
-                  </div>
-                  <h3 className="font-medium text-sm">{category.name}</h3>
+                <Card className="hover:shadow-lg transition-all duration-300 hover:scale-105 border-2 hover:border-purple-200">
+                  <CardContent className="p-2">
+                    <div className="relative w-full aspect-square mb-2 overflow-hidden rounded-lg bg-gradient-to-br from-purple-100 to-pink-100">
+                      {category.image ? (
+                        <img 
+                          src={category.image} 
+                          alt={category.name}
+                          className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center">
+                          <div className="w-8 h-8 bg-white rounded-full opacity-80"></div>
+                        </div>
+                      )}
+                      {/* เอฟเฟกต์ overlay เมื่อ hover */}
+                      <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-10 transition-all duration-300"></div>
+                    </div>
+                    <h3 className="font-medium text-xs text-center text-gray-800 line-clamp-2 leading-tight">
+                      {category.name}
+                    </h3>
+                  </CardContent>
                 </Card>
               </Link>
             ))}
