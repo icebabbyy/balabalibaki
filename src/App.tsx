@@ -14,6 +14,9 @@ import Admin from "./pages/Admin";
 import Auth from "./pages/Auth";
 import Cart from "./pages/Cart";
 import Payment from "./pages/Payment";
+import HowToOrder from "./pages/HowToOrder";
+import Shipping from "./pages/Shipping";
+import Returns from "./pages/Returns";
 import NotFound from "./pages/NotFound";
 import Footer from "./components/Footer";
 
@@ -38,6 +41,9 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/cart" element={<Cart />} />
               <Route path="/payment" element={<Payment />} />
+              <Route path="/how-to-order" element={<HowToOrder />} />
+              <Route path="/shipping" element={<Shipping />} />
+              <Route path="/returns" element={<Returns />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

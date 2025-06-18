@@ -77,24 +77,22 @@ const Index = () => {
                   <div className="relative h-[400px] overflow-hidden">
                     <img
                       src={banner.image_url}
-                      alt={banner.title}
+                      alt={`Banner ${banner.id}`}
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
                       <div className="text-center text-white max-w-2xl px-4">
-                        <h1 className="text-4xl font-bold mb-4">{banner.title}</h1>
-                        <p className="text-xl mb-6">{banner.subtitle}</p>
-                        {banner.button_text && banner.button_link && (
-                          <Link to={banner.button_link}>
-                            <Button 
-                              size="lg" 
-                              style={{ backgroundColor: '#956ec3' }}
-                              className="hover:opacity-90"
-                            >
-                              {banner.button_text}
-                            </Button>
-                          </Link>
-                        )}
+                        <h1 className="text-4xl font-bold mb-4">ยินดีต้อนรับสู่ Lucky Shop</h1>
+                        <p className="text-xl mb-6">ร้านขายของสะสม ฟิกเกอร์ และของเล่นคุณภาพ</p>
+                        <Link to="/categories">
+                          <Button 
+                            size="lg" 
+                            style={{ backgroundColor: '#956ec3' }}
+                            className="hover:opacity-90"
+                          >
+                            เริ่มช้อปปิ้ง
+                          </Button>
+                        </Link>
                       </div>
                     </div>
                   </div>
