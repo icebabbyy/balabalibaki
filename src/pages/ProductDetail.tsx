@@ -8,6 +8,11 @@ import { ShoppingCart, Minus, Plus, ArrowLeft, Calendar, Heart } from "lucide-re
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
+interface ProductOption {
+  id: string | number;
+  name: string;
+}
+
 const ProductDetail = () => {
   const { id } = useParams();
   const { toast } = useToast();
@@ -49,9 +54,12 @@ const ProductDetail = () => {
 
       setProduct(data);
 
-      // Initialize selected option from first option
-      if (Array.isArray(data?.options) && data.options.length > 0) {
-        setSelectedOptions({ default: data.options[0].name });
+      // Initialize selected option from first option with proper type checking
+      if (data?.options && Array.isArray(data.options) && data.options.length > 0) {
+        const firstOption = data.options[0] as ProductOption;
+        if (firstOption && typeof firstOption === 'object' && 'name' in firstOption) {
+          setSelectedOptions({ default: firstOption.name });
+        }
       }
 
       // Fetch related products
@@ -129,6 +137,19 @@ const ProductDetail = () => {
     product.image || '/placeholder.svg',
     product.image || '/placeholder.svg'
   ];
+
+  // Helper function to safely parse options
+  const getProductOptions = (): ProductOption[] => {
+    if (!product?.options) return [];
+    if (Array.isArray(product.options)) {
+      return product.options.filter((opt): opt is ProductOption => 
+        opt && typeof opt === 'object' && 'name' in opt
+      );
+    }
+    return [];
+  };
+
+  const productOptions = getProductOptions();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -208,7 +229,7 @@ const ProductDetail = () => {
             </div>
 
             {/* Product Options */}
-            {Array.isArray(product.options) && product.options.length > 0 && (
+            {productOptions.length > 0 && (
               <Card>
                 <CardContent className="p-6">
                   <h3 className="text-lg font-semibold mb-4">ตัวเลือกสินค้า</h3>
@@ -216,7 +237,7 @@ const ProductDetail = () => {
                     <div>
                       <label className="block text-sm font-medium mb-2">เลือกแบบ:</label>
                       <div className="flex flex-wrap gap-2">
-                        {product.options.map((opt: any) => (
+                        {productOptions.map((opt) => (
                           <button
                             key={opt.id}
                             onClick={() => setSelectedOptions({ default: opt.name })}
