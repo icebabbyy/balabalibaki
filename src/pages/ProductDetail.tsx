@@ -233,9 +233,9 @@ const ProductDetail = () => {
                       <div key={optionName}>
                         <label className="block text-sm font-medium mb-2">{optionName}:</label>
                         <div className="flex flex-wrap gap-2">
-                          {Array.isArray(optionValues) && optionValues.map((value: string, index: number) => (
+                          {Array.isArray(optionValues) && optionValues.map((value: string) => (
                             <button
-                              key={index}
+                              key={value}
                               onClick={() => setSelectedOptions(prev => ({ ...prev, [optionName]: value }))}
                               className={`px-3 py-1 rounded-md border text-sm ${
                                 selectedOptions[optionName] === value

@@ -99,7 +99,7 @@ const Header = () => {
   };
 
   return (
-    <header className="bg-purple-600 text-white shadow-lg sticky top-0 z-50">
+    <header className="text-white shadow-lg sticky top-0 z-50" style={{ backgroundColor: '#a375c9' }}>
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <div 
@@ -155,7 +155,8 @@ const Header = () => {
               <Button
                 type="submit"
                 size="sm"
-                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 bg-purple-600 hover:bg-purple-700"
+                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-purple-700"
+                style={{ backgroundColor: '#a375c9' }}
               >
                 <Search className="h-4 w-4" />
               </Button>
