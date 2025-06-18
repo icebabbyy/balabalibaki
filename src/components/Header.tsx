@@ -56,7 +56,7 @@ const Header = () => {
 
   // Get display name - show username only
   const getDisplayName = () => {
-    return profile?.username || 'ผู้ใช้';
+    return profile?.username || user?.email?.split('@')[0] || 'ผู้ใช้';
   };
 
   return (
@@ -117,18 +117,6 @@ const Header = () => {
               >
                 รีวิว
               </Link>
-              {/* Show admin link only for admin users */}
-              {user && isAdmin && (
-                <Link
-                  to="/admin"
-                  className={`hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium flex items-center ${
-                    isActive('/admin') ? 'bg-white bg-opacity-20 text-white' : ''
-                  }`}
-                >
-                  <Settings className="h-4 w-4 mr-2" />
-                  ระบบหลังบ้าน
-                </Link>
-              )}
             </nav>
           </div>
           
@@ -166,7 +154,7 @@ const Header = () => {
                       <User className="h-4 w-4 mr-2" />
                       ข้อมูลโปรไฟล์
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/order-status')}>
+                    <DropdownMenuItem onClick={() => navigate('/order-history')}>
                       <Package className="h-4 w-4 mr-2" />
                       ประวัติการสั่งซื้อ
                     </DropdownMenuItem>
@@ -276,7 +264,7 @@ const Header = () => {
                   </button>
                   <button
                     onClick={() => {
-                      navigate('/order-status');
+                      navigate('/order-history');
                       setIsMobileMenuOpen(false);
                     }}
                     className="text-left hover:text-gray-200 transition-colors px-3 py-2 rounded font-medium"

@@ -19,6 +19,8 @@ import HowToOrder from "./pages/HowToOrder";
 import Shipping from "./pages/Shipping";
 import Returns from "./pages/Returns";
 import NotFound from "./pages/NotFound";
+import Wishlist from "./pages/Wishlist";
+import OrderHistory from "./pages/OrderHistory";
 import Footer from "./components/Footer";
 
 const queryClient = new QueryClient();
@@ -46,6 +48,8 @@ const App = () => (
               <Route path="/how-to-order" element={<HowToOrder />} />
               <Route path="/shipping" element={<Shipping />} />
               <Route path="/returns" element={<Returns />} />
+              <Route path="/wishlist" element={<Wishlist />} />
+              <Route path="/order-history" element={<OrderHistory />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
