@@ -1,369 +1,202 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Mail, Phone, User, Calendar } from "lucide-react";
-import { toast } from "sonner";
+
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import Header from "@/components/Header";
+import AuthDebug from "@/components/AuthDebug";
 
 const Auth = () => {
-  const navigate = useNavigate();
-  const [loginForm, setLoginForm] = useState({
-    email: '',
-    password: ''
-  });
-
-  const [registerForm, setRegisterForm] = useState({
-    email: '',
-    phone: '',
-    username: '',
-    password: '',
-    confirmPassword: '',
-    fullName: '',
-    address: '',
-    birthDate: ''
-  });
-
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState(null);
+  const navigate = useNavigate();
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: loginForm.email,
-        password: loginForm.password,
-      });
-
-      if (error) {
-        toast.error(error.message);
-        return;
+  useEffect(() => {
+    // Check if user is already logged in
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        setUser(user);
       }
+    });
 
-      if (data.user) {
-        toast.success('เข้าสู่ระบบสำเร็จ');
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
         navigate('/');
       }
-    } catch (error) {
-      console.error('Error during login:', error);
-      toast.error('เกิดข้อผิดพลาดในการเข้าสู่ระบบ');
-    } finally {
-      setLoading(false);
-    }
-  };
+    });
 
-  const handleRegister = async (e: React.FormEvent) => {
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  const handleSignUp = async (e) => {
     e.preventDefault();
-    
-    if (registerForm.password !== registerForm.confirmPassword) {
-      toast.error('รหัสผ่านไม่ตรงกัน');
-      return;
-    }
-
     setLoading(true);
 
     try {
       const { data, error } = await supabase.auth.signUp({
-        email: registerForm.email,
-        password: registerForm.password,
+        email,
+        password,
         options: {
           data: {
-            username: registerForm.username,
-            full_name: registerForm.fullName,
-            phone: registerForm.phone,
-            address: registerForm.address,
-            birth_date: registerForm.birthDate,
+            role: email === 'admin@luckyshop.com' ? 'admin' : 'user'
           }
         }
       });
 
       if (error) {
-        toast.error(error.message);
-        return;
-      }
-
-      if (data.user) {
-        toast.success('สมัครสมาชิกสำเร็จ กรุณาตรวจสอบอีเมลเพื่อยืนยันบัญชี');
-        // Reset form
-        setRegisterForm({
-          email: '',
-          phone: '',
-          username: '',
-          password: '',
-          confirmPassword: '',
-          fullName: '',
-          address: '',
-          birthDate: ''
-        });
+        alert(`Error: ${error.message}`);
+      } else {
+        alert('สมัครสมาชิกสำเร็จ! กรุณาตรวจสอบอีเมลเพื่อยืนยันบัญชี');
       }
     } catch (error) {
-      console.error('Error during registration:', error);
-      toast.error('เกิดข้อผิดพลาดในการสมัครสมาชิก');
+      alert(`Error: ${error.message}`);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleFacebookLogin = () => {
-    toast.info('กำลังเชื่อมต่อกับ Facebook...');
+  const handleSignIn = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        alert(`Error: ${error.message}`);
+      }
+    } catch (error) {
+      alert(`Error: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+  };
+
+  if (user) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header user={user} onSignOut={handleSignOut} />
+        <div className="container mx-auto px-4 py-8">
+          <Card className="max-w-md mx-auto">
+            <CardHeader>
+              <CardTitle>ยินดีต้อนรับ!</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-4">สวัสดี, {user.email}</p>
+              <Button onClick={handleSignOut} className="w-full">
+                ออกจากระบบ
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-purple-600 text-white shadow-lg">
-        <div className="max-w-6xl mx-auto px-4 py-4">
-          <div className="flex items-center space-x-4">
-            <Link to="/">
-              <Button variant="ghost" size="icon" className="text-white hover:bg-purple-700">
-                <ArrowLeft className="h-6 w-6" />
-              </Button>
-            </Link>
-            <h1 className="text-xl font-bold">เข้าสู่ระบบ / สมัครสมาชิก</h1>
+      <Header />
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-md mx-auto">
+          <Tabs defaultValue="signin">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="signin">เข้าสู่ระบบ</TabsTrigger>
+              <TabsTrigger value="signup">สมัครสมาชิก</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="signin">
+              <Card>
+                <CardHeader>
+                  <CardTitle>เข้าสู่ระบบ</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleSignIn} className="space-y-4">
+                    <Input
+                      type="email"
+                      placeholder="อีเมล"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                    <Input
+                      type="password"
+                      placeholder="รหัสผ่าน"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                    <Button 
+                      type="submit" 
+                      className="w-full" 
+                      disabled={loading}
+                      style={{ backgroundColor: '#956ec3' }}
+                    >
+                      {loading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="signup">
+              <Card>
+                <CardHeader>
+                  <CardTitle>สมัครสมาชิก</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleSignUp} className="space-y-4">
+                    <Input
+                      type="email"
+                      placeholder="อีเมล"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                    <Input
+                      type="password"
+                      placeholder="รหัสผ่าน (อย่างน้อย 6 ตัวอักษร)"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      minLength={6}
+                    />
+                    <Button 
+                      type="submit" 
+                      className="w-full" 
+                      disabled={loading}
+                      style={{ backgroundColor: '#956ec3' }}
+                    >
+                      {loading ? 'กำลังสมัครสมาชิก...' : 'สมัครสมาชิก'}
+                    </Button>
+                  </form>
+                  <div className="mt-4 text-sm text-gray-600">
+                    <p>สำหรับแอดมิน: ใช้อีเมล admin@luckyshop.com</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+
+          {/* Debug component - remove this in production */}
+          <div className="mt-8">
+            <AuthDebug />
           </div>
         </div>
-      </header>
-
-      <div className="max-w-md mx-auto px-4 py-8">
-        <Tabs defaultValue="login" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="login">เข้าสู่ระบบ</TabsTrigger>
-            <TabsTrigger value="register">สมัครสมาชิก</TabsTrigger>
-          </TabsList>
-
-          {/* Login Tab */}
-          <TabsContent value="login">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-center text-purple-800">เข้าสู่ระบบ</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="login-email">อีเมล</Label>
-                    <div className="relative">
-                      <Input
-                        id="login-email"
-                        type="email"
-                        placeholder="กรอกอีเมล"
-                        value={loginForm.email}
-                        onChange={(e) => setLoginForm({...loginForm, email: e.target.value})}
-                        className="pl-10"
-                        required
-                        disabled={loading}
-                      />
-                      <Mail className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="login-password">รหัสผ่าน</Label>
-                    <Input
-                      id="login-password"
-                      type="password"
-                      placeholder="กรอกรหัสผ่าน"
-                      value={loginForm.password}
-                      onChange={(e) => setLoginForm({...loginForm, password: e.target.value})}
-                      required
-                      disabled={loading}
-                    />
-                  </div>
-
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-purple-600 hover:bg-purple-700"
-                    disabled={loading}
-                  >
-                    {loading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
-                  </Button>
-                </form>
-
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-white px-2 text-gray-500">หรือ</span>
-                  </div>
-                </div>
-
-                <Button
-                  onClick={handleFacebookLogin}
-                  variant="outline"
-                  className="w-full border-blue-600 text-blue-600 hover:bg-blue-50"
-                  disabled={loading}
-                >
-                  เข้าสู่ระบบด้วย Facebook
-                </Button>
-
-                <p className="text-center text-sm text-gray-600">
-                  ลืมรหัสผ่าน? <a href="#" className="text-purple-600 hover:underline">คลิกที่นี่</a>
-                </p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Register Tab */}
-          <TabsContent value="register">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-center text-purple-800">สมัครสมาชิก</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <form onSubmit={handleRegister} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="register-email">อีเมล</Label>
-                    <div className="relative">
-                      <Input
-                        id="register-email"
-                        type="email"
-                        placeholder="กรอกอีเมล"
-                        value={registerForm.email}
-                        onChange={(e) => setRegisterForm({...registerForm, email: e.target.value})}
-                        className="pl-10"
-                        required
-                        disabled={loading}
-                      />
-                      <Mail className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="register-phone">เบอร์โทร</Label>
-                    <div className="relative">
-                      <Input
-                        id="register-phone"
-                        type="tel"
-                        placeholder="กรอกเบอร์โทร"
-                        value={registerForm.phone}
-                        onChange={(e) => setRegisterForm({...registerForm, phone: e.target.value})}
-                        className="pl-10"
-                        required
-                        disabled={loading}
-                      />
-                      <Phone className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="register-username">ชื่อผู้ใช้</Label>
-                    <div className="relative">
-                      <Input
-                        id="register-username"
-                        type="text"
-                        placeholder="กรอกชื่อผู้ใช้"
-                        value={registerForm.username}
-                        onChange={(e) => setRegisterForm({...registerForm, username: e.target.value})}
-                        className="pl-10"
-                        required
-                        disabled={loading}
-                      />
-                      <User className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="register-fullname">ชื่อ-นามสกุล</Label>
-                    <Input
-                      id="register-fullname"
-                      type="text"
-                      placeholder="กรอกชื่อ-นามสกุล"
-                      value={registerForm.fullName}
-                      onChange={(e) => setRegisterForm({...registerForm, fullName: e.target.value})}
-                      required
-                      disabled={loading}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="register-address">ที่อยู่ผู้รับสินค้า</Label>
-                    <Input
-                      id="register-address"
-                      type="text"
-                      placeholder="กรอกที่อยู่ผู้รับสินค้า"
-                      value={registerForm.address}
-                      onChange={(e) => setRegisterForm({...registerForm, address: e.target.value})}
-                      required
-                      disabled={loading}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="register-birthdate">วันเกิด</Label>
-                    <div className="relative">
-                      <Input
-                        id="register-birthdate"
-                        type="date"
-                        value={registerForm.birthDate}
-                        onChange={(e) => setRegisterForm({...registerForm, birthDate: e.target.value})}
-                        className="pl-10"
-                        required
-                        disabled={loading}
-                      />
-                      <Calendar className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="register-password">รหัสผ่าน</Label>
-                    <Input
-                      id="register-password"
-                      type="password"
-                      placeholder="กรอกรหัสผ่าน"
-                      value={registerForm.password}
-                      onChange={(e) => setRegisterForm({...registerForm, password: e.target.value})}
-                      required
-                      disabled={loading}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="register-confirm-password">ยืนยันรหัสผ่าน</Label>
-                    <Input
-                      id="register-confirm-password"
-                      type="password"
-                      placeholder="ยืนยันรหัสผ่าน"
-                      value={registerForm.confirmPassword}
-                      onChange={(e) => setRegisterForm({...registerForm, confirmPassword: e.target.value})}
-                      required
-                      disabled={loading}
-                    />
-                  </div>
-
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-purple-600 hover:bg-purple-700"
-                    disabled={loading}
-                  >
-                    {loading ? 'กำลังสมัครสมาชิก...' : 'สมัครสมาชิก'}
-                  </Button>
-                </form>
-
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-white px-2 text-gray-500">หรือ</span>
-                  </div>
-                </div>
-
-                <Button
-                  onClick={handleFacebookLogin}
-                  variant="outline"
-                  className="w-full border-blue-600 text-blue-600 hover:bg-blue-50"
-                  disabled={loading}
-                >
-                  สมัครด้วย Facebook
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
       </div>
     </div>
   );
