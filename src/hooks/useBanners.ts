@@ -18,8 +18,8 @@ export const useBanners = () => {
       if (error) throw error;
       
       // Transform the data to match our Banner interface
-      const transformedData: Banner[] = (data || []).map((item) => ({
-        id: String(item['id BIGSERIAL']),
+      const transformedData: Banner[] = (data || []).map((item: any) => ({
+        id: String(item.id),
         image_url: item.image_url,
         position: item.position,
         active: item.active,
@@ -63,7 +63,7 @@ export const useBanners = () => {
       const { error } = await supabase
         .from('banners')
         .update(updateData)
-        .eq('"id BIGSERIAL"', Number(banner.id));
+        .eq('id', Number(banner.id));
 
       if (error) throw error;
 
@@ -82,7 +82,7 @@ export const useBanners = () => {
       const { error } = await supabase
         .from('banners')
         .delete()
-        .eq('"id BIGSERIAL"', Number(id));
+        .eq('id', Number(id));
 
       if (error) throw error;
 
