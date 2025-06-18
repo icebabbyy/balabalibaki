@@ -18,11 +18,17 @@ interface Banner {
   updated_at: string | null;
 }
 
+interface NewBannerForm {
+  image_url: string;
+  position: number;
+  active: boolean;
+}
+
 const BannerManager = () => {
   const [banners, setBanners] = useState<Banner[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingBanner, setEditingBanner] = useState<Banner | null>(null);
-  const [newBanner, setNewBanner] = useState({
+  const [newBanner, setNewBanner] = useState<NewBannerForm>({
     image_url: '',
     position: 1,
     active: true
@@ -72,13 +78,15 @@ const BannerManager = () => {
 
   const handleUpdateBanner = async (banner: Banner) => {
     try {
+      const updateData = {
+        image_url: banner.image_url,
+        position: banner.position,
+        active: banner.active
+      };
+
       const { error } = await supabase
         .from('banners')
-        .update({
-          image_url: banner.image_url,
-          position: banner.position,
-          active: banner.active
-        })
+        .update(updateData)
         .eq('"id BIGSERIAL"', banner["id BIGSERIAL"]);
 
       if (error) throw error;
@@ -111,6 +119,22 @@ const BannerManager = () => {
     }
   };
 
+  const updateNewBanner = (field: keyof NewBannerForm, value: string | number | boolean) => {
+    setNewBanner(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const updateEditingBanner = (field: keyof Banner, value: string | number | boolean) => {
+    if (!editingBanner) return;
+    
+    setEditingBanner(prev => prev ? {
+      ...prev,
+      [field]: value
+    } : null);
+  };
+
   if (loading) {
     return <div className="text-center py-8">กำลังโหลด...</div>;
   }
@@ -133,7 +157,7 @@ const BannerManager = () => {
                 id="banner-url"
                 placeholder="https://example.com/image.jpg"
                 value={newBanner.image_url}
-                onChange={(e) => setNewBanner({...newBanner, image_url: e.target.value})}
+                onChange={(e) => updateNewBanner('image_url', e.target.value)}
               />
             </div>
             <div className="space-y-2">
@@ -143,14 +167,14 @@ const BannerManager = () => {
                 type="number"
                 min="1"
                 value={newBanner.position}
-                onChange={(e) => setNewBanner({...newBanner, position: parseInt(e.target.value) || 1})}
+                onChange={(e) => updateNewBanner('position', parseInt(e.target.value) || 1)}
               />
             </div>
           </div>
           <div className="flex items-center space-x-2">
             <Switch
               checked={newBanner.active}
-              onCheckedChange={(checked) => setNewBanner({...newBanner, active: checked})}
+              onCheckedChange={(checked) => updateNewBanner('active', checked)}
             />
             <Label>เปิดใช้งาน</Label>
           </div>
@@ -218,7 +242,7 @@ const BannerManager = () => {
                 <Label>URL รูปภาพ</Label>
                 <Input
                   value={editingBanner.image_url}
-                  onChange={(e) => setEditingBanner({...editingBanner, image_url: e.target.value})}
+                  onChange={(e) => updateEditingBanner('image_url', e.target.value)}
                 />
               </div>
               <div className="space-y-2">
@@ -227,14 +251,14 @@ const BannerManager = () => {
                   type="number"
                   min="1"
                   value={editingBanner.position}
-                  onChange={(e) => setEditingBanner({...editingBanner, position: parseInt(e.target.value) || 1})}
+                  onChange={(e) => updateEditingBanner('position', parseInt(e.target.value) || 1)}
                 />
               </div>
             </div>
             <div className="flex items-center space-x-2">
               <Switch
                 checked={editingBanner.active}
-                onCheckedChange={(checked) => setEditingBanner({...editingBanner, active: checked})}
+                onCheckedChange={(checked) => updateEditingBanner('active', checked)}
               />
               <Label>เปิดใช้งาน</Label>
             </div>
