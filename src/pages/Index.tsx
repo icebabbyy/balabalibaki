@@ -1,11 +1,15 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, User, Search } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { useAuth } from "@/hooks/useAuth";
+import Header from "@/components/Header";
+import Autoplay from "embla-carousel-autoplay";
 
 const Index = () => {
   const [products, setProducts] = useState([]);
@@ -14,6 +18,7 @@ const Index = () => {
   const [newProducts, setNewProducts] = useState([]);
   const [bestSellers, setBestSellers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { user, signOut } = useAuth();
 
   useEffect(() => {
     fetchData();
@@ -82,48 +87,23 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-purple-600 text-white shadow-lg sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-8">
-              <h1 className="text-2xl font-bold">Lucky Shop</h1>
-              <nav className="hidden md:flex space-x-6">
-                <Link to="/" className="hover:text-purple-200 transition-colors">หน้าแรก</Link>
-                <Link to="/categories" className="hover:text-purple-200 transition-colors">หมวดหมู่</Link>
-                <Link to="/order-status" className="hover:text-purple-200 transition-colors">เช็คสถานะสินค้า</Link>
-                <Link to="/qa" className="hover:text-purple-200 transition-colors">Q&A</Link>
-                <Link to="/reviews" className="hover:text-purple-200 transition-colors">รีวิว</Link>
-                <Link to="/admin" className="hover:text-purple-200 transition-colors">แอดมิน</Link>
-              </nav>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              <div className="relative hidden md:block">
-                <input
-                  type="text"
-                  placeholder="ค้นหาสินค้า..."
-                  className="w-64 px-4 py-2 rounded-lg text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-300"
-                />
-                <Search className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
-              </div>
-              <Button variant="ghost" size="icon" className="text-white hover:bg-purple-700">
-                <ShoppingCart className="h-6 w-6" />
-              </Button>
-              <Link to="/auth">
-                <Button variant="ghost" size="icon" className="text-white hover:bg-purple-700">
-                  <User className="h-6 w-6" />
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Header user={user} onSignOut={signOut} />
 
       <main className="max-w-6xl mx-auto px-4 py-8">
-        {/* Banner Carousel - Medium Size */}
+        {/* Banner Carousel with Autoplay */}
         <section className="mb-12">
-          <Carousel className="w-full max-w-4xl mx-auto">
+          <Carousel 
+            className="w-full max-w-4xl mx-auto"
+            plugins={[
+              Autoplay({
+                delay: 4000,
+              }),
+            ]}
+            opts={{
+              align: "start",
+              loop: true,
+            }}
+          >
             <CarouselContent>
               {banners.length > 0 ? banners.map((banner, index) => (
                 <CarouselItem key={index}>
