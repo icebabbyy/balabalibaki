@@ -92,8 +92,10 @@ const Index = () => {
               <nav className="hidden md:flex space-x-6">
                 <Link to="/" className="hover:text-purple-200 transition-colors">หน้าแรก</Link>
                 <Link to="/categories" className="hover:text-purple-200 transition-colors">หมวดหมู่</Link>
+                <Link to="/order-status" className="hover:text-purple-200 transition-colors">เช็คสถานะสินค้า</Link>
                 <Link to="/qa" className="hover:text-purple-200 transition-colors">Q&A</Link>
                 <Link to="/reviews" className="hover:text-purple-200 transition-colors">รีวิว</Link>
+                <Link to="/admin" className="hover:text-purple-200 transition-colors">แอดมิน</Link>
               </nav>
             </div>
             
@@ -119,38 +121,48 @@ const Index = () => {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="max-w-6xl mx-auto px-4 py-8">
         {/* Banner Carousel - Medium Size */}
-        {banners.length > 0 && (
-          <section className="mb-12">
-            <Carousel className="w-full max-w-5xl mx-auto">
-              <CarouselContent>
-                {banners.map((banner, index) => (
-                  <CarouselItem key={index}>
-                    <div className="relative h-48 md:h-64 overflow-hidden rounded-lg">
-                      <div
-                        className="w-full h-full bg-cover bg-center flex items-center justify-center"
-                        style={{
-                          backgroundImage: `linear-gradient(rgba(147, 51, 234, 0.7), rgba(147, 51, 234, 0.7)), url(${banner.image_url || '/placeholder.svg'})`
-                        }}
-                      >
-                        <div className="text-center text-white">
-                          <h2 className="text-2xl md:text-4xl font-bold mb-4">ของขวัญพิเศษ</h2>
-                          <p className="text-md md:text-lg mb-6">สำหรับคนที่คุณรัก</p>
-                          <Button className="bg-purple-500 hover:bg-purple-400 text-white px-6 py-2 rounded-full">
-                            เลือกของขวัญ
-                          </Button>
-                        </div>
+        <section className="mb-12">
+          <Carousel className="w-full max-w-4xl mx-auto">
+            <CarouselContent>
+              {banners.length > 0 ? banners.map((banner, index) => (
+                <CarouselItem key={index}>
+                  <div className="relative h-48 md:h-64 overflow-hidden rounded-lg">
+                    <div
+                      className="w-full h-full bg-cover bg-center flex items-center justify-center"
+                      style={{
+                        backgroundImage: `linear-gradient(rgba(147, 51, 234, 0.7), rgba(147, 51, 234, 0.7)), url(${banner.image_url || '/placeholder.svg'})`
+                      }}
+                    >
+                      <div className="text-center text-white">
+                        <h2 className="text-2xl md:text-4xl font-bold mb-4">ของขวัญพิเศษ</h2>
+                        <p className="text-md md:text-lg mb-6">สำหรับคนที่คุณรัก</p>
+                        <Button className="bg-purple-500 hover:bg-purple-400 text-white px-6 py-2 rounded-full">
+                          เลือกของขวัญ
+                        </Button>
                       </div>
                     </div>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              <CarouselPrevious />
-              <CarouselNext />
-            </Carousel>
-          </section>
-        )}
+                  </div>
+                </CarouselItem>
+              )) : (
+                <CarouselItem>
+                  <div className="relative h-48 md:h-64 overflow-hidden rounded-lg bg-gradient-to-r from-purple-600 to-purple-800 flex items-center justify-center">
+                    <div className="text-center text-white">
+                      <h2 className="text-2xl md:text-4xl font-bold mb-4">ยินดีต้อนรับสู่ Lucky Shop</h2>
+                      <p className="text-md md:text-lg mb-6">ช้อปปิ้งสินค้าคุณภาพดี ราคาดี</p>
+                      <Button className="bg-white text-purple-600 hover:bg-gray-100 px-6 py-2 rounded-full">
+                        เริ่มช้อปปิ้ง
+                      </Button>
+                    </div>
+                  </div>
+                </CarouselItem>
+              )}
+            </CarouselContent>
+            <CarouselPrevious />
+            <CarouselNext />
+          </Carousel>
+        </section>
 
         {/* Categories Section */}
         <section className="mb-12">
@@ -164,8 +176,17 @@ const Index = () => {
               <Link key={category.id} to={`/categories?category=${encodeURIComponent(category.name)}`}>
                 <Card className="group hover:shadow-lg transition-all duration-300 border-purple-200 hover:border-purple-400 cursor-pointer">
                   <CardContent className="p-3 text-center">
-                    <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2 group-hover:bg-purple-200 transition-colors">
-                      <span className="text-lg">📦</span>
+                    <div className="w-16 h-16 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:bg-purple-200 transition-colors overflow-hidden">
+                      <img
+                        src={`/placeholder.svg`}
+                        alt={category.name}
+                        className="w-12 h-12 object-cover rounded"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'block';
+                        }}
+                      />
+                      <span className="text-lg hidden">📦</span>
                     </div>
                     <h3 className="font-medium text-sm text-gray-800 group-hover:text-purple-600 transition-colors">
                       {category.name}
@@ -174,6 +195,16 @@ const Index = () => {
                 </Card>
               </Link>
             ))}
+          </div>
+        </section>
+
+        {/* Additional Banner */}
+        <section className="mb-12">
+          <div className="relative h-32 md:h-40 overflow-hidden rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 flex items-center justify-center">
+            <div className="text-center text-white">
+              <h2 className="text-xl md:text-2xl font-bold mb-2">สินค้าขายดี ลดราคาพิเศษ!</h2>
+              <p className="text-sm md:text-base">ช้อปเลย ก่อนหมดโปรโมชั่น</p>
+            </div>
           </div>
         </section>
 
@@ -188,7 +219,7 @@ const Index = () => {
             </Link>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {newProducts.map((product) => (
               <Card key={product.id} className="group hover:shadow-lg transition-all duration-300 border-gray-200 hover:border-purple-300">
                 <div className="relative overflow-hidden rounded-t-lg">
@@ -241,7 +272,7 @@ const Index = () => {
             </Link>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {bestSellers.map((product) => (
               <Card key={product.id} className="group hover:shadow-lg transition-all duration-300 border-gray-200 hover:border-purple-300">
                 <div className="relative overflow-hidden rounded-t-lg">
@@ -300,7 +331,7 @@ const Index = () => {
                 </Link>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {categoryProducts.map((product) => (
                   <Card key={product.id} className="group hover:shadow-lg transition-all duration-300 border-gray-200 hover:border-purple-300">
                     <div className="relative overflow-hidden rounded-t-lg">

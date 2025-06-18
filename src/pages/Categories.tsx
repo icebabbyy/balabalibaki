@@ -19,6 +19,7 @@ const Categories = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategories, setSelectedCategories] = useState(new Set(selectedCategory ? [selectedCategory] : []));
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -68,7 +69,7 @@ const Categories = () => {
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategories.size === 0 || selectedCategories.has(product.category);
+    const matchesCategory = showAll || selectedCategories.size === 0 || selectedCategories.has(product.category);
     return matchesSearch && matchesCategory;
   });
 
@@ -87,7 +88,7 @@ const Categories = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-purple-600 text-white shadow-lg sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-4">
+        <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center space-x-4">
             <Link to="/">
               <Button variant="ghost" size="icon" className="text-white hover:bg-purple-700">
@@ -99,7 +100,7 @@ const Categories = () => {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Sidebar Filters */}
           <div className="lg:col-span-1">
@@ -120,6 +121,23 @@ const Categories = () => {
                 </div>
               </div>
 
+              {/* Show All Option */}
+              <div className="mb-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="show-all"
+                    checked={showAll}
+                    onCheckedChange={setShowAll}
+                  />
+                  <label
+                    htmlFor="show-all"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer text-purple-600"
+                  >
+                    ดูทั้งหมด
+                  </label>
+                </div>
+              </div>
+
               {/* Category Filter */}
               <div>
                 <h4 className="font-medium mb-3">หมวดหมู่</h4>
@@ -130,10 +148,11 @@ const Categories = () => {
                         id={`category-${category.id}`}
                         checked={selectedCategories.has(category.name)}
                         onCheckedChange={(checked) => handleCategoryToggle(category.name, checked)}
+                        disabled={showAll}
                       />
                       <label
                         htmlFor={`category-${category.id}`}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                        className={`text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer ${showAll ? 'text-gray-400' : ''}`}
                       >
                         {category.name}
                       </label>
@@ -161,7 +180,7 @@ const Categories = () => {
                       <img
                         src={product.image || '/placeholder.svg'}
                         alt={product.name}
-                        className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-300"
+                        className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                     </Link>
                     {product.status && (

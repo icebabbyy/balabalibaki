@@ -9,6 +9,9 @@ import Categories from "./pages/Categories";
 import ProductDetail from "./pages/ProductDetail";
 import QA from "./pages/QA";
 import Reviews from "./pages/Reviews";
+import OrderStatus from "./pages/OrderStatus";
+import Admin from "./pages/Admin";
+import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +28,9 @@ const App = () => (
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/qa" element={<QA />} />
           <Route path="/reviews" element={<Reviews />} />
+          <Route path="/order-status" element={<OrderStatus />} />
+          <Route path="/admin" element={<Admin />} />
+          <Route path="/auth" element={<Auth />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

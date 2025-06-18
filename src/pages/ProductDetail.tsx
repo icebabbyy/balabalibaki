@@ -87,7 +87,7 @@ const ProductDetail = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-purple-600 text-white shadow-lg sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-4">
+        <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center space-x-4">
             <Link to="/">
               <Button variant="ghost" size="icon" className="text-white hover:bg-purple-700">
@@ -99,7 +99,7 @@ const ProductDetail = () => {
         </div>
       </header>
 
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="max-w-5xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Product Images */}
           <div className="space-y-4">
@@ -107,7 +107,7 @@ const ProductDetail = () => {
               <img
                 src={product.image || '/placeholder.svg'}
                 alt={product.name}
-                className="w-full h-80 md:h-96 object-cover rounded-lg shadow-lg"
+                className="w-full h-64 md:h-80 object-cover rounded-lg shadow-lg"
               />
               {product.status && (
                 <Badge className="absolute top-4 left-4 bg-purple-500 text-white">
@@ -133,8 +133,8 @@ const ProductDetail = () => {
           {/* Product Info */}
           <div className="space-y-6">
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">{product.name}</h1>
-              <p className="text-3xl md:text-4xl font-bold text-purple-600 mb-4">
+              <h1 className="text-xl md:text-2xl font-bold text-gray-800 mb-2">{product.name}</h1>
+              <p className="text-2xl md:text-3xl font-bold text-purple-600 mb-4">
                 ฿{product.selling_price?.toLocaleString()}
               </p>
               {product.description && (
@@ -247,6 +247,48 @@ const ProductDetail = () => {
               </Button>
             </div>
           </div>
+        </div>
+
+        {/* Product Description Section */}
+        <div className="mt-12">
+          <Card className="border-purple-200">
+            <CardContent className="p-6">
+              <h3 className="text-xl font-bold text-gray-800 mb-4">รายละเอียดสินค้า</h3>
+              <div className="prose max-w-none">
+                <p className="text-gray-600 leading-relaxed mb-4">
+                  {product.description || 'ไม่มีรายละเอียดเพิ่มเติม'}
+                </p>
+                
+                {/* Placeholder for additional images */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6">
+                  <div className="text-center">
+                    <img
+                      src={product.image || '/placeholder.svg'}
+                      alt={`${product.name} detail 1`}
+                      className="w-full h-40 object-cover rounded-lg mb-2"
+                    />
+                    <p className="text-sm text-gray-500">รูปภาพรายละเอียด 1</p>
+                  </div>
+                  <div className="text-center">
+                    <img
+                      src={product.image || '/placeholder.svg'}
+                      alt={`${product.name} detail 2`}
+                      className="w-full h-40 object-cover rounded-lg mb-2"
+                    />
+                    <p className="text-sm text-gray-500">รูปภาพรายละเอียด 2</p>
+                  </div>
+                  <div className="text-center">
+                    <img
+                      src={product.image || '/placeholder.svg'}
+                      alt={`${product.name} detail 3`}
+                      className="w-full h-40 object-cover rounded-lg mb-2"
+                    />
+                    <p className="text-sm text-gray-500">รูปภาพรายละเอียด 3</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
