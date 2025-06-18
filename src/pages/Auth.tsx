@@ -74,8 +74,8 @@ const Auth = () => {
     await handleSignIn(emailOrUsername, password);
   };
 
-  // Check if user is admin
-  const isAdmin = user?.email === 'admin@luckyshop.com' || profile?.role === 'admin';
+  // Check if user is admin - consistent with Admin.tsx
+  const isAdmin = user?.email === 'wishyouluckyshop@gmail.com' || profile?.role === 'admin';
   
   if (user) {
     return (

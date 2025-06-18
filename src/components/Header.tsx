@@ -43,8 +43,8 @@ const Header = () => {
     return location.pathname === path;
   };
 
-  // Check if user is admin
-  const isAdmin = user?.email === 'admin@luckyshop.com' || profile?.role === 'admin';
+  // Check if user is admin - consistent with Auth.tsx and Admin.tsx
+  const isAdmin = user?.email === 'wishyouluckyshop@gmail.com' || profile?.role === 'admin';
 
   const handleProfileClick = () => {
     if (user) {

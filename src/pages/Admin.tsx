@@ -57,8 +57,8 @@ const Admin = () => {
     }
   };
 
-  // Check if user is admin - consistent with other pages
-  const isAdmin = user?.email === 'admin@luckyshop.com' || profile?.role === 'admin';
+  // Check if user is admin - consistent with Auth.tsx
+  const isAdmin = user?.email === 'wishyouluckyshop@gmail.com' || profile?.role === 'admin';
 
   // Redirect if not admin
   if (authLoading) {
