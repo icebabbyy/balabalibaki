@@ -9,9 +9,33 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { Star, Heart, ShoppingCart, TrendingUp, Package, Zap } from "lucide-react";
 import Autoplay from "embla-carousel-autoplay";
 import { useBanners } from "@/hooks/useBanners";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const { banners, loading } = useBanners();
+  const [categories, setCategories] = useState<any[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  
+  // Fetch categories from Supabase
+  const fetchCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('name');
+
+      if (error) throw error;
+      setCategories(data || []);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    } finally {
+      setCategoriesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
   
   // Mock data for featured products
   const featuredProducts = [
@@ -48,12 +72,6 @@ const Index = () => {
       badge: "โปรโมชั่น",
       discount: 18
     }
-  ];
-
-  const categories = [
-    { name: "ฟิกเกอร์", icon: Package, count: 150 },
-    { name: "สเตชู", icon: TrendingUp, count: 89 },
-    { name: "กล่องสุ่ม", icon: Zap, count: 45 }
   ];
 
   return (
@@ -132,19 +150,43 @@ const Index = () => {
         {/* Categories Section */}
         <section className="mb-12">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">หมวดหมู่สินค้า</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {categories.map((category, index) => (
-              <Link key={index} to="/categories">
-                <Card className="hover:shadow-lg transition-shadow duration-300 cursor-pointer">
-                  <CardContent className="p-6 text-center">
-                    <category.icon className="h-12 w-12 mx-auto mb-4" style={{ color: '#956ec3' }} />
-                    <h3 className="text-xl font-semibold mb-2">{category.name}</h3>
-                    <p className="text-gray-600">{category.count} รายการ</p>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
+          
+          {categoriesLoading ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="bg-gray-200 rounded-lg h-24 mb-2"></div>
+                  <div className="bg-gray-200 rounded h-4"></div>
+                </div>
+              ))}
+            </div>
+          ) : categories && categories.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {categories.map((category) => (
+                <Link 
+                  key={category.id} 
+                  to={`/categories?category=${encodeURIComponent(category.name)}`}
+                  className="group"
+                >
+                  <div className="bg-white rounded-lg p-4 text-center hover:shadow-md transition-shadow duration-300 border">
+                    <div 
+                      className="w-12 h-12 mx-auto mb-3 rounded-full flex items-center justify-center"
+                      style={{ backgroundColor: '#956ec3' }}
+                    >
+                      <Package className="h-6 w-6 text-white" />
+                    </div>
+                    <h3 className="text-sm font-medium text-gray-900 group-hover:text-purple-600">
+                      {category.name}
+                    </h3>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-500">ไม่พบหมวดหมู่สินค้า</p>
+            </div>
+          )}
         </section>
 
         {/* Featured Products */}
