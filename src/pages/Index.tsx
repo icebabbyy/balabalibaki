@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Header from "@/components/Header";
@@ -131,8 +130,7 @@ const Index = () => {
               {banners.length === 0 && (
                 <CarouselItem>
                   <div 
-                    className="relative h-[200px] rounded-lg overflow-hidden flex items-center justify-center"
-                    style={{ background: 'linear-gradient(135deg, #956ec3 0%, #a576c9 100%)' }}
+                    className="relative h-[200px] rounded-lg overflow-hidden flex items-center justify-center bg-gradient-to-br from-primary to-primary/80"
                   >
                     <div className="text-center text-white">
                       <h1 className="text-2xl font-bold mb-3">ยินดีต้อนรับสู่ Lucky Shop</h1>
@@ -140,7 +138,7 @@ const Index = () => {
                       <Link to="/categories">
                         <Button 
                           size="default" 
-                          className="bg-white text-purple-600 hover:bg-gray-100"
+                          variant="secondary"
                         >
                           เริ่มช้อปปิ้ง
                         </Button>
@@ -163,7 +161,7 @@ const Index = () => {
               <Link key={category.id} to={`/categories?category=${encodeURIComponent(category.name)}`}>
                 <Card className="hover:shadow-md transition-shadow duration-200 cursor-pointer">
                   <CardContent className="p-3 text-center">
-                    <div className="h-16 w-16 mx-auto mb-2 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <div className="h-16 w-16 mx-auto mb-2 bg-primary/20 rounded-lg flex items-center justify-center">
                       {category.image ? (
                         <img 
                           src={category.image} 
@@ -171,7 +169,7 @@ const Index = () => {
                           className="h-full w-full object-cover rounded-lg"
                         />
                       ) : (
-                        <Package className="h-8 w-8" style={{ color: '#956ec3' }} />
+                        <Package className="h-8 w-8 text-primary" />
                       )}
                     </div>
                     <h3 className="text-sm font-medium text-gray-900">{category.name}</h3>
@@ -187,7 +185,7 @@ const Index = () => {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-gray-900">สินค้ามาใหม่</h2>
             <Link to="/categories?filter=new">
-              <Button variant="outline" size="sm" style={{ borderColor: '#956ec3', color: '#956ec3' }}>
+              <Button variant="outline" size="sm">
                 ดูทั้งหมด
               </Button>
             </Link>
@@ -208,8 +206,7 @@ const Index = () => {
                       </div>
                       {product.status && (
                         <Badge 
-                          className="absolute top-2 left-2 text-xs text-white"
-                          style={{ backgroundColor: '#956ec3' }}
+                          className="absolute top-2 left-2 text-xs"
                         >
                           {product.status}
                         </Badge>
@@ -219,7 +216,7 @@ const Index = () => {
                     <div className="p-3">
                       <h3 className="font-medium text-sm mb-2 line-clamp-2">{product.name}</h3>
                       <div className="mb-3">
-                        <span className="text-lg font-bold" style={{ color: '#956ec3' }}>
+                        <span className="text-lg font-bold text-primary">
                           ฿{product.selling_price?.toLocaleString()}
                         </span>
                       </div>
@@ -228,8 +225,7 @@ const Index = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="flex-1 text-xs text-white"
-                          style={{ backgroundColor: '#6B46C1', borderColor: '#6B46C1' }}
+                          className="flex-1 text-xs"
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
@@ -240,8 +236,7 @@ const Index = () => {
                         </Button>
                         <Button 
                           size="sm"
-                          className="flex-1 text-xs text-white"
-                          style={{ backgroundColor: '#6B46C1' }}
+                          className="flex-1 text-xs"
                         >
                           ซื้อเดี๋ยวนี้
                         </Button>
@@ -260,7 +255,7 @@ const Index = () => {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-gray-900">{categoryProducts[0]?.category}</h2>
               <Link to={`/categories?category=${encodeURIComponent(categoryProducts[0]?.category || '')}`}>
-                <Button variant="outline" size="sm" style={{ borderColor: '#956ec3', color: '#956ec3' }}>
+                <Button variant="outline" size="sm">
                   ดูทั้งหมด
                 </Button>
               </Link>
@@ -281,8 +276,7 @@ const Index = () => {
                         </div>
                         {product.status && (
                           <Badge 
-                            className="absolute top-2 left-2 text-xs text-white"
-                            style={{ backgroundColor: '#956ec3' }}
+                            className="absolute top-2 left-2 text-xs"
                           >
                             {product.status}
                           </Badge>
@@ -292,7 +286,7 @@ const Index = () => {
                       <div className="p-3">
                         <h3 className="font-medium text-sm mb-2 line-clamp-2">{product.name}</h3>
                         <div className="mb-3">
-                          <span className="text-lg font-bold" style={{ color: '#956ec3' }}>
+                          <span className="text-lg font-bold text-primary">
                             ฿{product.selling_price?.toLocaleString()}
                           </span>
                         </div>
@@ -301,8 +295,7 @@ const Index = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="flex-1 text-xs text-white"
-                            style={{ backgroundColor: '#6B46C1', borderColor: '#6B46C1' }}
+                            className="flex-1 text-xs"
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
@@ -313,8 +306,7 @@ const Index = () => {
                           </Button>
                           <Button 
                             size="sm"
-                            className="flex-1 text-xs text-white"
-                            style={{ backgroundColor: '#6B46C1' }}
+                            className="flex-1 text-xs"
                           >
                             ซื้อเดี๋ยวนี้
                           </Button>
@@ -334,7 +326,7 @@ const Index = () => {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-gray-900">{categoryProducts2[0]?.category}</h2>
               <Link to={`/categories?category=${encodeURIComponent(categoryProducts2[0]?.category || '')}`}>
-                <Button variant="outline" size="sm" style={{ borderColor: '#956ec3', color: '#956ec3' }}>
+                <Button variant="outline" size="sm">
                   ดูทั้งหมด
                 </Button>
               </Link>
@@ -355,8 +347,7 @@ const Index = () => {
                         </div>
                         {product.status && (
                           <Badge 
-                            className="absolute top-2 left-2 text-xs text-white"
-                            style={{ backgroundColor: '#956ec3' }}
+                            className="absolute top-2 left-2 text-xs"
                           >
                             {product.status}
                           </Badge>
@@ -366,7 +357,7 @@ const Index = () => {
                       <div className="p-3">
                         <h3 className="font-medium text-sm mb-2 line-clamp-2">{product.name}</h3>
                         <div className="mb-3">
-                          <span className="text-lg font-bold" style={{ color: '#956ec3' }}>
+                          <span className="text-lg font-bold text-primary">
                             ฿{product.selling_price?.toLocaleString()}
                           </span>
                         </div>
@@ -375,8 +366,7 @@ const Index = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="flex-1 text-xs text-white"
-                            style={{ backgroundColor: '#6B46C1', borderColor: '#6B46C1' }}
+                            className="flex-1 text-xs"
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
@@ -387,8 +377,7 @@ const Index = () => {
                           </Button>
                           <Button 
                             size="sm"
-                            className="flex-1 text-xs text-white"
-                            style={{ backgroundColor: '#6B46C1' }}
+                            className="flex-1 text-xs"
                           >
                             ซื้อเดี๋ยวนี้
                           </Button>
@@ -408,7 +397,7 @@ const Index = () => {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-gray-900">{categoryProducts3[0]?.category}</h2>
               <Link to={`/categories?category=${encodeURIComponent(categoryProducts3[0]?.category || '')}`}>
-                <Button variant="outline" size="sm" style={{ borderColor: '#956ec3', color: '#956ec3' }}>
+                <Button variant="outline" size="sm">
                   ดูทั้งหมด
                 </Button>
               </Link>
@@ -429,8 +418,7 @@ const Index = () => {
                         </div>
                         {product.status && (
                           <Badge 
-                            className="absolute top-2 left-2 text-xs text-white"
-                            style={{ backgroundColor: '#956ec3' }}
+                            className="absolute top-2 left-2 text-xs"
                           >
                             {product.status}
                           </Badge>
@@ -440,7 +428,7 @@ const Index = () => {
                       <div className="p-3">
                         <h3 className="font-medium text-sm mb-2 line-clamp-2">{product.name}</h3>
                         <div className="mb-3">
-                          <span className="text-lg font-bold" style={{ color: '#956ec3' }}>
+                          <span className="text-lg font-bold text-primary">
                             ฿{product.selling_price?.toLocaleString()}
                           </span>
                         </div>
@@ -449,8 +437,7 @@ const Index = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="flex-1 text-xs text-white"
-                            style={{ backgroundColor: '#6B46C1', borderColor: '#6B46C1' }}
+                            className="flex-1 text-xs"
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
@@ -461,8 +448,7 @@ const Index = () => {
                           </Button>
                           <Button 
                             size="sm"
-                            className="flex-1 text-xs text-white"
-                            style={{ backgroundColor: '#6B46C1' }}
+                            className="flex-1 text-xs"
                           >
                             ซื้อเดี๋ยวนี้
                           </Button>

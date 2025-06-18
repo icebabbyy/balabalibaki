@@ -195,7 +195,7 @@ const ProductDetail = () => {
             {/* Price */}
             <div className="space-y-2">
               <div className="flex items-center space-x-3">
-                <span className="text-3xl font-bold" style={{ color: '#956ec3' }}>
+                <span className="text-3xl font-bold text-primary">
                   ฿{product.selling_price?.toLocaleString()}
                 </span>
               </div>
@@ -241,16 +241,14 @@ const ProductDetail = () => {
                     <Button
                       onClick={handleAddToCart}
                       variant="outline"
-                      className="flex-1 text-white"
-                      style={{ backgroundColor: '#6B46C1', borderColor: '#6B46C1' }}
+                      className="flex-1"
                     >
                       <ShoppingCart className="h-4 w-4 mr-2" />
                       เพิ่มลงตะกร้า
                     </Button>
                     <Button
                       onClick={handleBuyNow}
-                      className="flex-1 text-white"
-                      style={{ backgroundColor: '#6B46C1' }}
+                      className="flex-1"
                     >
                       ซื้อเดี๋ยวนี้
                     </Button>
@@ -290,8 +288,7 @@ const ProductDetail = () => {
                         </div>
                         {relatedProduct.status && (
                           <Badge 
-                            className="absolute top-2 left-2 text-xs text-white"
-                            style={{ backgroundColor: '#956ec3' }}
+                            className="absolute top-2 left-2 text-xs"
                           >
                             {relatedProduct.status}
                           </Badge>
@@ -300,7 +297,7 @@ const ProductDetail = () => {
                       
                       <div className="p-3">
                         <h3 className="font-medium text-sm mb-2 line-clamp-2">{relatedProduct.name}</h3>
-                        <span className="text-lg font-bold" style={{ color: '#956ec3' }}>
+                        <span className="text-lg font-bold text-primary">
                           ฿{relatedProduct.selling_price?.toLocaleString()}
                         </span>
                       </div>

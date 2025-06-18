@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -180,9 +179,8 @@ const Auth = () => {
                     )}
                     <Button 
                       type="submit" 
-                      className="w-full text-white" 
+                      className="w-full" 
                       disabled={loading}
-                      style={{ backgroundColor: '#6B46C1' }}
                     >
                       {loading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
                     </Button>
@@ -225,9 +223,8 @@ const Auth = () => {
                     )}
                     <Button 
                       type="submit" 
-                      className="w-full text-white" 
+                      className="w-full" 
                       disabled={loading}
-                      style={{ backgroundColor: '#6B46C1' }}
                     >
                       {loading ? 'กำลังสมัครสมาชิก...' : 'สมัครสมาชิก'}
                     </Button>
