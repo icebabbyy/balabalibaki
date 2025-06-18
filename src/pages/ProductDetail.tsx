@@ -1,131 +1,90 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Heart, ArrowLeft, Plus, Minus } from "lucide-react";
-import { toast } from "sonner";
+import { Star, Heart, ShoppingCart, Minus, Plus, ArrowLeft } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const ProductDetail = () => {
   const { id } = useParams();
-  const [product, setProduct] = useState(null);
-  const [selectedOptions, setSelectedOptions] = useState({});
+  const { toast } = useToast();
   const [quantity, setQuantity] = useState(1);
-  const [loading, setLoading] = useState(true);
+  const [selectedImage, setSelectedImage] = useState(0);
 
-  useEffect(() => {
-    fetchProduct();
-  }, [id]);
-
-  const fetchProduct = async () => {
-    try {
-      if (!id) return;
-      
-      const { data, error } = await supabase
-        .from('public_products')
-        .select('*')
-        .eq('id', parseInt(id))
-        .single();
-
-      if (error) throw error;
-      setProduct(data);
-    } catch (error) {
-      console.error('Error fetching product:', error);
-      toast.error('ไม่พบสินค้าที่คุณต้องการ');
-    } finally {
-      setLoading(false);
-    }
+  // Mock product data - in real app, fetch based on id
+  const product = {
+    id: parseInt(id) || 1,
+    name: "Kuromi Limited Edition Figure",
+    price: 2500,
+    originalPrice: 3000,
+    discount: 17,
+    rating: 4.8,
+    reviews: 124,
+    stock: 15,
+    description: "ฟิกเกอร์ Kuromi ขนาดจิ๋ว คุณภาพพรีเมียม ลิมิเต็ดเอดิชั่น ไม่ควรพลาด! ผลิตจากวัสดุคุณภาพสูง รายละเอียดสวยงาม เหมาะสำหรับคอลเลกเตอร์และแฟน Sanrio",
+    images: [
+      "/lovable-uploads/3a94bca0-09e6-4f37-bfc1-d924f4dc55b1.png",
+      "/lovable-uploads/487f8c60-99c5-451d-a44f-f637d86b3b11.png"
+    ],
+    category: "Figures",
+    brand: "Sanrio",
+    tags: ["Limited Edition", "Kuromi", "Figure", "Collectible"]
   };
 
   const handleAddToCart = () => {
-    toast.success('เพิ่มสินค้าลงตะกร้าแล้ว');
+    toast({
+      title: "เพิ่มลงตะกร้าแล้ว",
+      description: `${product.name} จำนวน ${quantity} ชิ้น`,
+    });
   };
 
   const handleBuyNow = () => {
-    toast.success('กำลังนำไปหน้าชำระเงิน');
+    // Navigate to payment page with product info
+    window.location.href = `/payment?product=${product.id}&quantity=${quantity}`;
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p className="text-purple-600 font-medium">กำลังโหลด...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!product) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <p className="text-gray-600 mb-4">ไม่พบสินค้าที่คุณต้องการ</p>
-          <Link to="/">
-            <Button className="bg-purple-600 hover:bg-purple-700">กลับหน้าหลัก</Button>
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  let options = {};
-  try {
-    if (product.options && typeof product.options === 'string') {
-      options = JSON.parse(product.options);
-    } else if (product.options && typeof product.options === 'object') {
-      options = product.options;
-    }
-  } catch (error) {
-    console.error('Error parsing options:', error);
-    options = {};
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-purple-600 text-white shadow-lg sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 py-4">
-          <div className="flex items-center space-x-4">
-            <Link to="/">
-              <Button variant="ghost" size="icon" className="text-white hover:bg-purple-700">
-                <ArrowLeft className="h-6 w-6" />
-              </Button>
-            </Link>
-            <h1 className="text-xl font-bold">รายละเอียดสินค้า</h1>
-          </div>
+      <Header />
+      
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Breadcrumb */}
+        <div className="flex items-center space-x-2 text-sm text-gray-600 mb-6">
+          <Link to="/" className="hover:text-purple-600">หน้าแรก</Link>
+          <span>/</span>
+          <Link to="/categories" className="hover:text-purple-600">หมวดหมู่</Link>
+          <span>/</span>
+          <span className="text-gray-900">{product.name}</span>
         </div>
-      </header>
 
-      <div className="max-w-5xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Product Images */}
           <div className="space-y-4">
-            <div className="relative">
+            <div className="aspect-square bg-white rounded-lg overflow-hidden shadow-sm">
               <img
-                src={product.image || '/placeholder.svg'}
+                src={product.images[selectedImage]}
                 alt={product.name}
-                className="w-full h-64 md:h-80 object-cover rounded-lg shadow-lg"
+                className="w-full h-full object-cover"
               />
-              {product.status && (
-                <Badge className="absolute top-4 left-4 bg-purple-500 text-white">
-                  {product.status}
-                </Badge>
-              )}
             </div>
-            
-            {/* Placeholder for additional product images */}
-            <div className="grid grid-cols-4 gap-2">
-              {[1, 2, 3, 4].map((index) => (
-                <div key={index} className="aspect-square bg-gray-200 rounded-lg flex items-center justify-center">
+            <div className="flex space-x-2">
+              {product.images.map((image, index) => (
+                <button
+                  key={index}
+                  onClick={() => setSelectedImage(index)}
+                  className={`w-20 h-20 rounded-lg overflow-hidden border-2 ${
+                    selectedImage === index ? 'border-purple-500' : 'border-gray-200'
+                  }`}
+                >
                   <img
-                    src={product.image || '/placeholder.svg'}
-                    alt={`${product.name} ${index}`}
-                    className="w-full h-full object-cover rounded-lg opacity-50"
+                    src={image}
+                    alt={`${product.name} ${index + 1}`}
+                    className="w-full h-full object-cover"
                   />
-                </div>
+                </button>
               ))}
             </div>
           </div>
@@ -133,162 +92,125 @@ const ProductDetail = () => {
           {/* Product Info */}
           <div className="space-y-6">
             <div>
-              <h1 className="text-xl md:text-2xl font-bold text-gray-800 mb-2">{product.name}</h1>
-              <p className="text-2xl md:text-3xl font-bold text-purple-600 mb-4">
-                ฿{product.selling_price?.toLocaleString()}
-              </p>
-              {product.description && (
-                <p className="text-gray-600 leading-relaxed mb-6">{product.description}</p>
-              )}
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">{product.name}</h1>
+              <div className="flex items-center space-x-4 mb-4">
+                <div className="flex items-center space-x-1">
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      className={`h-5 w-5 ${
+                        i < Math.floor(product.rating)
+                          ? 'text-yellow-400 fill-current'
+                          : 'text-gray-300'
+                      }`}
+                    />
+                  ))}
+                  <span className="text-gray-600 ml-2">({product.reviews} รีวิว)</span>
+                </div>
+                <Badge variant="secondary">{product.category}</Badge>
+              </div>
             </div>
 
-            {/* Shipping Date */}
-            {product.shipment_date && (
-              <Card className="border-purple-200">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium text-gray-700">กำหนดส่ง:</span>
-                    <span className="text-purple-600 font-bold">
-                      {new Date(product.shipment_date).toLocaleDateString('th-TH')}
+            {/* Price */}
+            <div className="space-y-2">
+              <div className="flex items-center space-x-3">
+                <span className="text-3xl font-bold" style={{ color: '#956ec3' }}>
+                  ฿{product.price.toLocaleString()}
+                </span>
+                {product.originalPrice > product.price && (
+                  <>
+                    <span className="text-xl text-gray-500 line-through">
+                      ฿{product.originalPrice.toLocaleString()}
                     </span>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Product SKU */}
-            {product.sku && (
-              <div className="text-sm text-gray-500">
-                รหัสสินค้า: {product.sku}
+                    <Badge className="bg-red-100 text-red-800">
+                      -{product.discount}%
+                    </Badge>
+                  </>
+                )}
               </div>
-            )}
+              <p className="text-gray-600">คงเหลือ {product.stock} ชิ้น</p>
+            </div>
 
-            {/* Options */}
-            {Object.keys(options).length > 0 && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-800">ตัวเลือกสินค้า</h3>
-                {Object.entries(options).map(([key, values]) => (
-                  <div key={key} className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700 capitalize">
-                      {key}:
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {Array.isArray(values) ? values.map((value, index) => (
-                        <Button
-                          key={index}
-                          variant={selectedOptions[key] === value ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setSelectedOptions({...selectedOptions, [key]: value})}
-                          className={selectedOptions[key] === value 
-                            ? "bg-purple-600 hover:bg-purple-700" 
-                            : "border-purple-300 text-purple-600 hover:bg-purple-50"
-                          }
-                        >
-                          {String(value)}
-                        </Button>
-                      )) : (
-                        <span className="text-sm text-gray-600">{String(values)}</span>
-                      )}
-                    </div>
-                  </div>
+            {/* Description */}
+            <div>
+              <h3 className="text-lg font-semibold mb-2">รายละเอียดสินค้า</h3>
+              <p className="text-gray-700 leading-relaxed">{product.description}</p>
+            </div>
+
+            {/* Tags */}
+            <div>
+              <h3 className="text-lg font-semibold mb-2">แท็ก</h3>
+              <div className="flex flex-wrap gap-2">
+                {product.tags.map((tag, index) => (
+                  <Badge key={index} variant="outline">{tag}</Badge>
                 ))}
               </div>
-            )}
-
-            {/* Quantity */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">จำนวน:</label>
-              <div className="flex items-center space-x-3">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="border-purple-300 text-purple-600 hover:bg-purple-50"
-                >
-                  <Minus className="h-4 w-4" />
-                </Button>
-                <span className="text-xl font-semibold w-12 text-center">{quantity}</span>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setQuantity(quantity + 1)}
-                  className="border-purple-300 text-purple-600 hover:bg-purple-50"
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="space-y-3">
-              <Button
-                onClick={handleBuyNow}
-                className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 text-lg font-semibold"
-                size="lg"
-              >
-                ซื้อเดี๋ยวนี้
-              </Button>
-              <Button
-                onClick={handleAddToCart}
-                variant="outline"
-                className="w-full border-purple-300 text-purple-600 hover:bg-purple-50 py-3 text-lg font-semibold"
-                size="lg"
-              >
-                <ShoppingCart className="h-5 w-5 mr-2" />
-                เพิ่มลงตะกร้า
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full border-red-300 text-red-600 hover:bg-red-50 py-3"
-                size="lg"
-              >
-                <Heart className="h-5 w-5 mr-2" />
-                เพิ่มลงรายการโปรด
-              </Button>
-            </div>
+            {/* Quantity & Actions */}
+            <Card>
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-4">
+                    <span className="font-medium">จำนวน:</span>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                        disabled={quantity <= 1}
+                      >
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      <span className="w-12 text-center font-medium">{quantity}</span>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
+                        disabled={quantity >= product.stock}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="flex space-x-3">
+                    <Button
+                      onClick={handleAddToCart}
+                      variant="outline"
+                      className="flex-1"
+                      style={{ borderColor: '#956ec3', color: '#956ec3' }}
+                    >
+                      <ShoppingCart className="h-4 w-4 mr-2" />
+                      เพิ่มลงตะกร้า
+                    </Button>
+                    <Button
+                      onClick={handleBuyNow}
+                      className="flex-1"
+                      style={{ backgroundColor: '#956ec3' }}
+                    >
+                      ซื้อเลย
+                    </Button>
+                  </div>
+
+                  <Button variant="ghost" className="w-full text-gray-600">
+                    <Heart className="h-4 w-4 mr-2" />
+                    เพิ่มลงรายการโปรด
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
 
-        {/* Product Description Section */}
-        <div className="mt-12">
-          <Card className="border-purple-200">
-            <CardContent className="p-6">
-              <h3 className="text-xl font-bold text-gray-800 mb-4">รายละเอียดสินค้า</h3>
-              <div className="prose max-w-none">
-                <p className="text-gray-600 leading-relaxed mb-4">
-                  {product.description || 'ไม่มีรายละเอียดเพิ่มเติม'}
-                </p>
-                
-                {/* Placeholder for additional images */}
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6">
-                  <div className="text-center">
-                    <img
-                      src={product.image || '/placeholder.svg'}
-                      alt={`${product.name} detail 1`}
-                      className="w-full h-40 object-cover rounded-lg mb-2"
-                    />
-                    <p className="text-sm text-gray-500">รูปภาพรายละเอียด 1</p>
-                  </div>
-                  <div className="text-center">
-                    <img
-                      src={product.image || '/placeholder.svg'}
-                      alt={`${product.name} detail 2`}
-                      className="w-full h-40 object-cover rounded-lg mb-2"
-                    />
-                    <p className="text-sm text-gray-500">รูปภาพรายละเอียด 2</p>
-                  </div>
-                  <div className="text-center">
-                    <img
-                      src={product.image || '/placeholder.svg'}
-                      alt={`${product.name} detail 3`}
-                      className="w-full h-40 object-cover rounded-lg mb-2"
-                    />
-                    <p className="text-sm text-gray-500">รูปภาพรายละเอียด 3</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Back Button */}
+        <div className="mt-8">
+          <Link to="/categories">
+            <Button variant="outline">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              กลับไปหมวดหมู่
+            </Button>
+          </Link>
         </div>
       </div>
     </div>

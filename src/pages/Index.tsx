@@ -1,198 +1,147 @@
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ShoppingCart } from "lucide-react";
 import { Link } from "react-router-dom";
-import { toast } from "sonner";
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import { useAuth } from "@/hooks/useAuth";
 import Header from "@/components/Header";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { Star, Heart, ShoppingCart, TrendingUp, Package, Zap } from "lucide-react";
 import Autoplay from "embla-carousel-autoplay";
+import { useBanners } from "@/hooks/useBanners";
 
 const Index = () => {
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [banners, setBanners] = useState([]);
-  const [newProducts, setNewProducts] = useState([]);
-  const [bestSellers, setBestSellers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const { user, signOut } = useAuth();
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      // Fetch categories
-      const { data: categoriesData } = await supabase
-        .from('categories')
-        .select('*');
-
-      const { data: productsData } = await supabase
-        .from('public_products')
-        .select('*')
-        .limit(30);
-
-      const { data: bannersData } = await supabase
-        .from('banners')
-        .select('*')
-        .eq('active', true)
-        .order('position');
-
-      const { data: newProductsData } = await supabase
-        .from('public_products')
-        .select('*')
-        .order('id', { ascending: false })
-        .limit(8);
-
-      const { data: bestSellersData } = await supabase
-        .from('public_products')
-        .select('*')
-        .limit(8);
-
-      setCategories(categoriesData || []);
-      setProducts(productsData || []);
-      setBanners(bannersData || []);
-      setNewProducts(newProductsData || []);
-      setBestSellers(bestSellersData || []);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูล');
-    } finally {
-      setLoading(false);
+  const { banners, loading } = useBanners();
+  
+  // Mock data for featured products
+  const featuredProducts = [
+    {
+      id: 1,
+      name: "Kuromi Limited Edition Figure",
+      price: 2500,
+      originalPrice: 3000,
+      image: "/lovable-uploads/3a94bca0-09e6-4f37-bfc1-d924f4dc55b1.png",
+      rating: 4.8,
+      reviews: 124,
+      badge: "ขายดี",
+      discount: 17
+    },
+    {
+      id: 2,
+      name: "Gwen Spider-Verse Statue",
+      price: 3500,
+      originalPrice: 4200,
+      image: "/lovable-uploads/487f8c60-99c5-451d-a44f-f637d86b3b11.png",
+      rating: 4.9,
+      reviews: 89,
+      badge: "ใหม่",
+      discount: 17
+    },
+    {
+      id: 3,
+      name: "Sanrio Mystery Box Set",
+      price: 1800,
+      originalPrice: 2200,
+      image: "/lovable-uploads/3a94bca0-09e6-4f37-bfc1-d924f4dc55b1.png",
+      rating: 4.7,
+      reviews: 256,
+      badge: "โปรโมชั่น",
+      discount: 18
     }
-  };
+  ];
 
-  const addToCart = (product: any) => {
-    const cartItem = {
-      id: product.id,
-      name: product.name,
-      price: product.selling_price,
-      quantity: 1,
-      image: product.image,
-      sku: product.sku
-    };
-
-    const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
-    const existingItemIndex = existingCart.findIndex((item: any) => item.id === product.id);
-
-    if (existingItemIndex > -1) {
-      existingCart[existingItemIndex].quantity += 1;
-    } else {
-      existingCart.push(cartItem);
-    }
-
-    localStorage.setItem('cart', JSON.stringify(existingCart));
-    toast.success('เพิ่มสินค้าลงตะกร้าแล้ว');
-  };
-
-  const getProductsByCategory = (categoryName) => {
-    return products.filter(product => product.category === categoryName).slice(0, 5);
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p className="text-purple-600 font-medium">กำลังโหลด...</p>
-        </div>
-      </div>
-    );
-  }
+  const categories = [
+    { name: "ฟิกเกอร์", icon: Package, count: 150 },
+    { name: "สเตชู", icon: TrendingUp, count: 89 },
+    { name: "กล่องสุ่ม", icon: Zap, count: 45 }
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header user={user} onSignOut={signOut} />
-
-      <main className="max-w-6xl mx-auto px-4 py-8">
-        {/* Banner Carousel with Autoplay */}
-        <section className="mb-12">
-          <Carousel 
-            className="w-full max-w-4xl mx-auto"
-            plugins={[
-              Autoplay({
-                delay: 4000,
-              }),
-            ]}
-            opts={{
-              align: "start",
-              loop: true,
-            }}
+      <Header />
+      
+      {/* Hero Banner Carousel */}
+      <div className="relative">
+        {loading ? (
+          <div className="h-[400px] bg-gray-200 animate-pulse flex items-center justify-center">
+            <p className="text-gray-500">กำลังโหลดแบนเนอร์...</p>
+          </div>
+        ) : banners && banners.length > 0 ? (
+          <Carousel
+            plugins={[Autoplay({ delay: 4000 })]}
+            className="w-full"
           >
             <CarouselContent>
-              {banners.length > 0 ? banners.map((banner, index) => (
-                <CarouselItem key={index}>
-                  <div className="relative h-48 md:h-64 overflow-hidden rounded-lg">
-                    <div
-                      className="w-full h-full bg-cover bg-center flex items-center justify-center"
-                      style={{
-                        backgroundImage: `linear-gradient(rgba(147, 51, 234, 0.7), rgba(147, 51, 234, 0.7)), url(${banner.image_url || '/placeholder.svg'})`
-                      }}
-                    >
-                      <div className="text-center text-white">
-                        <h2 className="text-2xl md:text-4xl font-bold mb-4">ของขวัญพิเศษ</h2>
-                        <p className="text-md md:text-lg mb-6">สำหรับคนที่คุณรัก</p>
-                        <Button className="bg-purple-500 hover:bg-purple-400 text-white px-6 py-2 rounded-full">
-                          เลือกของขวัญ
-                        </Button>
+              {banners.map((banner) => (
+                <CarouselItem key={banner.id}>
+                  <div className="relative h-[400px] overflow-hidden">
+                    <img
+                      src={banner.image_url}
+                      alt={banner.title}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+                      <div className="text-center text-white max-w-2xl px-4">
+                        <h1 className="text-4xl font-bold mb-4">{banner.title}</h1>
+                        <p className="text-xl mb-6">{banner.subtitle}</p>
+                        {banner.button_text && banner.button_link && (
+                          <Link to={banner.button_link}>
+                            <Button 
+                              size="lg" 
+                              style={{ backgroundColor: '#956ec3' }}
+                              className="hover:opacity-90"
+                            >
+                              {banner.button_text}
+                            </Button>
+                          </Link>
+                        )}
                       </div>
                     </div>
                   </div>
                 </CarouselItem>
-              )) : (
-                <CarouselItem>
-                  <div className="relative h-48 md:h-64 overflow-hidden rounded-lg bg-gradient-to-r from-purple-600 to-purple-800 flex items-center justify-center">
-                    <div className="text-center text-white">
-                      <h2 className="text-2xl md:text-4xl font-bold mb-4">ยินดีต้อนรับสู่ Lucky Shop</h2>
-                      <p className="text-md md:text-lg mb-6">ช้อปปิ้งสินค้าคุณภาพดี ราคาดี</p>
-                      <Button className="bg-white text-purple-600 hover:bg-gray-100 px-6 py-2 rounded-full">
-                        เริ่มช้อปปิ้ง
-                      </Button>
-                    </div>
-                  </div>
-                </CarouselItem>
-              )}
+              ))}
             </CarouselContent>
-            <CarouselPrevious />
-            <CarouselNext />
+            <CarouselPrevious className="left-4" />
+            <CarouselNext className="right-4" />
           </Carousel>
-        </section>
+        ) : (
+          // Default banner when no banners are configured
+          <div className="relative h-[400px] overflow-hidden">
+            <div 
+              className="w-full h-full"
+              style={{ background: 'linear-gradient(135deg, #956ec3 0%, #a576c9 100%)' }}
+            >
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-center text-white max-w-2xl px-4">
+                  <h1 className="text-4xl font-bold mb-4">ยินดีต้อนรับสู่ Lucky Shop</h1>
+                  <p className="text-xl mb-6">ร้านขายของสะสม ฟิกเกอร์ และของเล่นคุณภาพ</p>
+                  <Link to="/categories">
+                    <Button 
+                      size="lg" 
+                      className="bg-white text-purple-600 hover:bg-gray-100"
+                    >
+                      เริ่มช้อปปิ้ง
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
+      <div className="max-w-7xl mx-auto px-4 py-12">
         {/* Categories Section */}
         <section className="mb-12">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl md:text-3xl font-bold text-purple-800 mb-4">หมวดหมู่สินค้า</h2>
-            <p className="text-lg text-purple-600">เลือกซื้อได้ตามหมวดหมู้ที่คุณสนใจ</p>
-          </div>
-          
-          <div className="grid grid-cols-3 md:grid-cols-6 lg:grid-cols-8 gap-4 mb-8">
-            {categories.map((category) => (
-              <Link key={category.id} to={`/categories?category=${encodeURIComponent(category.name)}`}>
-                <Card className="group hover:shadow-lg transition-all duration-300 border-purple-200 hover:border-purple-400 cursor-pointer">
-                  <CardContent className="p-3 text-center">
-                    <div className="w-16 h-16 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-2 group-hover:bg-purple-200 transition-colors overflow-hidden">
-                      <img
-                        src={`/placeholder.svg`}
-                        alt={category.name}
-                        className="w-12 h-12 object-cover rounded"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.style.display = 'none';
-                          const nextSibling = target.nextSibling as HTMLElement;
-                          if (nextSibling) {
-                            nextSibling.style.display = 'block';
-                          }
-                        }}
-                      />
-                      <span className="text-lg hidden">📦</span>
-                    </div>
-                    <h3 className="font-medium text-sm text-gray-800 group-hover:text-purple-600 transition-colors">
-                      {category.name}
-                    </h3>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">หมวดหมู่สินค้า</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {categories.map((category, index) => (
+              <Link key={index} to="/categories">
+                <Card className="hover:shadow-lg transition-shadow duration-300 cursor-pointer">
+                  <CardContent className="p-6 text-center">
+                    <category.icon className="h-12 w-12 mx-auto mb-4" style={{ color: '#956ec3' }} />
+                    <h3 className="text-xl font-semibold mb-2">{category.name}</h3>
+                    <p className="text-gray-600">{category.count} รายการ</p>
                   </CardContent>
                 </Card>
               </Link>
@@ -200,200 +149,104 @@ const Index = () => {
           </div>
         </section>
 
-        {/* Additional Banner */}
-        <section className="mb-12">
-          <div className="relative h-32 md:h-40 overflow-hidden rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 flex items-center justify-center">
-            <div className="text-center text-white">
-              <h2 className="text-xl md:text-2xl font-bold mb-2">สินค้าขายดี ลดราคาพิเศษ!</h2>
-              <p className="text-sm md:text-base">ช้อปเลย ก่อนหมดโปรโมชั่น</p>
-            </div>
-          </div>
-        </section>
-
-        {/* New Products */}
-        <section className="mb-12">
+        {/* Featured Products */}
+        <section>
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-800">สินค้ามาใหม่</h2>
-            <Link to="/categories?filter=new">
-              <Button variant="outline" size="sm" className="border-purple-300 text-purple-600 hover:bg-purple-50">
+            <h2 className="text-2xl font-bold text-gray-900">สินค้าแนะนำ</h2>
+            <Link to="/categories">
+              <Button variant="outline" style={{ borderColor: '#956ec3', color: '#956ec3' }}>
                 ดูทั้งหมด
               </Button>
             </Link>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {newProducts.map((product) => (
-              <Card key={product.id} className="group hover:shadow-lg transition-all duration-300 border-gray-200 hover:border-purple-300">
-                <div className="relative overflow-hidden rounded-t-lg">
-                  <Link to={`/product/${product.id}`}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {featuredProducts.map((product) => (
+              <Card key={product.id} className="hover:shadow-lg transition-shadow duration-300">
+                <CardContent className="p-0">
+                  <div className="relative">
                     <img
-                      src={product.image || '/placeholder.svg'}
+                      src={product.image}
                       alt={product.name}
-                      className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300"
+                      className="w-full h-48 object-cover rounded-t-lg"
                     />
-                  </Link>
-                  <span className="absolute top-2 left-2 bg-green-500 text-white px-2 py-1 rounded text-xs font-medium">
-                    ใหม่
-                  </span>
-                </div>
-                <CardContent className="p-3">
-                  <Link to={`/product/${product.id}`}>
-                    <h4 className="font-medium text-gray-800 mb-1 text-sm line-clamp-2 group-hover:text-purple-600 transition-colors">
-                      {product.name}
-                    </h4>
-                  </Link>
-                  <p className="text-lg font-bold text-purple-600 mb-2">
-                    ฿{product.selling_price?.toLocaleString()}
-                  </p>
-                  
-                  <div className="space-y-1">
-                    <Link to={`/product/${product.id}`}>
-                      <Button size="sm" className="w-full text-white text-xs" style={{ backgroundColor: '#956ec3' }}>
-                        ซื้อเดี๋ยวนี้
-                      </Button>
-                    </Link>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="w-full border-purple-300 text-purple-600 hover:bg-purple-50 text-xs"
-                      onClick={() => addToCart(product)}
+                    <Badge 
+                      className="absolute top-2 left-2"
+                      style={{ backgroundColor: '#956ec3' }}
                     >
-                      <ShoppingCart className="h-3 w-3 mr-1" />
-                      เพิ่มลงตะกร้า
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </section>
-
-        {/* Best Sellers */}
-        <section className="mb-12">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-800">สินค้าขายดี</h2>
-            <Link to="/categories?filter=bestseller">
-              <Button variant="outline" size="sm" className="border-purple-300 text-purple-600 hover:bg-purple-50">
-                ดูทั้งหมด
-              </Button>
-            </Link>
-          </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {bestSellers.map((product) => (
-              <Card key={product.id} className="group hover:shadow-lg transition-all duration-300 border-gray-200 hover:border-purple-300">
-                <div className="relative overflow-hidden rounded-t-lg">
-                  <Link to={`/product/${product.id}`}>
-                    <img
-                      src={product.image || '/placeholder.svg'}
-                      alt={product.name}
-                      className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </Link>
-                  <span className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded text-xs font-medium">
-                    ขายดี
-                  </span>
-                </div>
-                <CardContent className="p-3">
-                  <Link to={`/product/${product.id}`}>
-                    <h4 className="font-medium text-gray-800 mb-1 text-sm line-clamp-2 group-hover:text-purple-600 transition-colors">
-                      {product.name}
-                    </h4>
-                  </Link>
-                  <p className="text-lg font-bold text-purple-600 mb-2">
-                    ฿{product.selling_price?.toLocaleString()}
-                  </p>
-                  
-                  <div className="space-y-1">
-                    <Link to={`/product/${product.id}`}>
-                      <Button size="sm" className="w-full text-white text-xs" style={{ backgroundColor: '#956ec3' }}>
-                        ซื้อเดี๋ยวนี้
-                      </Button>
-                    </Link>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="w-full border-purple-300 text-purple-600 hover:bg-purple-50 text-xs"
-                      onClick={() => addToCart(product)}
+                      {product.badge}
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-2 right-2 bg-white bg-opacity-80 hover:bg-opacity-100"
                     >
-                      <ShoppingCart className="h-3 w-3 mr-1" />
-                      เพิ่มลงตะกร้า
+                      <Heart className="h-4 w-4" />
                     </Button>
+                    {product.discount > 0 && (
+                      <Badge className="absolute top-2 right-12 bg-red-500">
+                        -{product.discount}%
+                      </Badge>
+                    )}
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </section>
-
-        {/* Categories and Products */}
-        {categories.map((category) => {
-          const categoryProducts = getProductsByCategory(category.name);
-          
-          if (categoryProducts.length === 0) return null;
-
-          return (
-            <section key={category.id} className="mb-12">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-gray-800">{category.name}</h3>
-                <Link to={`/categories?category=${encodeURIComponent(category.name)}`}>
-                  <Button variant="outline" size="sm" className="border-purple-300 text-purple-600 hover:bg-purple-50">
-                    ดูทั้งหมด
-                  </Button>
-                </Link>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                {categoryProducts.map((product) => (
-                  <Card key={product.id} className="group hover:shadow-lg transition-all duration-300 border-gray-200 hover:border-purple-300">
-                    <div className="relative overflow-hidden rounded-t-lg">
-                      <Link to={`/product/${product.id}`}>
-                        <img
-                          src={product.image || '/placeholder.svg'}
-                          alt={product.name}
-                          className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      </Link>
-                      {product.status && (
-                        <span className="absolute top-2 left-2 bg-purple-500 text-white px-2 py-1 rounded text-xs font-medium">
-                          {product.status}
-                        </span>
-                      )}
-                    </div>
-                    <CardContent className="p-3">
-                      <Link to={`/product/${product.id}`}>
-                        <h4 className="font-medium text-gray-800 mb-1 text-sm line-clamp-2 group-hover:text-purple-600 transition-colors">
-                          {product.name}
-                        </h4>
-                      </Link>
-                      <p className="text-lg font-bold text-purple-600 mb-2">
-                        ฿{product.selling_price?.toLocaleString()}
-                      </p>
-                      
-                      <div className="space-y-1">
-                        <Link to={`/product/${product.id}`}>
-                          <Button size="sm" className="w-full text-white text-xs" style={{ backgroundColor: '#956ec3' }}>
-                            ซื้อเดี๋ยวนี้
-                          </Button>
-                        </Link>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="w-full border-purple-300 text-purple-600 hover:bg-purple-50 text-xs"
-                          onClick={() => addToCart(product)}
-                        >
-                          <ShoppingCart className="h-3 w-3 mr-1" />
-                          เพิ่มลงตะกร้า
-                        </Button>
+                  
+                  <div className="p-4">
+                    <h3 className="font-semibold text-lg mb-2 line-clamp-2">{product.name}</h3>
+                    
+                    <div className="flex items-center mb-2">
+                      <div className="flex items-center">
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`h-4 w-4 ${
+                              i < Math.floor(product.rating)
+                                ? 'text-yellow-400 fill-current'
+                                : 'text-gray-300'
+                            }`}
+                          />
+                        ))}
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </section>
-          );
-        })}
-      </main>
+                      <span className="text-sm text-gray-600 ml-2">({product.reviews})</span>
+                    </div>
+                    
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <span className="text-xl font-bold" style={{ color: '#956ec3' }}>
+                          ฿{product.price.toLocaleString()}
+                        </span>
+                        {product.originalPrice > product.price && (
+                          <span className="text-sm text-gray-500 line-through ml-2">
+                            ฿{product.originalPrice.toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        style={{ borderColor: '#956ec3', color: '#956ec3' }}
+                      >
+                        <ShoppingCart className="h-4 w-4 mr-1" />
+                        ใส่ตะกร้า
+                      </Button>
+                      <Link to={`/product/${product.id}`} className="flex-1">
+                        <Button 
+                          className="w-full"
+                          style={{ backgroundColor: '#956ec3' }}
+                        >
+                          ดูสินค้า
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+      </div>
     </div>
   );
 };
