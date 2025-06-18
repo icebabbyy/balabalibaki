@@ -38,10 +38,11 @@ export const usePublineOrders = () => {
       }
 
       // Map the data to ensure all required fields are present
+      // Note: tracking_number and admin_notes are not in publine_orders view, so we set them to empty
       const mappedData = (data || []).map(item => ({
         ...item,
-        tracking_number: item.tracking_number || '',
-        admin_notes: item.admin_notes || '',
+        tracking_number: '', // Not available in publine_orders view
+        admin_notes: '', // Not available in publine_orders view
         photo: item.photo || '',
         item_json: item.item_json || '',
         item: item.item || '',

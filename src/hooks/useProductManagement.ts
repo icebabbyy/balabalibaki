@@ -46,7 +46,7 @@ export const useProductManagement = () => {
       // Map the data to ensure all required fields are present
       const mappedData = (data || []).map(item => ({
         ...item,
-        status: item.status || 'พรีออเดอร์', // Default status if missing
+        status: item['status TEXT DEFAULT'] || 'พรีออเดอร์', // Access the oddly named status field
         shipment_date: item.shipment_date || '',
         description: item.description || '',
         link: item.link || '',
