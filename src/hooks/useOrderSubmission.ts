@@ -29,7 +29,8 @@ export const useOrderSubmission = () => {
         price: item.price,
         quantity: item.quantity,
         sku: item.sku,
-        product_type: item.product_type || 'ETC'
+        product_type: item.product_type || 'ETC',
+        variant: item.variant || null
       }));
 
       // Create order in database
@@ -49,7 +50,7 @@ export const useOrderSubmission = () => {
 
       if (error) {
         console.error('Error creating order:', error);
-        toast.error("เกิดข้อผิดพลาดในการสร้างคำสั่งซื้อ");
+        toast.error(`เกิดข้อผิดพลาดในการสร้างคำสั่งซื้อ: ${error.message}`);
         return;
       }
 
@@ -68,7 +69,7 @@ export const useOrderSubmission = () => {
 
     } catch (error) {
       console.error('Error submitting order:', error);
-      toast.error("เกิดข้อผิดพลาดในการส่งคำสั่งซื้อ");
+      toast.error("เกิดข้อผิดพลาดในการส่งคำสั่งซื้อ กรุณาลองใหม่อีกครั้ง");
     } finally {
       setSubmitting(false);
     }

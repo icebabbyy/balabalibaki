@@ -1,315 +1,191 @@
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Trash2, Upload, Save, X } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Upload, X, AlertCircle, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { useProductImages } from '@/hooks/useProductImages';
-import { useImageUpload } from '@/hooks/useImageUpload';
 import { supabase } from '@/integrations/supabase/client';
 
 interface BatchImageUploadManagerProps {
-  productId: number;
+  onImagesUploaded?: (urls: string[]) => void;
 }
 
-interface PendingImage {
-  id: string;
-  file?: File;
+interface UploadResult {
+  file: File;
   url?: string;
-  preview: string;
+  error?: string;
+  status: 'pending' | 'uploading' | 'success' | 'error';
 }
 
-const BatchImageUploadManager = ({ productId }: BatchImageUploadManagerProps) => {
-  const { images, loading, deleteImage, refreshImages } = useProductImages(productId);
-  const { uploadImage, uploading } = useImageUpload();
-  const [pendingImages, setPendingImages] = useState<PendingImage[]>([]);
-  const [urlInput, setUrlInput] = useState('');
-  const [saving, setSaving] = useState(false);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
+const BatchImageUploadManager = ({ onImagesUploaded }: BatchImageUploadManagerProps) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadResults, setUploadResults] = useState<UploadResult[]>([]);
+  const [uploading, setUploading] = useState(false);
 
-  const MAX_IMAGES = 20;
-
-  const addPendingImage = (file?: File, url?: string) => {
-    if (pendingImages.length >= MAX_IMAGES) {
-      toast.error(`สามารถเพิ่มได้สูงสุด ${MAX_IMAGES} รูป`);
-      return;
-    }
-
-    const id = Date.now().toString();
-    const preview = file ? URL.createObjectURL(file) : url || '';
-    
-    setPendingImages(prev => [...prev, {
-      id,
-      file,
-      url,
-      preview
-    }]);
-
-    if (file) {
-      toast.success('เพิ่มรูปภาพเรียบร้อย');
-    }
-  };
-
-  const removePendingImage = (id: string) => {
-    setPendingImages(prev => {
-      const image = prev.find(img => img.id === id);
-      if (image?.file) {
-        URL.revokeObjectURL(image.preview);
-      }
-      return prev.filter(img => img.id !== id);
-    });
-  };
-
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    const remainingSlots = MAX_IMAGES - pendingImages.length;
+    if (files.length === 0) return;
+
+    // Validate files
+    const validFiles = files.filter(file => {
+      if (!file.type.startsWith('image/')) {
+        toast.error(`${file.name} ไม่ใช่ไฟล์รูปภาพ`);
+        return false;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error(`${file.name} มีขนาดใหญ่เกิน 5MB`);
+        return false;
+      }
+      return true;
+    });
+
+    if (validFiles.length === 0) return;
+
+    // Initialize upload results
+    const initialResults: UploadResult[] = validFiles.map(file => ({
+      file,
+      status: 'pending'
+    }));
     
-    if (files.length > remainingSlots) {
-      toast.error(`สามารถเพิ่มได้อีกเพียง ${remainingSlots} รูป`);
-      return;
-    }
+    setUploadResults(initialResults);
+    setUploading(true);
 
-    files.forEach(file => addPendingImage(file));
-    
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const handleDrop = (event: React.DragEvent) => {
-    event.preventDefault();
-    const files = Array.from(event.dataTransfer.files).filter(file => 
-      file.type.startsWith('image/')
-    );
-    
-    const remainingSlots = MAX_IMAGES - pendingImages.length;
-    if (files.length > remainingSlots) {
-      toast.error(`สามารถเพิ่มได้อีกเพียง ${remainingSlots} รูป`);
-      return;
-    }
-
-    files.forEach(file => addPendingImage(file));
-  };
-
-  const handleUrlAdd = () => {
-    if (!urlInput.trim()) return;
-    addPendingImage(undefined, urlInput.trim());
-    setUrlInput('');
-  };
-
-  const saveAllImages = async () => {
-    if (pendingImages.length === 0) {
-      toast.error('ไม่มีรูปภาพที่จะบันทึก');
-      return;
-    }
-
-    setSaving(true);
-    let successCount = 0;
+    const uploadedUrls: string[] = [];
 
     try {
-      for (const image of pendingImages) {
-        let imageUrl = image.url;
+      // Upload files one by one
+      for (let i = 0; i < validFiles.length; i++) {
+        const file = validFiles[i];
         
-        // Upload file if it's a file
-        if (image.file) {
-          console.log('Uploading file:', image.file.name);
-          imageUrl = await uploadImage(image.file, 'product-images');
-          console.log('Upload result:', imageUrl);
-        }
+        // Update status to uploading
+        setUploadResults(prev => prev.map((result, index) => 
+          index === i ? { ...result, status: 'uploading' } : result
+        ));
 
-        if (imageUrl) {
-          const nextOrder = images.length + successCount + 1;
+        try {
+          console.log(`Uploading file ${i + 1}/${validFiles.length}:`, file.name);
           
-          console.log('Inserting image record:', { productId, imageUrl, nextOrder });
+          // Create unique filename
+          const fileExt = file.name.split('.').pop();
+          const fileName = `batch/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
           
-          const { error } = await supabase
-            .from('product_images')
-            .insert({
-              product_id: productId,
-              image_url: imageUrl,
-              order: nextOrder
-            });
+          // Upload to product-images bucket
+          const { data, error } = await supabase.storage
+            .from('product-images')
+            .upload(fileName, file);
 
-          if (!error) {
-            successCount++;
-            console.log('Successfully inserted image record');
-          } else {
-            console.error('Error inserting image record:', error);
+          if (error) {
+            console.error('Upload error:', error);
+            setUploadResults(prev => prev.map((result, index) => 
+              index === i ? { ...result, status: 'error', error: error.message } : result
+            ));
+            continue;
           }
+
+          // Get public URL
+          const { data: { publicUrl } } = supabase.storage
+            .from('product-images')
+            .getPublicUrl(data.path);
+
+          uploadedUrls.push(publicUrl);
+          
+          // Update status to success
+          setUploadResults(prev => prev.map((result, index) => 
+            index === i ? { ...result, status: 'success', url: publicUrl } : result
+          ));
+
+          console.log(`Successfully uploaded: ${file.name}`);
+          
+        } catch (error) {
+          console.error(`Error uploading ${file.name}:`, error);
+          setUploadResults(prev => prev.map((result, index) => 
+            index === i ? { 
+              ...result, 
+              status: 'error', 
+              error: error instanceof Error ? error.message : 'Unknown error'
+            } : result
+          ));
         }
       }
 
-      if (successCount > 0) {
-        toast.success(`บันทึกรูปภาพสำเร็จ ${successCount} รูป`);
-        setPendingImages([]);
-        await refreshImages();
+      if (uploadedUrls.length > 0) {
+        toast.success(`อัพโหลดสำเร็จ ${uploadedUrls.length} ไฟล์`);
+        onImagesUploaded?.(uploadedUrls);
       } else {
-        toast.error('ไม่สามารถบันทึกรูปภาพได้');
+        toast.error('ไม่สามารถอัพโหลดไฟล์ใดได้');
       }
+
     } catch (error) {
-      console.error('Error saving images:', error);
-      toast.error('เกิดข้อผิดพลาดในการบันทึกรูปภาพ');
+      console.error('Batch upload error:', error);
+      toast.error('เกิดข้อผิดพลาดในการอัพโหลด');
     } finally {
-      setSaving(false);
+      setUploading(false);
+      // Clear the input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
-  const clearAll = () => {
-    pendingImages.forEach(image => {
-      if (image.file) {
-        URL.revokeObjectURL(image.preview);
-      }
-    });
-    setPendingImages([]);
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
   };
 
+  const clearResults = () => {
+    setUploadResults([]);
+  };
+
+  const getStatusIcon = (status: UploadResult['status']) => {
+    switch (status) {
+      case 'uploading':
+        return <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" />;
+      case 'success':
+        return <CheckCircle className="h-4 w-4 text-green-600" />;
+      case 'error':
+        return <AlertCircle className="h-4 w-4 text-red-600" />;
+      default:
+        return <div className="h-4 w-4 bg-gray-300 rounded-full" />;
+    }
+  };
+
+  const getStatusColor = (status: UploadResult['status']) => {
+    switch (status) {
+      case 'uploading':
+        return 'text-blue-600';
+      case 'success':
+        return 'text-green-600';
+      case 'error':
+        return 'text-red-600';
+      default:
+        return 'text-gray-600';
+    }
+  };
+
+  const successCount = uploadResults.filter(r => r.status === 'success').length;
+  const errorCount = uploadResults.filter(r => r.status === 'error').length;
+
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>จัดการรูปภาพสินค้า</CardTitle>
-            <div className="text-sm text-gray-500">
-              {images.length + pendingImages.length}/{MAX_IMAGES} รูป
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {/* Upload Area */}
-          <div
-            onDrop={handleDrop}
-            onDragOver={(e) => e.preventDefault()}
-            className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center mb-4 hover:border-purple-400 transition-colors cursor-pointer"
-            onClick={() => fileInputRef.current?.click()}
+    <Card>
+      <CardHeader>
+        <CardTitle>อัพโหลดรูปภาพแบบกลุ่ม</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Upload Section */}
+        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleUploadClick}
+            disabled={uploading}
+            className="flex items-center space-x-2"
           >
-            <Upload className="h-10 w-10 mx-auto mb-3 text-gray-400" />
-            <p className="font-medium text-gray-700 mb-2">
-              ลากวางหรือคลิกเพื่อเลือกรูปภาพ
-            </p>
-            <p className="text-sm text-gray-500">
-              รองรับ JPG, PNG, GIF | สูงสุด {MAX_IMAGES} รูป
-            </p>
-            <Button
-              type="button"
-              variant="outline"
-              className="mt-3"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              เลือกไฟล์
-            </Button>
-          </div>
-
-          {/* URL Input */}
-          <div className="flex space-x-2 mb-4">
-            <Input
-              type="url"
-              placeholder="หรือใส่ URL รูปภาพ"
-              value={urlInput}
-              onChange={(e) => setUrlInput(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleUrlAdd()}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleUrlAdd}
-              disabled={!urlInput.trim()}
-            >
-              เพิ่ม
-            </Button>
-          </div>
-
-          {/* Pending Images */}
-          {pendingImages.length > 0 && (
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="font-medium">รูปภาพที่เตรียมบันทึก ({pendingImages.length})</h4>
-                <div className="space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={clearAll}
-                    disabled={saving}
-                  >
-                    <X className="h-4 w-4 mr-1" />
-                    ยกเลิกทั้งหมด
-                  </Button>
-                  <Button
-                    onClick={saveAllImages}
-                    disabled={saving || uploading}
-                    style={{ backgroundColor: '#956ec3' }}
-                    className="text-white"
-                    size="sm"
-                  >
-                    <Save className="h-4 w-4 mr-1" />
-                    {saving ? 'กำลังบันทึก...' : 'บันทึกทั้งหมด'}
-                  </Button>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                {pendingImages.map((image) => (
-                  <div key={image.id} className="relative group">
-                    <img
-                      src={image.preview}
-                      alt="Preview"
-                      className="w-full h-20 object-cover rounded border"
-                    />
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => removePendingImage(image.id)}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Existing Images */}
-          <div>
-            <h4 className="font-medium mb-3">รูปภาพที่บันทึกแล้ว ({images.length})</h4>
-            {loading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
-                <p className="text-purple-600 font-medium">กำลังโหลดรูปภาพ...</p>
-              </div>
-            ) : images.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {images.map((image, index) => (
-                  <div key={image.id} className="relative group">
-                    <img
-                      src={image.image_url || '/placeholder.svg'}
-                      alt={`Product image ${index + 1}`}
-                      className="w-full h-32 object-cover rounded-lg border"
-                    />
-                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity rounded-lg flex items-center justify-center">
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        className="opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => deleteImage(image.id)}
-                      >
-                        <Trash2 className="h-4 w-4 mr-1" />
-                        ลบ
-                      </Button>
-                    </div>
-                    <div className="absolute top-2 left-2 bg-black bg-opacity-75 text-white px-2 py-1 rounded text-xs font-medium">
-                      #{index + 1}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                <p>ยังไม่มีรูปภาพสินค้า</p>
-              </div>
-            )}
-          </div>
-
+            <Upload className="h-4 w-4" />
+            <span>{uploading ? 'กำลังอัพโหลด...' : 'เลือกรูปภาพหลายไฟล์'}</span>
+          </Button>
+          <p className="text-sm text-gray-500 mt-2">
+            รองรับไฟล์ .jpg, .png, .gif ขนาดไม่เกิน 5MB ต่อไฟล์
+          </p>
           <Input
             ref={fileInputRef}
             type="file"
@@ -318,9 +194,72 @@ const BatchImageUploadManager = ({ productId }: BatchImageUploadManagerProps) =>
             onChange={handleFileSelect}
             className="hidden"
           />
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+
+        {/* Results Summary */}
+        {uploadResults.length > 0 && (
+          <div className="flex items-center justify-between bg-gray-50 p-3 rounded">
+            <div className="text-sm">
+              <span className="font-medium">ผลลัพธ์: </span>
+              <span className="text-green-600">{successCount} สำเร็จ</span>
+              {errorCount > 0 && (
+                <span className="text-red-600 ml-2">{errorCount} ล้มเหลว</span>
+              )}
+              <span className="text-gray-600 ml-2">จากทั้งหมด {uploadResults.length} ไฟล์</span>
+            </div>
+            <Button variant="outline" size="sm" onClick={clearResults}>
+              <X className="h-4 w-4 mr-1" />
+              ล้าง
+            </Button>
+          </div>
+        )}
+
+        {/* Upload Results */}
+        {uploadResults.length > 0 && (
+          <div className="space-y-2 max-h-60 overflow-y-auto">
+            {uploadResults.map((result, index) => (
+              <div key={index} className="flex items-center space-x-3 p-2 border rounded">
+                {getStatusIcon(result.status)}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">
+                    {result.file.name}
+                  </p>
+                  {result.error && (
+                    <p className="text-xs text-red-600 truncate">
+                      {result.error}
+                    </p>
+                  )}
+                </div>
+                <span className={`text-xs ${getStatusColor(result.status)}`}>
+                  {result.status === 'pending' && 'รอ'}
+                  {result.status === 'uploading' && 'อัพโหลด...'}
+                  {result.status === 'success' && 'สำเร็จ'}
+                  {result.status === 'error' && 'ล้มเหลว'}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Uploaded URLs */}
+        {successCount > 0 && (
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-green-600">
+              URL รูปภาพที่อัพโหลดสำเร็จ:
+            </p>
+            <div className="bg-green-50 p-3 rounded max-h-40 overflow-y-auto">
+              {uploadResults
+                .filter(r => r.status === 'success' && r.url)
+                .map((result, index) => (
+                  <div key={index} className="text-xs font-mono break-all mb-1">
+                    {result.url}
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

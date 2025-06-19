@@ -1,157 +1,136 @@
 
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Heart, Minus, Plus, ArrowLeft } from "lucide-react";
-import { toast } from "sonner";
+import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, ShoppingCart, Package, Calendar, Truck } from "lucide-react";
+import { toast } from "sonner";
 import ProductImageGallery from "@/components/ProductImageGallery";
-import { useProductImages } from "@/hooks/useProductImages";
-
-interface Product {
-  id: number;
-  name: string;
-  selling_price: number;
-  category: string;
-  description: string;
-  image: string;
-  status: string;
-  sku: string;
-  options: any;
-  product_type?: string;
-}
+import ProductVariantSelector from "@/components/ProductVariantSelector";
+import ProductBreadcrumb from "@/components/ProductBreadcrumb";
 
 const ProductDetail = () => {
   const { id } = useParams();
-  const [product, setProduct] = useState<Product | null>(null);
+  const navigate = useNavigate();
+  const [product, setProduct] = useState<any>(null);
+  const [images, setImages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedVariant, setSelectedVariant] = useState("");
   const [quantity, setQuantity] = useState(1);
-  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
-  
-  const { images } = useProductImages(product?.id);
 
   useEffect(() => {
     if (id) {
       fetchProduct();
+      fetchProductImages();
     }
   }, [id]);
 
   const fetchProduct = async () => {
     try {
-      setLoading(true);
-      
       const { data, error } = await supabase
-        .from('public_products')
-        .select('id, name, selling_price, category, description, image, sku, options')
-        .eq('id', parseInt(id!))
+        .from('products')
+        .select('*')
+        .eq('id', id)
         .single();
 
       if (error) {
         console.error('Error fetching product:', error);
-        toast.error('ไม่พบสินค้า');
+        toast.error('ไม่พบสินค้าที่ต้องการ');
+        navigate('/');
         return;
       }
 
-      if (data) {
-        // Get product type from main products table
-        const { data: productData } = await supabase
-          .from('products')
-          .select('product_type')
-          .eq('id', data.id)
-          .single();
-
-        const productData2: Product = {
-          id: data.id,
-          name: data.name,
-          selling_price: data.selling_price,
-          category: data.category,
-          description: data.description || '',
-          image: data.image || '',
-          sku: data.sku,
-          status: 'พรีออเดอร์',
-          options: data.options || {},
-          product_type: productData?.product_type || 'ETC'
-        };
-        
-        console.log('Product data loaded:', productData2);
-        setProduct(productData2);
-      }
+      setProduct(data);
     } catch (error) {
-      console.error('Error fetching product:', error);
+      console.error('Error:', error);
       toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูลสินค้า');
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchProductImages = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('product_images')
+        .select('*')
+        .eq('product_id', id)
+        .order('order', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching product images:', error);
+        return;
+      }
+
+      setImages(data || []);
+    } catch (error) {
+      console.error('Error fetching images:', error);
+    }
+  };
+
   const addToCart = () => {
     if (!product) return;
 
-    try {
-      const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
-      const existingItemIndex = existingCart.findIndex((item: any) => item.id === product.id);
-
-      if (existingItemIndex > -1) {
-        existingCart[existingItemIndex].quantity += quantity;
-      } else {
-        existingCart.push({
-          id: product.id,
-          name: product.name,
-          price: product.selling_price,
-          quantity: quantity,
-          image: product.image,
-          sku: product.sku,
-          selectedOptions,
-          product_type: product.product_type
-        });
-      }
-
-      localStorage.setItem('cart', JSON.stringify(existingCart));
-      toast.success(`เพิ่ม ${product.name} ลงในตะกร้าแล้ว`);
-    } catch (error) {
-      console.error('Error adding to cart:', error);
-      toast.error('เกิดข้อผิดพลาดในการเพิ่มสินค้าลงตะกร้า');
+    // Validate variant selection if options exist
+    if (product.options && !selectedVariant) {
+      toast.error('กรุณาเลือกตัวเลือกสินค้า');
+      return;
     }
+
+    const cartItem = {
+      id: product.id,
+      name: product.name,
+      price: product.selling_price,
+      image: product.image,
+      quantity: quantity,
+      sku: product.sku,
+      variant: selectedVariant || null,
+      product_type: product.product_type || 'ETC'
+    };
+
+    // Get existing cart
+    const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
+    
+    // Check if item with same variant already exists
+    const existingItemIndex = existingCart.findIndex((item: any) => 
+      item.id === cartItem.id && item.variant === cartItem.variant
+    );
+
+    if (existingItemIndex >= 0) {
+      // Update quantity
+      existingCart[existingItemIndex].quantity += quantity;
+    } else {
+      // Add new item
+      existingCart.push(cartItem);
+    }
+
+    localStorage.setItem('cart', JSON.stringify(existingCart));
+    
+    toast.success(`เพิ่ม "${product.name}" ลงในตะกร้าแล้ว`);
   };
 
-  const buyNow = () => {
-    if (!product) return;
-
-    try {
-      const cartItem = {
-        id: product.id,
-        name: product.name,
-        price: product.selling_price,
-        quantity: quantity,
-        image: product.image,
-        sku: product.sku,
-        selectedOptions,
-        product_type: product.product_type
-      };
-
-      localStorage.setItem('cart', JSON.stringify([cartItem]));
-      window.location.href = '/cart';
-    } catch (error) {
-      console.error('Error in buy now:', error);
-      toast.error('เกิดข้อผิดพลาดในการสั่งซื้อ');
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'พรีออเดอร์':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'พร้อมส่ง':
+        return 'bg-green-100 text-green-800';
+      case 'สินค้าหมด':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
-  };
-
-  const addToWishlist = () => {
-    if (!product) return;
-    toast.success("เพิ่มในรายการโปรดแล้ว");
   };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
-        <div className="max-w-6xl mx-auto px-4 py-8">
-          <div className="text-center py-12">
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
             <p className="text-purple-600 font-medium">กำลังโหลดข้อมูลสินค้า...</p>
           </div>
@@ -164,181 +143,175 @@ const ProductDetail = () => {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
-        <div className="max-w-6xl mx-auto px-4 py-8">
-          <div className="text-center py-12">
-            <h1 className="text-2xl font-bold text-gray-800 mb-4">ไม่พบสินค้า</h1>
-            <Link to="/categories">
-              <Button style={{ backgroundColor: '#956ec3' }}>
-                กลับไปเลือกสินค้า
-              </Button>
-            </Link>
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-700 mb-4">ไม่พบสินค้า</h2>
+            <Button onClick={() => navigate('/')}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              กลับหน้าแรก
+            </Button>
           </div>
         </div>
       </div>
     );
   }
 
-  // Get additional images from product_images
-  const additionalImages = images.map(img => img.image_url);
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* Back Button */}
-        <div className="mb-6">
-          <Link to="/categories" className="inline-flex items-center text-purple-600 hover:text-purple-800">
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-6xl mx-auto">
+          {/* Breadcrumb */}
+          <ProductBreadcrumb 
+            category={product.category} 
+            productName={product.name} 
+          />
+
+          {/* Back Button */}
+          <Button 
+            variant="outline" 
+            onClick={() => navigate(-1)}
+            className="mb-6"
+          >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            กลับไปเลือกสินค้า
-          </Link>
-        </div>
+            ย้อนกลับ
+          </Button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Product Images */}
-          <div>
-            <ProductImageGallery
-              mainImage={product.image}
-              additionalImages={additionalImages}
-              productName={product.name}
-            />
-          </div>
-
-          {/* Product Info */}
-          <div className="space-y-6">
-            {/* Product Header */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Product Images */}
             <div>
-              <h1 className="text-3xl font-bold text-gray-800 mb-3">{product.name}</h1>
-              
-              <div className="flex items-center space-x-4 mb-4">
-                <Badge className="bg-orange-500 text-white">
-                  {product.status}
-                </Badge>
-                <span className="text-sm text-gray-600">หมวดหมู่: {product.category}</span>
-                <span className="text-sm text-gray-600">SKU: {product.sku}</span>
-              </div>
-              
-              <p className="text-4xl font-bold mb-6" style={{ color: '#956ec3' }}>
-                ฿{product.selling_price?.toLocaleString()}
-              </p>
+              <ProductImageGallery 
+                mainImage={product.image}
+                additionalImages={images}
+              />
             </div>
 
-            {/* Product Options */}
-            {product.options && Object.keys(product.options).length > 0 && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">ตัวเลือกสินค้า</h3>
-                {Object.entries(product.options).map(([optionName, optionValues]: [string, any]) => {
-                  if (!optionValues) return null;
-                  
-                  const values = Array.isArray(optionValues) ? optionValues : [String(optionValues)];
-                  
-                  return (
-                    <div key={optionName}>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        {optionName}
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        {values.map((value: string, index: number) => (
-                          <Button
-                            key={`${optionName}-${value}-${index}`}
-                            variant={selectedOptions[optionName] === value ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => setSelectedOptions(prev => ({ ...prev, [optionName]: value }))}
-                            style={selectedOptions[optionName] === value ? { backgroundColor: '#956ec3' } : {}}
-                          >
-                            {String(value)}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Quantity Selection */}
-            <div className="space-y-4">
+            {/* Product Details */}
+            <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                  {product.name}
+                </h1>
+                <div className="flex items-center space-x-3 mb-4">
+                  <Badge className={getStatusColor(product.product_status)}>
+                    {product.product_status}
+                  </Badge>
+                  <span className="text-gray-500">SKU: {product.sku}</span>
+                </div>
+              </div>
+
+              {/* Price */}
+              <div className="text-3xl font-bold text-purple-600">
+                ฿{product.selling_price?.toLocaleString()}
+              </div>
+
+              {/* Product Options */}
+              {product.options && (
+                <ProductVariantSelector
+                  options={product.options}
+                  selectedVariant={selectedVariant}
+                  onVariantChange={setSelectedVariant}
+                />
+              )}
+
+              {/* Quantity */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
                   จำนวน
                 </label>
                 <div className="flex items-center space-x-3">
                   <Button
                     variant="outline"
-                    size="icon"
+                    size="sm"
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    disabled={quantity <= 1}
                   >
-                    <Minus className="h-4 w-4" />
+                    -
                   </Button>
-                  <Input
-                    type="number"
-                    min="1"
-                    value={quantity}
-                    onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="w-20 text-center"
-                  />
+                  <span className="px-4 py-2 border rounded text-center min-w-[60px]">
+                    {quantity}
+                  </span>
                   <Button
                     variant="outline"
-                    size="icon"
+                    size="sm"
                     onClick={() => setQuantity(quantity + 1)}
                   >
-                    <Plus className="h-4 w-4" />
+                    +
                   </Button>
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="space-y-3">
-                <Button
-                  onClick={buyNow}
-                  className="w-full text-white hover:opacity-90"
-                  style={{ backgroundColor: '#956ec3' }}
-                  size="lg"
-                >
-                  <ShoppingCart className="h-5 w-5 mr-2" />
-                  ซื้อเดี๋ยวนี้
-                </Button>
-                
-                <Button
-                  onClick={addToCart}
-                  variant="outline"
-                  className="w-full"
-                  size="lg"
-                >
-                  <ShoppingCart className="h-5 w-5 mr-2" />
-                  เพิ่มลงตะกร้า
-                </Button>
-                
-                <Button
-                  onClick={addToWishlist}
-                  variant="outline"
-                  className="w-full"
-                  size="lg"
-                >
-                  <Heart className="h-5 w-5 mr-2" />
-                  เพิ่มในรายการโปรด
-                </Button>
+              {/* Add to Cart Button */}
+              <Button 
+                onClick={addToCart}
+                className="w-full py-3 text-lg"
+                style={{ backgroundColor: '#956ec3' }}
+                disabled={product.product_status === 'สินค้าหมด'}
+              >
+                <ShoppingCart className="h-5 w-5 mr-2" />
+                {product.product_status === 'สินค้าหมด' ? 'สินค้าหมด' : 'เพิ่มลงตะกร้า'}
+              </Button>
+
+              {/* Product Info Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center space-x-2">
+                      <Package className="h-5 w-5 text-purple-600" />
+                      <div>
+                        <p className="font-medium">หมวดหมู่</p>
+                        <p className="text-sm text-gray-600">{product.category}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {product.shipment_date && (
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center space-x-2">
+                        <Calendar className="h-5 w-5 text-purple-600" />
+                        <div>
+                          <p className="font-medium">วันที่ส่ง</p>
+                          <p className="text-sm text-gray-600">
+                            {new Date(product.shipment_date).toLocaleDateString('th-TH')}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {product.shipping_fee && (
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center space-x-2">
+                        <Truck className="h-5 w-5 text-purple-600" />
+                        <div>
+                          <p className="font-medium">ค่าจัดส่ง</p>
+                          <p className="text-sm text-gray-600">{product.shipping_fee}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
+
+              {/* Description */}
+              {product.description && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>รายละเอียดสินค้า</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-700 whitespace-pre-line">
+                      {product.description}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
         </div>
-
-        {/* Product Description */}
-        {product.description && (
-          <div className="mt-12">
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="text-xl font-semibold mb-4">รายละเอียดสินค้า</h3>
-                <div className="prose max-w-none">
-                  <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                    {product.description}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
       </div>
     </div>
   );
