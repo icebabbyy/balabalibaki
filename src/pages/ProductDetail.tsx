@@ -6,7 +6,7 @@ import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, ShoppingCart, Package, Calendar, Truck } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Package, Calendar, Truck, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import ProductImageGallery from "@/components/ProductImageGallery";
 import ProductVariantSelector from "@/components/ProductVariantSelector";
@@ -19,6 +19,7 @@ const ProductDetail = () => {
   const [images, setImages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedVariant, setSelectedVariant] = useState("");
+  const [variantImage, setVariantImage] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
@@ -115,6 +116,31 @@ const ProductDetail = () => {
     toast.success(`เพิ่ม "${product.name}" ลงในตะกร้าแล้ว`);
   };
 
+  const buyNow = () => {
+    if (!product) return;
+
+    // Validate variant selection if options exist
+    if (product.options && !selectedVariant) {
+      toast.error('กรุณาเลือกตัวเลือกสินค้า');
+      return;
+    }
+
+    const cartItem = {
+      id: product.id,
+      name: product.name,
+      price: product.selling_price,
+      image: product.image,
+      quantity: quantity,
+      sku: product.sku,
+      variant: selectedVariant || null,
+      product_type: product.product_type || 'ETC'
+    };
+
+    // Store single item for direct purchase
+    localStorage.setItem('directPurchase', JSON.stringify([cartItem]));
+    navigate('/payment');
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'พรีออเดอร์':
@@ -190,20 +216,49 @@ const ProductDetail = () => {
                 mainImage={product.image}
                 additionalImages={additionalImageUrls}
                 productName={product.name}
+                variantImage={variantImage}
               />
             </div>
 
             {/* Product Details */}
             <div className="space-y-6">
+              {/* Product Name */}
               <div>
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                <h1 className="text-3xl font-bold text-gray-900 mb-4">
                   {product.name}
                 </h1>
-                <div className="flex items-center space-x-3 mb-4">
-                  <Badge className={getStatusColor(product.product_status)}>
-                    {product.product_status}
-                  </Badge>
-                  <span className="text-gray-500">SKU: {product.sku}</span>
+                
+                {/* Reorganized Product Information */}
+                <div className="space-y-3">
+                  {/* Category */}
+                  <div className="flex items-center space-x-2">
+                    <Package className="h-4 w-4 text-gray-500" />
+                    <span className="text-gray-600">หมวดหมู่:</span>
+                    <span className="font-medium">{product.category}</span>
+                  </div>
+                  
+                  {/* Status and Shipment Date */}
+                  <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-2">
+                      <Badge className={getStatusColor(product.product_status)}>
+                        {product.product_status}
+                      </Badge>
+                    </div>
+                    {product.shipment_date && (
+                      <div className="flex items-center space-x-2">
+                        <Calendar className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm text-gray-600">
+                          กำหนดส่ง: {new Date(product.shipment_date).toLocaleDateString('th-TH')}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* SKU */}
+                  <div className="flex items-center space-x-2">
+                    <span className="text-gray-600">SKU:</span>
+                    <span className="font-mono text-sm">{product.sku}</span>
+                  </div>
                 </div>
               </div>
 
@@ -218,6 +273,8 @@ const ProductDetail = () => {
                   options={product.options}
                   selectedVariant={selectedVariant}
                   onVariantChange={setSelectedVariant}
+                  onVariantImageChange={setVariantImage}
+                  productImages={images}
                 />
               )}
 
@@ -247,61 +304,45 @@ const ProductDetail = () => {
                 </div>
               </div>
 
-              {/* Add to Cart Button */}
-              <Button 
-                onClick={addToCart}
-                className="w-full py-3 text-lg"
-                style={{ backgroundColor: '#956ec3' }}
-                disabled={product.product_status === 'สินค้าหมด'}
-              >
-                <ShoppingCart className="h-5 w-5 mr-2" />
-                {product.product_status === 'สินค้าหมด' ? 'สินค้าหมด' : 'เพิ่มลงตะกร้า'}
-              </Button>
+              {/* Action Buttons */}
+              <div className="space-y-3">
+                {/* Buy Now Button */}
+                <Button 
+                  onClick={buyNow}
+                  className="w-full py-3 text-lg"
+                  style={{ backgroundColor: '#956ec3' }}
+                  disabled={product.product_status === 'สินค้าหมด'}
+                >
+                  <CreditCard className="h-5 w-5 mr-2" />
+                  {product.product_status === 'สินค้าหมด' ? 'สินค้าหมด' : 'ซื้อเดี๋ยวนี้'}
+                </Button>
 
-              {/* Product Info Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Add to Cart Button */}
+                <Button 
+                  onClick={addToCart}
+                  variant="outline"
+                  className="w-full py-3 text-lg border-purple-600 text-purple-600 hover:bg-purple-50"
+                  disabled={product.product_status === 'สินค้าหมด'}
+                >
+                  <ShoppingCart className="h-5 w-5 mr-2" />
+                  เพิ่มลงตะกร้า
+                </Button>
+              </div>
+
+              {/* Additional Product Info */}
+              {product.shipping_fee && (
                 <Card>
                   <CardContent className="p-4">
                     <div className="flex items-center space-x-2">
-                      <Package className="h-5 w-5 text-purple-600" />
+                      <Truck className="h-5 w-5 text-purple-600" />
                       <div>
-                        <p className="font-medium">หมวดหมู่</p>
-                        <p className="text-sm text-gray-600">{product.category}</p>
+                        <p className="font-medium">ค่าจัดส่ง</p>
+                        <p className="text-sm text-gray-600">{product.shipping_fee}</p>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
-
-                {product.shipment_date && (
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="flex items-center space-x-2">
-                        <Calendar className="h-5 w-5 text-purple-600" />
-                        <div>
-                          <p className="font-medium">วันที่ส่ง</p>
-                          <p className="text-sm text-gray-600">
-                            {new Date(product.shipment_date).toLocaleDateString('th-TH')}
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {product.shipping_fee && (
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="flex items-center space-x-2">
-                        <Truck className="h-5 w-5 text-purple-600" />
-                        <div>
-                          <p className="font-medium">ค่าจัดส่ง</p>
-                          <p className="text-sm text-gray-600">{product.shipping_fee}</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
+              )}
 
               {/* Description */}
               {product.description && (

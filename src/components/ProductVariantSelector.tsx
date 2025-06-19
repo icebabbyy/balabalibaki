@@ -7,21 +7,46 @@ interface ProductVariantSelectorProps {
   options: any;
   selectedVariant: string;
   onVariantChange: (variant: string) => void;
+  onVariantImageChange?: (imageUrl: string | null) => void;
+  productImages?: Array<{ id: number; image_url: string; variant?: string }>;
 }
 
-const ProductVariantSelector = ({ options, selectedVariant, onVariantChange }: ProductVariantSelectorProps) => {
+const ProductVariantSelector = ({ 
+  options, 
+  selectedVariant, 
+  onVariantChange,
+  onVariantImageChange,
+  productImages = []
+}: ProductVariantSelectorProps) => {
   if (!options || typeof options !== 'object') {
     return null;
   }
 
   console.log('ProductVariantSelector options:', options);
+  console.log('ProductVariantSelector productImages:', productImages);
+
+  const handleVariantChange = (variant: string) => {
+    onVariantChange(variant);
+    
+    // Find matching image for this variant
+    if (onVariantImageChange && productImages.length > 0) {
+      const matchingImage = productImages.find(img => 
+        img.variant && img.variant.toLowerCase().includes(variant.toLowerCase())
+      );
+      
+      if (matchingImage) {
+        onVariantImageChange(matchingImage.image_url);
+      } else {
+        onVariantImageChange(null); // Reset to default images
+      }
+    }
+  };
 
   // Handle different option formats
   const renderOptions = () => {
     // If options is an array of strings
     if (Array.isArray(options)) {
       return options.map((option: any, index: number) => {
-        // Convert option to string if it's an object
         const optionText = typeof option === 'object' ? 
           (option.name || option.label || JSON.stringify(option)) : 
           String(option);
@@ -31,8 +56,9 @@ const ProductVariantSelector = ({ options, selectedVariant, onVariantChange }: P
             key={index}
             variant={selectedVariant === optionText ? "default" : "outline"}
             size="sm"
-            onClick={() => onVariantChange(optionText)}
+            onClick={() => handleVariantChange(optionText)}
             className="mr-2 mb-2"
+            style={selectedVariant === optionText ? { backgroundColor: '#956ec3' } : {}}
           >
             {optionText}
           </Button>
@@ -48,17 +74,19 @@ const ProductVariantSelector = ({ options, selectedVariant, onVariantChange }: P
         </label>
         <div className="flex flex-wrap gap-2">
           {Array.isArray(values) ? values.map((value: any, index: number) => {
-            // Convert value to string if it's an object
             const valueText = typeof value === 'object' ? 
               (value.name || value.label || JSON.stringify(value)) : 
               String(value);
             
+            const variantKey = `${key}:${valueText}`;
+            
             return (
               <Button
                 key={`${key}-${index}`}
-                variant={selectedVariant === `${key}:${valueText}` ? "default" : "outline"}
+                variant={selectedVariant === variantKey ? "default" : "outline"}
                 size="sm"
-                onClick={() => onVariantChange(`${key}:${valueText}`)}
+                onClick={() => handleVariantChange(variantKey)}
+                style={selectedVariant === variantKey ? { backgroundColor: '#956ec3' } : {}}
               >
                 {valueText}
               </Button>
@@ -78,7 +106,9 @@ const ProductVariantSelector = ({ options, selectedVariant, onVariantChange }: P
       {selectedVariant && (
         <div className="mt-2">
           <span className="text-sm text-gray-600">เลือก: </span>
-          <Badge variant="default">{selectedVariant}</Badge>
+          <Badge variant="default" style={{ backgroundColor: '#956ec3' }}>
+            {selectedVariant}
+          </Badge>
         </div>
       )}
     </div>

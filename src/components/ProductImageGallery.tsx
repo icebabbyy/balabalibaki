@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,14 +8,30 @@ interface ProductImageGalleryProps {
   mainImage: string;
   additionalImages: string[];
   productName?: string;
+  variantImage?: string | null;
 }
 
-const ProductImageGallery = ({ mainImage, additionalImages, productName = "สินค้า" }: ProductImageGalleryProps) => {
+const ProductImageGallery = ({ 
+  mainImage, 
+  additionalImages, 
+  productName = "สินค้า",
+  variantImage 
+}: ProductImageGalleryProps) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   
-  // Combine main image with additional images
-  const allImages = [mainImage, ...additionalImages].filter(Boolean);
+  // Combine main image with additional images, prioritize variant image if available
+  const allImages = variantImage ? 
+    [variantImage, mainImage, ...additionalImages].filter(Boolean) :
+    [mainImage, ...additionalImages].filter(Boolean);
+  
   const currentImage = allImages[currentImageIndex] || '/placeholder.svg';
+
+  // Reset to first image when variant changes
+  useEffect(() => {
+    if (variantImage) {
+      setCurrentImageIndex(0);
+    }
+  }, [variantImage]);
 
   const nextImage = () => {
     setCurrentImageIndex((prev) => (prev + 1) % allImages.length);
@@ -66,6 +82,13 @@ const ProductImageGallery = ({ mainImage, additionalImages, productName = "ส�
           {allImages.length > 1 && (
             <div className="absolute bottom-2 right-2 bg-black/50 text-white px-2 py-1 rounded text-sm">
               {currentImageIndex + 1} / {allImages.length}
+            </div>
+          )}
+          
+          {/* Variant Image Indicator */}
+          {variantImage && currentImageIndex === 0 && (
+            <div className="absolute top-2 left-2 bg-purple-600 text-white px-2 py-1 rounded text-sm">
+              ตัวเลือกที่เลือก
             </div>
           )}
         </CardContent>
