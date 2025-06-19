@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -9,7 +10,7 @@ interface Product {
   category: string;
   description: string;
   image: string;
-  status: string;
+  product_status: string;
   sku: string;
   price_yuan: number;
   exchange_rate: number;
@@ -19,6 +20,8 @@ interface Product {
   shipment_date: string;
   options: any;
   link: string;
+  product_type: string;
+  shipping_fee: string;
   created_at: string;
   updated_at: string;
 }
@@ -42,20 +45,32 @@ export const useProductManagement = () => {
         return;
       }
 
-      // Map the data to ensure all required fields are present with correct status handling
+      // Map the data to ensure all required fields are present
       const mappedData = (data || []).map(item => ({
-        ...item,
-        // แก้ไขการดึงสถานะให้ถูกต้อง - ใช้ field name ที่ถูกต้องจากฐานข้อมูล
-        status: (item as any)['status TEXT DEFAULT'] || 'พรีออเดอร์',
-        shipment_date: item.shipment_date || '',
+        id: item.id,
+        name: item.name || '',
+        category: item.category || '',
+        selling_price: item.selling_price || 0,
+        cost_thb: item.cost_thb || 0,
+        import_cost: item.import_cost || 0,
+        exchange_rate: item.exchange_rate || 0,
+        price_yuan: item.price_yuan || 0,
+        image: item.image || '',
         description: item.description || '',
+        sku: item.sku || '',
+        quantity: item.quantity || 0,
+        product_status: item.product_status || 'พรีออเดอร์',
+        product_type: item.product_type || 'ETC',
         link: item.link || '',
+        shipment_date: item.shipment_date || '',
+        shipping_fee: item.shipping_fee || '',
+        options: item.options || null,
         created_at: item.created_at || '',
         updated_at: item.updated_at || ''
       }));
 
       setProducts(mappedData);
-      console.log('Fetched products with status:', mappedData.map(p => ({ id: p.id, name: p.name, status: p.status })));
+      console.log('Fetched products with product_status:', mappedData.map(p => ({ id: p.id, name: p.name, product_status: p.product_status })));
     } catch (error) {
       console.error('Error fetching products:', error);
       toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูลสินค้า');
@@ -68,17 +83,10 @@ export const useProductManagement = () => {
     try {
       setUpdating(true);
       
-      // แก้ไขการอัปเดตสถานะให้ถูกต้อง
       const updateData: any = {
         ...updates,
         updated_at: new Date().toISOString()
       };
-
-      // ถ้ามีการอัปเดตสถานะ ให้ใช้ field ที่ถูกต้อง
-      if (updates.status) {
-        updateData['status TEXT DEFAULT'] = updates.status;
-        delete updateData.status;
-      }
 
       const { error } = await supabase
         .from('products')
