@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 export const useImageUpload = () => {
   const [uploading, setUploading] = useState(false);
 
-  const uploadImage = async (file: File, bucket: string = 'payment-slips') => {
+  const uploadImage = async (file: File, bucket: string = 'product-images') => {
     try {
       setUploading(true);
       console.log('Starting image upload:', { fileName: file.name, fileSize: file.size, bucket });
@@ -22,16 +22,20 @@ export const useImageUpload = () => {
         return null;
       }
       
-      // Create unique filename
+      // Create unique filename with proper path structure
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
       
+      // For product images, use the bucket folder structure
+      const filePath = bucket.includes('products/') ? `${bucket}/${fileName}` : fileName;
+      
       console.log('Generated filename:', fileName);
+      console.log('Upload path:', filePath);
       
       // Upload to Supabase storage
       const { data, error } = await supabase.storage
-        .from(bucket)
-        .upload(fileName, file, {
+        .from('product-images')
+        .upload(filePath, file, {
           cacheControl: '3600',
           upsert: false
         });
@@ -46,7 +50,7 @@ export const useImageUpload = () => {
 
       // Get public URL
       const { data: urlData } = supabase.storage
-        .from(bucket)
+        .from('product-images')
         .getPublicUrl(data.path);
 
       console.log('Public URL generated:', urlData.publicUrl);
