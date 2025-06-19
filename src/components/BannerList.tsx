@@ -13,14 +13,16 @@ interface BannerListProps {
 const BannerList = ({ banners, onEdit, onDelete }: BannerListProps) => {
   const getPositionLabel = (position: number) => {
     const positions = {
-      1: "หน้าแรก - แบนเนอร์หลัก (รูปเดียว)",
-      2: "หน้าแรก - แบนเนอร์ข้าง",
-      3: "หน้าหมวดหมู่ - แบนเนอร์บน",
-      4: "หน้าสินค้า - แบนเนอร์โปรโมชั่น",
-      5: "หน้าแรก - แบนเนอร์ล่าง"
+      1: "แบนเนอร์หลัก - สไลด์โชว์ด้านบนสุด (หน้าแรก)",
+      2: "แบนเนอร์ที่ 2 - รูปภาพเดี่ยวใต้สินค้ามาใหม่",
+      3: "แบนเนอร์ที่ 3 - รูปภาพเดี่ยวใต้หมวดหมู่",
+      4: "แบนเนอร์ที่ 4 - รูปภาพเดี่ยวด้านล่างสุด"
     };
-    return positions[position] || `ตำแหน่ง ${position}`;
+    return positions[position as keyof typeof positions] || `ตำแหน่ง ${position}`;
   };
+
+  // เรียงลำดับแบนเนอร์ตามตำแหน่ง
+  const sortedBanners = [...banners].sort((a, b) => a.position - b.position);
 
   return (
     <Card>
@@ -29,7 +31,7 @@ const BannerList = ({ banners, onEdit, onDelete }: BannerListProps) => {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {banners.map((banner) => (
+          {sortedBanners.map((banner) => (
             <div key={banner.id} className="flex items-center justify-between p-4 border rounded-lg">
               <div className="flex items-center space-x-4">
                 <img
@@ -38,7 +40,7 @@ const BannerList = ({ banners, onEdit, onDelete }: BannerListProps) => {
                   className="w-24 h-16 object-cover rounded"
                 />
                 <div>
-                  <h4 className="font-medium">แบนเนอร์ #{banner.id}</h4>
+                  <h4 className="font-medium">แบนเนอร์ #{banner.position}</h4>
                   <p className="text-sm text-gray-600">{getPositionLabel(banner.position)}</p>
                   <p className="text-sm text-gray-500">
                     สถานะ: {banner.active ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}

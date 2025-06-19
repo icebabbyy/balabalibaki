@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Banner } from "@/types/banner";
-import ImageUpload from "@/components/ImageUpload";
+import PhotoCopyPaste from "@/components/PhotoCopyPaste";
 
 interface BannerEditFormProps {
   banner: Banner;
@@ -18,11 +18,10 @@ const BannerEditForm = ({ banner, onSave, onCancel }: BannerEditFormProps) => {
   const [editingBanner, setEditingBanner] = useState<Banner>(banner);
 
   const bannerPositions = [
-    { value: 1, label: "หน้าแรก - แบนเนอร์หลัก (รูปเดียว)" },
-    { value: 2, label: "หน้าแรก - แบนเนอร์ข้าง" },
-    { value: 3, label: "หน้าหมวดหมู่ - แบนเนอร์บน" },
-    { value: 4, label: "หน้าสินค้า - แบนเนอร์โปรโมชั่น" },
-    { value: 5, label: "หน้าแรก - แบนเนอร์ล่าง" }
+    { value: 1, label: "แบนเนอร์หลัก - สไลด์โชว์ด้านบนสุด (หน้าแรก)" },
+    { value: 2, label: "แบนเนอร์ที่ 2 - รูปภาพเดี่ยวใต้สินค้ามาใหม่" },
+    { value: 3, label: "แบนเนอร์ที่ 3 - รูปภาพเดี่ยวใต้หมวดหมู่" },
+    { value: 4, label: "แบนเนอร์ที่ 4 - รูปภาพเดี่ยวด้านล่างสุด" },
   ];
 
   const updateField = (field: string, value: string | number | boolean) => {
@@ -45,7 +44,7 @@ const BannerEditForm = ({ banner, onSave, onCancel }: BannerEditFormProps) => {
       <CardContent className="space-y-4">
         <div className="space-y-4">
           <div className="space-y-2">
-            <ImageUpload
+            <PhotoCopyPaste
               currentImage={editingBanner.image_url}
               onImageChange={(imageUrl) => updateField('image_url', imageUrl)}
               label="รูปภาพแบนเนอร์"

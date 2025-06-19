@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -38,13 +37,14 @@ interface Category {
 
 const Index = () => {
   const navigate = useNavigate();
-  const [banners, setBanners] = useState<Banner[]>([]);
+  const [mainBanners, setMainBanners] = useState<Banner[]>([]);
+  const [secondBanners, setSecondBanners] = useState<Banner[]>([]);
+  const [thirdBanners, setThirdBanners] = useState<Banner[]>([]);
+  const [fourthBanners, setFourthBanners] = useState<Banner[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [homepageCategories, setHomepageCategories] = useState<Category[]>([]);
   const [categoryProducts, setCategoryProducts] = useState<{[key: string]: Product[]}>({});
-  const [secondBanners, setSecondBanners] = useState<Banner[]>([]);
-  const [thirdBanners, setThirdBanners] = useState<Banner[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -61,18 +61,20 @@ const Index = () => {
         .from('banners')
         .select('*')
         .eq('active', true)
-        .order('created_at', { ascending: false });
+        .order('position', { ascending: true });
       
       console.log('Fetched all banners:', data);
       
-      // แยกแบนเนอร์ตามตำแหน่ง
+      // แยกแบนเนอร์ตามตำแหน่งอย่างชัดเจน
       const position1 = (data || []).filter(banner => banner.position === 1);
       const position2 = (data || []).filter(banner => banner.position === 2);
       const position3 = (data || []).filter(banner => banner.position === 3);
+      const position4 = (data || []).filter(banner => banner.position === 4);
       
-      setBanners(position1);
+      setMainBanners(position1);
       setSecondBanners(position2);
       setThirdBanners(position3);
+      setFourthBanners(position4);
     } catch (error) {
       console.error('Error fetching banners:', error);
     }
@@ -303,9 +305,9 @@ const Index = () => {
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      {/* แบนเนอร์หลัก - Position 1 */}
+      {/* แบนเนอร์หลัก - Position 1 (สไลด์โชว์ด้านบนสุด) */}
       <section className="relative">
-        {banners.length > 0 ? (
+        {mainBanners.length > 0 ? (
           <div className="max-w-4xl mx-auto px-4 py-8">
             <Carousel 
               className="w-full h-64 md:h-80"
@@ -321,7 +323,7 @@ const Index = () => {
               }}
             >
               <CarouselContent>
-                {banners.map((banner) => (
+                {mainBanners.map((banner) => (
                   <CarouselItem key={banner.id}>
                     <div className="relative h-64 md:h-80 overflow-hidden rounded-lg">
                       <img
@@ -423,7 +425,7 @@ const Index = () => {
       </section>
 
       {/* แบนเนอร์ตำแหน่งที่ 2 - ใต้สินค้ามาใหม่ */}
-      <BannerSection banners={secondBanners} />
+      {secondBanners.length > 0 && <BannerSection banners={secondBanners} />}
 
       {/* แสดงหมวดหมู่ที่เลือกไว้ */}
       {homepageCategories.map((category) => (
@@ -435,8 +437,11 @@ const Index = () => {
         />
       ))}
 
-      {/* แบนเนอร์ตำแหน่งที่ 3 - ใต้ League of Legends */}
-      <BannerSection banners={thirdBanners} />
+      {/* แบนเนอร์ตำแหน่งที่ 3 - ใต้หมวดหมู่ */}
+      {thirdBanners.length > 0 && <BannerSection banners={thirdBanners} />}
+
+      {/* แบนเนอร์ตำแหน่งที่ 4 - ด้านล่างสุด */}
+      {fourthBanners.length > 0 && <BannerSection banners={fourthBanners} />}
     </div>
   );
 };
