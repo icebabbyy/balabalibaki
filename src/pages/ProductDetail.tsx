@@ -199,13 +199,7 @@ const ProductDetail = () => {
               <h1 className="text-3xl font-bold text-gray-800 mb-3">{product.name}</h1>
               
               <div className="flex items-center space-x-4 mb-4">
-                <Badge 
-                  className={`text-white ${
-                    product.status === 'พรีออเดอร์' 
-                      ? 'bg-orange-500' 
-                      : 'bg-green-500'
-                  }`}
-                >
+                <Badge className="bg-orange-500 text-white">
                   {product.status}
                 </Badge>
                 <span className="text-sm text-gray-600">หมวดหมู่: {product.category}</span>

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -112,11 +113,15 @@ const BatchImageUploadManager = ({ productId }: BatchImageUploadManagerProps) =>
         
         // Upload file if it's a file
         if (image.file) {
-          imageUrl = await uploadImage(image.file, `products/${productId}`);
+          console.log('Uploading file:', image.file.name);
+          imageUrl = await uploadImage(image.file, 'product-images');
+          console.log('Upload result:', imageUrl);
         }
 
         if (imageUrl) {
           const nextOrder = images.length + successCount + 1;
+          
+          console.log('Inserting image record:', { productId, imageUrl, nextOrder });
           
           const { error } = await supabase
             .from('product_images')
@@ -128,6 +133,9 @@ const BatchImageUploadManager = ({ productId }: BatchImageUploadManagerProps) =>
 
           if (!error) {
             successCount++;
+            console.log('Successfully inserted image record');
+          } else {
+            console.error('Error inserting image record:', error);
           }
         }
       }
@@ -231,6 +239,7 @@ const BatchImageUploadManager = ({ productId }: BatchImageUploadManagerProps) =>
                     onClick={saveAllImages}
                     disabled={saving || uploading}
                     style={{ backgroundColor: '#956ec3' }}
+                    className="text-white"
                     size="sm"
                   >
                     <Save className="h-4 w-4 mr-1" />
