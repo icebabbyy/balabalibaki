@@ -36,12 +36,14 @@ interface Product {
   shipment_date: string;
   shipping_fee: string;
   options: any;
+  created_at: string;
+  updated_at: string;
 }
 
 const Admin = () => {
   const [activeTab, setActiveTab] = useState('products');
   const [products, setProducts] = useState<Product[]>([]);
-  const [newProduct, setNewProduct] = useState<Omit<Product, 'id'>>({
+  const [newProduct, setNewProduct] = useState<Omit<Product, 'id' | 'created_at' | 'updated_at'>>({
     name: '',
     category: '',
     selling_price: 0,
@@ -83,7 +85,21 @@ const Admin = () => {
         return;
       }
 
-      setProducts(data || []);
+      // Map the data to ensure all required fields are present
+      const mappedProducts: Product[] = (data || []).map(item => ({
+        ...item,
+        created_at: item.created_at || new Date().toISOString(),
+        updated_at: item.updated_at || new Date().toISOString(),
+        product_status: item.product_status || 'พรีออเดอร์',
+        product_type: item.product_type || 'ETC',
+        shipping_fee: item.shipping_fee || '',
+        shipment_date: item.shipment_date || '',
+        link: item.link || '',
+        description: item.description || '',
+        options: item.options || null
+      }));
+
+      setProducts(mappedProducts);
     } catch (error) {
       console.error('Error:', error);
       toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูลสินค้า');
@@ -407,18 +423,6 @@ const Admin = () => {
               </CardContent>
             </Card>
 
-            {/* Image Upload Manager */}
-            {selectedProductForImages && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>จัดการรูปภาพสินค้า: {selectedProductForImages.name}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <BatchImageUploadManager productId={selectedProductForImages.id} />
-                </CardContent>
-              </Card>
-            )}
-
             {/* Button to Select Product for Image Management */}
             <Select onValueChange={(value) => {
               const selectedProduct = products.find(p => p.id === parseInt(value));
@@ -435,6 +439,24 @@ const Admin = () => {
                 ))}
               </SelectContent>
             </Select>
+
+            {/* Image Upload Manager */}
+            {selectedProductForImages && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>จัดการรูปภาพสินค้า: {selectedProductForImages.name}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <BatchImageUploadManager 
+                    productId={selectedProductForImages.id}
+                    onImagesUploaded={(urls) => {
+                      console.log('Images uploaded:', urls);
+                      toast.success(`อัพโหลดรูปภาพสำเร็จ ${urls.length} รูป`);
+                    }}
+                  />
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
 
@@ -462,7 +484,13 @@ const Admin = () => {
           open={showEditDialog}
           onOpenChange={setShowEditDialog}
           onSave={(updatedProduct) => {
-            setProducts(products.map(p => p.id === updatedProduct.id ? updatedProduct : p));
+            // Ensure the updated product has all required fields
+            const fullUpdatedProduct: Product = {
+              ...updatedProduct,
+              created_at: updatedProduct.created_at || new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            };
+            setProducts(products.map(p => p.id === fullUpdatedProduct.id ? fullUpdatedProduct : p));
             setShowEditDialog(false);
             setEditingProduct(null);
           }}

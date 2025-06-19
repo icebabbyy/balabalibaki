@@ -1,14 +1,14 @@
-
 import React, { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Upload, X, AlertCircle, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { useProductImages } from '@/hooks/useProductImages';
 
 interface BatchImageUploadManagerProps {
   onImagesUploaded?: (urls: string[]) => void;
+  productId?: number;
 }
 
 interface UploadResult {
@@ -18,10 +18,11 @@ interface UploadResult {
   status: 'pending' | 'uploading' | 'success' | 'error';
 }
 
-const BatchImageUploadManager = ({ onImagesUploaded }: BatchImageUploadManagerProps) => {
+const BatchImageUploadManager = ({ onImagesUploaded, productId }: BatchImageUploadManagerProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadResults, setUploadResults] = useState<UploadResult[]>([]);
   const [uploading, setUploading] = useState(false);
+  const { uploadImages, images, loading } = useProductImages(productId);
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
@@ -51,69 +52,84 @@ const BatchImageUploadManager = ({ onImagesUploaded }: BatchImageUploadManagerPr
     setUploadResults(initialResults);
     setUploading(true);
 
-    const uploadedUrls: string[] = [];
-
     try {
-      // Upload files one by one
-      for (let i = 0; i < validFiles.length; i++) {
-        const file = validFiles[i];
+      console.log(`Starting batch upload for ${validFiles.length} files`);
+      
+      // Use the hook's uploadImages function if productId is provided
+      if (productId) {
+        const uploadedUrls = await uploadImages(validFiles);
         
-        // Update status to uploading
-        setUploadResults(prev => prev.map((result, index) => 
-          index === i ? { ...result, status: 'uploading' } : result
-        ));
-
-        try {
-          console.log(`Uploading file ${i + 1}/${validFiles.length}:`, file.name);
-          
-          // Create unique filename
-          const fileExt = file.name.split('.').pop();
-          const fileName = `batch/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-          
-          // Upload to product-images bucket
-          const { data, error } = await supabase.storage
-            .from('product-images')
-            .upload(fileName, file);
-
-          if (error) {
-            console.error('Upload error:', error);
-            setUploadResults(prev => prev.map((result, index) => 
-              index === i ? { ...result, status: 'error', error: error.message } : result
-            ));
-            continue;
+        // Update results based on successful uploads
+        setUploadResults(prev => prev.map((result, index) => {
+          if (index < uploadedUrls.length) {
+            return { ...result, status: 'success', url: uploadedUrls[index] };
+          } else {
+            return { ...result, status: 'error', error: 'Upload failed' };
           }
+        }));
 
-          // Get public URL
-          const { data: { publicUrl } } = supabase.storage
-            .from('product-images')
-            .getPublicUrl(data.path);
-
-          uploadedUrls.push(publicUrl);
-          
-          // Update status to success
-          setUploadResults(prev => prev.map((result, index) => 
-            index === i ? { ...result, status: 'success', url: publicUrl } : result
-          ));
-
-          console.log(`Successfully uploaded: ${file.name}`);
-          
-        } catch (error) {
-          console.error(`Error uploading ${file.name}:`, error);
-          setUploadResults(prev => prev.map((result, index) => 
-            index === i ? { 
-              ...result, 
-              status: 'error', 
-              error: error instanceof Error ? error.message : 'Unknown error'
-            } : result
-          ));
+        if (uploadedUrls.length > 0) {
+          onImagesUploaded?.(uploadedUrls);
         }
-      }
-
-      if (uploadedUrls.length > 0) {
-        toast.success(`อัพโหลดสำเร็จ ${uploadedUrls.length} ไฟล์`);
-        onImagesUploaded?.(uploadedUrls);
       } else {
-        toast.error('ไม่สามารถอัพโหลดไฟล์ใดได้');
+        // Fallback to original upload logic
+        const uploadedUrls: string[] = [];
+        
+        for (let i = 0; i < validFiles.length; i++) {
+          const file = validFiles[i];
+          
+          setUploadResults(prev => prev.map((result, index) => 
+            index === i ? { ...result, status: 'uploading' } : result
+          ));
+
+          try {
+            console.log(`Uploading file ${i + 1}/${validFiles.length}:`, file.name);
+            
+            const fileExt = file.name.split('.').pop();
+            const fileName = `batch/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+            
+            const { data, error } = await supabase.storage
+              .from('product-images')
+              .upload(fileName, file);
+
+            if (error) {
+              console.error('Upload error:', error);
+              setUploadResults(prev => prev.map((result, index) => 
+                index === i ? { ...result, status: 'error', error: error.message } : result
+              ));
+              continue;
+            }
+
+            const { data: { publicUrl } } = supabase.storage
+              .from('product-images')
+              .getPublicUrl(data.path);
+
+            uploadedUrls.push(publicUrl);
+            
+            setUploadResults(prev => prev.map((result, index) => 
+              index === i ? { ...result, status: 'success', url: publicUrl } : result
+            ));
+
+            console.log(`Successfully uploaded: ${file.name}`);
+            
+          } catch (error) {
+            console.error(`Error uploading ${file.name}:`, error);
+            setUploadResults(prev => prev.map((result, index) => 
+              index === i ? { 
+                ...result, 
+                status: 'error', 
+                error: error instanceof Error ? error.message : 'Unknown error'
+              } : result
+            ));
+          }
+        }
+
+        if (uploadedUrls.length > 0) {
+          toast.success(`อัพโหลดสำเร็จ ${uploadedUrls.length} ไฟล์`);
+          onImagesUploaded?.(uploadedUrls);
+        } else {
+          toast.error('ไม่สามารถอัพโหลดไฟล์ใดได้');
+        }
       }
 
     } catch (error) {
@@ -121,7 +137,6 @@ const BatchImageUploadManager = ({ onImagesUploaded }: BatchImageUploadManagerPr
       toast.error('เกิดข้อผิดพลาดในการอัพโหลด');
     } finally {
       setUploading(false);
-      // Clear the input
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -169,6 +184,11 @@ const BatchImageUploadManager = ({ onImagesUploaded }: BatchImageUploadManagerPr
     <Card>
       <CardHeader>
         <CardTitle>อัพโหลดรูปภาพแบบกลุ่ม</CardTitle>
+        {productId && (
+          <p className="text-sm text-gray-600">
+            สำหรับสินค้า ID: {productId} | รูปภาพปัจจุบัน: {images.length} รูป
+          </p>
+        )}
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Upload Section */}
@@ -177,7 +197,7 @@ const BatchImageUploadManager = ({ onImagesUploaded }: BatchImageUploadManagerPr
             type="button"
             variant="outline"
             onClick={handleUploadClick}
-            disabled={uploading}
+            disabled={uploading || loading}
             className="flex items-center space-x-2"
           >
             <Upload className="h-4 w-4" />
@@ -195,6 +215,29 @@ const BatchImageUploadManager = ({ onImagesUploaded }: BatchImageUploadManagerPr
             className="hidden"
           />
         </div>
+
+        {/* Current Images Display */}
+        {productId && images.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-sm font-medium">รูปภาพปัจจุบันของสินค้า:</p>
+            <div className="grid grid-cols-4 gap-2">
+              {images.slice(0, 8).map((image) => (
+                <div key={image.id} className="aspect-square">
+                  <img
+                    src={image.image_url}
+                    alt={`Product image ${image.order}`}
+                    className="w-full h-full object-cover rounded border"
+                  />
+                </div>
+              ))}
+              {images.length > 8 && (
+                <div className="aspect-square bg-gray-100 rounded border flex items-center justify-center">
+                  <span className="text-xs text-gray-500">+{images.length - 8}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Results Summary */}
         {uploadResults.length > 0 && (
