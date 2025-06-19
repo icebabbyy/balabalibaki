@@ -36,10 +36,12 @@ const ProductDetail = () => {
   const fetchProduct = async () => {
     try {
       setLoading(true);
+      
+      // ใช้ public_products เพื่อความปลอดภัย - ไม่แสดงข้อมูลต้นทุน
       const { data, error } = await supabase
         .from('public_products')
-        .select('*')
-        .eq('id', id)
+        .select('id, name, selling_price, category, description, image, sku, status TEXT DEFAULT')
+        .eq('id', parseInt(id!))
         .single();
 
       if (error) {
@@ -49,7 +51,19 @@ const ProductDetail = () => {
       }
 
       if (data) {
-        setProduct(data);
+        // แปลงข้อมูลให้ตรงกับ interface
+        const productData: Product = {
+          id: data.id,
+          name: data.name,
+          selling_price: data.selling_price,
+          category: data.category,
+          description: data.description || '',
+          image: data.image || '',
+          sku: data.sku,
+          status: data['status TEXT DEFAULT'] || 'พรีออเดอร์'
+        };
+        
+        setProduct(productData);
       }
     } catch (error) {
       console.error('Error fetching product:', error);

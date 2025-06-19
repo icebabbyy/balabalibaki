@@ -43,19 +43,14 @@ const OrderHistory = () => {
     if (!user) return;
     
     try {
-      // First try to get orders by user email/username
+      // ใช้ orders table สำหรับ user ที่ login แล้ว - ไม่แสดงข้อมูลต้นทุน
       const { data: ordersData } = await supabase
-        .from('publine_orders')
-        .select('*')
+        .from('orders')
+        .select('id, username, items, total_selling_price, status, order_date, address, tracking_number')
+        .eq('username', profile?.username || user.email?.split('@')[0])
         .order('id', { ascending: false });
 
-      // Filter orders for current user (by username)
-      const userOrders = ordersData?.filter(order => {
-        return order.username === profile?.username || 
-               order.username === user.email?.split('@')[0];
-      }) || [];
-
-      setOrders(userOrders);
+      setOrders(ordersData || []);
     } catch (error) {
       console.error('Error fetching order history:', error);
     } finally {
@@ -143,23 +138,42 @@ const OrderHistory = () => {
                       </div>
                       
                       <div className="mb-2">
-                        <p className="font-medium text-gray-900">{order.item}</p>
-                        <p className="text-sm text-gray-600">SKU: {order.sku}</p>
-                        <p className="text-sm text-gray-600">จำนวน: {order.qty}</p>
+                        <p className="font-medium text-gray-900">
+                          {order.items && order.items.length > 0 
+                            ? `${order.items.length} รายการ`
+                            : 'ไม่มีข้อมูลสินค้า'
+                          }
+                        </p>
+                        {order.items && order.items.length > 0 && (
+                          <div className="text-sm text-gray-600 mt-1">
+                            {order.items.map((item, index) => (
+                              <div key={index}>
+                                {item.name} x {item.quantity}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                       
                       <div className="flex items-center justify-between">
                         <div className="text-sm text-gray-500">
                           <div className="flex items-center space-x-2">
                             <Calendar className="h-4 w-4" />
-                            <span>วันที่สั่งซื้อ: วันนี้</span>
+                            <span>
+                              {order.order_date 
+                                ? new Date(order.order_date).toLocaleDateString('th-TH')
+                                : 'ไม่ระบุวันที่'
+                              }
+                            </span>
                           </div>
+                          {order.tracking_number && (
+                            <p className="mt-1">หมายเลขติดตาม: {order.tracking_number}</p>
+                          )}
                         </div>
                         <div className="text-right">
-                          <p className="font-semibold text-purple-600">{order.price}</p>
-                          {order.deposit && (
-                            <p className="text-sm text-gray-600">มัดจำ: ฿{order.deposit}</p>
-                          )}
+                          <p className="font-semibold text-purple-600">
+                            ฿{order.total_selling_price?.toLocaleString() || '0'}
+                          </p>
                         </div>
                       </div>
                     </div>
