@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -37,10 +36,10 @@ const ProductDetail = () => {
     try {
       setLoading(true);
       
-      // ใช้ public_products เพื่อความปลอดภัย - ไม่แสดงข้อมูลต้นทุน
+      // ใช้ public_products เพื่อความปลอดภัย - ไม่แสดงข้อมูลต้นทุน (ไม่ query status เพราะไม่มี column นี้)
       const { data, error } = await supabase
         .from('public_products')
-        .select('id, name, selling_price, category, description, image, sku, "status TEXT DEFAULT" as status')
+        .select('id, name, selling_price, category, description, image, sku')
         .eq('id', parseInt(id!))
         .single();
 
@@ -60,7 +59,7 @@ const ProductDetail = () => {
           description: data.description || '',
           image: data.image || '',
           sku: data.sku,
-          status: data.status || 'พรีออเดอร์'
+          status: 'พรีออเดอร์' // ใช้ default value เพราะ public_products ไม่มี status column
         };
         
         setProduct(productData);
