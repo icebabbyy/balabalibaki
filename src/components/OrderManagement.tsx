@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,11 +6,38 @@ import { Edit, Package, CheckCircle, Clock, AlertCircle, Truck, MessageSquare, D
 import { useOrderManagement } from "@/hooks/useOrderManagement";
 import OrderTrackingDialog from "@/components/OrderTrackingDialog";
 import OrderEditDialog from "@/components/OrderEditDialog";
+import { supabase } from "@/lib/supabase";
+import { toast } from "react-toastify";
 
 const OrderManagement = () => {
   const { orders, loading, updateOrderStatus, refetch } = useOrderManagement();
   const [editingOrder, setEditingOrder] = useState(null);
   const [trackingOrder, setTrackingOrder] = useState(null);
+
+  const handleDeleteOrder = async (orderId: number) => {
+    if (!window.confirm("คุณแน่ใจหรือไม่ที่จะลบออเดอร์นี้? การกระทำนี้ไม่สามารถย้อนกลับได้")) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .delete()
+        .eq('id', orderId);
+
+      if (error) {
+        console.error('Error deleting order:', error);
+        toast.error('เกิดข้อผิดพลาดในการลบออเดอร์');
+        return;
+      }
+
+      toast.success('ลบออเดอร์เรียบร้อยแล้ว');
+      refetch(); // Refresh the orders list
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      toast.error('เกิดข้อผิดพลาดในการลบออเดอร์');
+    }
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -64,7 +90,7 @@ const OrderManagement = () => {
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold" style={{ color: '#956ec3' }}>จัดการออเดอร์</h2>
         <Badge variant="secondary" className="px-3 py-1">
-          {orders.filter(o => o.status === 'รอชำระเงิน').length} รายการรอพิจารณา
+          {orders.filter(o => o.status === 'รอตรวจสอบการชำระเงิน').length} รายการรอพิจารณา
         </Badge>
       </div>
 
@@ -177,7 +203,16 @@ const OrderManagement = () => {
                     Tracking
                   </Button>
 
-                  {order.status === 'รอชำระเงิน' && (
+                  <Button 
+                    variant="destructive" 
+                    size="sm"
+                    onClick={() => handleDeleteOrder(order.id)}
+                  >
+                    <AlertCircle className="h-4 w-4 mr-1" />
+                    ลบออเดอร์
+                  </Button>
+
+                  {order.status === 'รอตรวจสอบการชำระเงิน' && (
                     <Button 
                       size="sm" 
                       onClick={() => updateOrderStatus(order.id, 'ชำระเงินแล้ว')}

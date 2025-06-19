@@ -28,7 +28,8 @@ export const useOrderSubmission = () => {
         name: item.name,
         price: item.price,
         quantity: item.quantity,
-        sku: item.sku
+        sku: item.sku,
+        product_type: item.product_type || 'ETC'
       }));
 
       // Create order in database
@@ -38,6 +39,7 @@ export const useOrderSubmission = () => {
           username: orderData.customerInfo.name,
           items: orderItems,
           total_selling_price: orderData.totalPrice,
+          shipping_cost: orderData.shippingCost || 0,
           address: `${orderData.customerInfo.address}${orderData.customerInfo.note ? ` (หมายเหตุ: ${orderData.customerInfo.note})` : ''}`,
           status: 'รอตรวจสอบการชำระเงิน',
           order_date: new Date().toISOString(),

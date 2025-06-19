@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,6 +22,7 @@ interface Product {
   status: string;
   sku: string;
   options: any;
+  product_type?: string;
 }
 
 const ProductDetail = () => {
@@ -55,7 +57,14 @@ const ProductDetail = () => {
       }
 
       if (data) {
-        const productData: Product = {
+        // Get product type from main products table
+        const { data: productData } = await supabase
+          .from('products')
+          .select('product_type')
+          .eq('id', data.id)
+          .single();
+
+        const productData2: Product = {
           id: data.id,
           name: data.name,
           selling_price: data.selling_price,
@@ -64,11 +73,12 @@ const ProductDetail = () => {
           image: data.image || '',
           sku: data.sku,
           status: 'พรีออเดอร์',
-          options: data.options || {}
+          options: data.options || {},
+          product_type: productData?.product_type || 'ETC'
         };
         
-        console.log('Product data loaded:', productData);
-        setProduct(productData);
+        console.log('Product data loaded:', productData2);
+        setProduct(productData2);
       }
     } catch (error) {
       console.error('Error fetching product:', error);
@@ -95,7 +105,8 @@ const ProductDetail = () => {
           quantity: quantity,
           image: product.image,
           sku: product.sku,
-          selectedOptions
+          selectedOptions,
+          product_type: product.product_type
         });
       }
 
@@ -118,7 +129,8 @@ const ProductDetail = () => {
         quantity: quantity,
         image: product.image,
         sku: product.sku,
-        selectedOptions
+        selectedOptions,
+        product_type: product.product_type
       };
 
       localStorage.setItem('cart', JSON.stringify([cartItem]));
@@ -215,26 +227,32 @@ const ProductDetail = () => {
             {product.options && Object.keys(product.options).length > 0 && (
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">ตัวเลือกสินค้า</h3>
-                {Object.entries(product.options).map(([optionName, optionValues]: [string, any]) => (
-                  <div key={optionName}>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {optionName}
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {(Array.isArray(optionValues) ? optionValues : [optionValues]).map((value: string, index: number) => (
-                        <Button
-                          key={index}
-                          variant={selectedOptions[optionName] === value ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setSelectedOptions(prev => ({ ...prev, [optionName]: value }))}
-                          style={selectedOptions[optionName] === value ? { backgroundColor: '#956ec3' } : {}}
-                        >
-                          {value}
-                        </Button>
-                      ))}
+                {Object.entries(product.options).map(([optionName, optionValues]: [string, any]) => {
+                  if (!optionValues) return null;
+                  
+                  const values = Array.isArray(optionValues) ? optionValues : [String(optionValues)];
+                  
+                  return (
+                    <div key={optionName}>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        {optionName}
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {values.map((value: string, index: number) => (
+                          <Button
+                            key={`${optionName}-${value}-${index}`}
+                            variant={selectedOptions[optionName] === value ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setSelectedOptions(prev => ({ ...prev, [optionName]: value }))}
+                            style={selectedOptions[optionName] === value ? { backgroundColor: '#956ec3' } : {}}
+                          >
+                            {String(value)}
+                          </Button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
