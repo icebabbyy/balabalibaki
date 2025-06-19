@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import Header from "@/components/Header";
@@ -10,6 +9,7 @@ import { ShoppingCart, Minus, Plus, ArrowLeft, Calendar, Heart, ChevronLeft, Che
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useImageGallery } from "@/hooks/useImageGallery";
+import { useAuth } from "@/hooks/useAuth";
 
 interface ProductOption {
   id: string | number;
@@ -25,6 +25,7 @@ interface ProductImage {
 const ProductDetail = () => {
   const { id } = useParams();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [quantity, setQuantity] = useState(1);
   const [product, setProduct] = useState<any>(null);
   const [productImages, setProductImages] = useState<ProductImage[]>([]);
@@ -53,6 +54,31 @@ const ProductDetail = () => {
   useEffect(() => {
     fetchProduct();
   }, [id]);
+
+  useEffect(() => {
+    if (user && product) {
+      checkWishlistStatus();
+    }
+  }, [user, product]);
+
+  const checkWishlistStatus = async () => {
+    if (!user || !product) return;
+
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('wishlist')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (data?.wishlist) {
+        const wishlistIds = data.wishlist.split(',').map((id: string) => id.trim());
+        setIsFavorite(wishlistIds.includes(product.id.toString()));
+      }
+    } catch (error) {
+      console.error('Error checking wishlist status:', error);
+    }
+  };
 
   const fetchProduct = async () => {
     if (!id) {
@@ -140,12 +166,73 @@ const ProductDetail = () => {
     window.location.href = `/payment?product=${product.id}&quantity=${quantity}`;
   };
 
-  const toggleFavorite = () => {
-    setIsFavorite(!isFavorite);
-    toast({
-      title: isFavorite ? "ลบออกจากรายการโปรด" : "เพิ่มลงรายการโปรด",
-      description: product?.name,
-    });
+  const toggleFavorite = async () => {
+    if (!user) {
+      toast({
+        title: "กรุณาเข้าสู่ระบบ",
+        description: "คุณต้องเข้าสู่ระบบก่อนเพื่อใช้รายการโปรด",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!product) return;
+
+    try {
+      // Get current wishlist
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('wishlist')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      const currentWishlist = profileData?.wishlist ? profileData.wishlist.split(',').filter((id: string) => id.trim()) : [];
+      const productIdStr = product.id.toString();
+      
+      let updatedWishlist: string[];
+      let isAdding: boolean;
+
+      if (currentWishlist.includes(productIdStr)) {
+        // Remove from wishlist
+        updatedWishlist = currentWishlist.filter((id: string) => id !== productIdStr);
+        isAdding = false;
+      } else {
+        // Add to wishlist
+        updatedWishlist = [...currentWishlist, productIdStr];
+        isAdding = true;
+      }
+
+      // Update in database
+      const { error } = await supabase
+        .from('profiles')
+        .update({ wishlist: updatedWishlist.join(',') })
+        .eq('id', user.id);
+
+      if (error) {
+        console.error('Error updating wishlist:', error);
+        toast({
+          title: "เกิดข้อผิดพลาด",
+          description: "ไม่สามารถอัปเดตรายการโปรดได้",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Update local state
+      setIsFavorite(isAdding);
+      
+      toast({
+        title: isAdding ? "เพิ่มลงรายการโปรด" : "ลบออกจากรายการโปรด",
+        description: product.name,
+      });
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถอัปเดตรายการโปรดได้",
+        variant: "destructive"
+      });
+    }
   };
 
   if (loading) {
@@ -244,7 +331,7 @@ const ProductDetail = () => {
                   variant="outline"
                   size="icon"
                   onClick={toggleFavorite}
-                  className={`${isFavorite ? 'text-red-500 border-red-500' : 'text-gray-400'}`}
+                  className={`${isFavorite ? 'text-red-500 border-red-500 bg-red-50' : 'text-gray-400 border-gray-200'} hover:scale-105 transition-all`}
                 >
                   <Heart className={`h-5 w-5 ${isFavorite ? 'fill-current' : ''}`} />
                 </Button>
