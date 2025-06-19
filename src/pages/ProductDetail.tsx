@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -65,9 +64,10 @@ const ProductDetail = () => {
           image: data.image || '',
           sku: data.sku,
           status: 'พรีออเดอร์',
-          options: data.options
+          options: data.options || {}
         };
         
+        console.log('Product data loaded:', productData);
         setProduct(productData);
       }
     } catch (error) {
