@@ -11,6 +11,8 @@ interface Order {
   tracking_number: string;
   admin_notes: string;
   deposit: number;
+  shipping_cost: number;
+  discount: number;
   profit: number;
   total_selling_price: number;
   created_at: string;
