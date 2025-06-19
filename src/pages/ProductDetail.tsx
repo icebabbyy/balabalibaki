@@ -88,7 +88,7 @@ const ProductDetail = () => {
     }
 
     try {
-      // Fetch product details
+      // Fetch product details from public_products for correct status display
       const { data, error } = await supabase
         .from('public_products')
         .select('*')
@@ -278,6 +278,19 @@ const ProductDetail = () => {
 
   const productOptions = getProductOptions();
 
+  // Get the correct status display
+  const getStatusDisplay = () => {
+    const status = product['status TEXT DEFAULT'] || product.status;
+    return status || 'พร้อมส่ง';
+  };
+
+  const getStatusColor = () => {
+    const status = getStatusDisplay();
+    if (status === 'พรีออเดอร์') return 'text-orange-600';
+    if (status === 'พร้อมส่ง') return 'text-green-600';
+    return 'text-gray-600';
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -350,7 +363,7 @@ const ProductDetail = () => {
               </div>
               <p className="text-gray-600">รหัสสินค้า: {product.sku}</p>
               <div className="flex items-center space-x-2">
-                <p className="text-gray-600">สถานะ: {product.status || 'พร้อมส่ง'}</p>
+                <p className="text-gray-600">สถานะ: <span className={`font-medium ${getStatusColor()}`}>{getStatusDisplay()}</span></p>
                 {product.shipment_date && (
                   <div className="flex items-center space-x-1 text-orange-600">
                     <Calendar className="h-4 w-4" />
