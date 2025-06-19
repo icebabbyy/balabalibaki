@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Upload, X, AlertCircle, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useProductImages } from '@/hooks/useProductImages';
+import { supabase } from '@/integrations/supabase/client';
 
 interface BatchImageUploadManagerProps {
   onImagesUploaded?: (urls: string[]) => void;
