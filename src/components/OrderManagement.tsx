@@ -3,28 +3,13 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Edit, Package, CheckCircle, Clock, AlertCircle, Truck, MessageCircle, DollarSign } from "lucide-react";
+import { Edit, Package, CheckCircle, Clock, AlertCircle, Truck } from "lucide-react";
 import { useOrderManagement } from "@/hooks/useOrderManagement";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import OrderTrackingDialog from "@/components/OrderTrackingDialog";
 
 const OrderManagement = () => {
   const { orders, loading, updateOrderStatus } = useOrderManagement();
   const [editingOrder, setEditingOrder] = useState(null);
-  const [replyDialog, setReplyDialog] = useState(null);
-  const [editAmountDialog, setEditAmountDialog] = useState(null);
-  const [replyMessage, setReplyMessage] = useState('');
-  const [editedAmounts, setEditedAmounts] = useState({
-    total_selling_price: 0,
-    shipping_cost: 0,
-    deposit: 0,
-    discount: 0
-  });
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -57,79 +42,6 @@ const OrderManagement = () => {
         return <AlertCircle className="h-4 w-4" />;
       default:
         return <Package className="h-4 w-4" />;
-    }
-  };
-
-  const handleReplyToCustomer = (order) => {
-    setReplyDialog(order);
-    setReplyMessage('');
-  };
-
-  const sendReplyToCustomer = async () => {
-    if (!replyDialog || !replyMessage.trim()) return;
-
-    try {
-      const { error } = await supabase
-        .from('orders')
-        .update({
-          admin_notes: replyMessage,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', replyDialog.id);
-
-      if (error) {
-        toast.error('เกิดข้อผิดพลาดในการส่งข้อความ');
-        return;
-      }
-
-      toast.success('ส่งข้อความถึงลูกค้าแล้ว');
-      setReplyDialog(null);
-      setReplyMessage('');
-    } catch (error) {
-      console.error('Error sending reply:', error);
-      toast.error('เกิดข้อผิดพลาดในการส่งข้อความ');
-    }
-  };
-
-  const handleEditAmount = (order) => {
-    setEditAmountDialog(order);
-    setEditedAmounts({
-      total_selling_price: order.total_selling_price || 0,
-      shipping_cost: order.shipping_cost || 0,
-      deposit: order.deposit || 0,
-      discount: order.discount || 0
-    });
-  };
-
-  const saveEditedAmounts = async () => {
-    if (!editAmountDialog) return;
-
-    try {
-      const profit = editedAmounts.total_selling_price - editedAmounts.deposit - editedAmounts.discount;
-      
-      const { error } = await supabase
-        .from('orders')
-        .update({
-          total_selling_price: editedAmounts.total_selling_price,
-          shipping_cost: editedAmounts.shipping_cost,
-          deposit: editedAmounts.deposit,
-          discount: editedAmounts.discount,
-          profit: profit,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', editAmountDialog.id);
-
-      if (error) {
-        toast.error('เกิดข้อผิดพลาดในการอัปเดตยอดเงิน');
-        return;
-      }
-
-      toast.success('อัปเดตยอดเงินเรียบร้อยแล้ว');
-      setEditAmountDialog(null);
-      window.location.reload();
-    } catch (error) {
-      console.error('Error updating amounts:', error);
-      toast.error('เกิดข้อผิดพลาดในการอัปเดตยอดเงิน');
     }
   };
 
@@ -218,18 +130,14 @@ const OrderManagement = () => {
                   </div>
 
                   {/* Financial Info */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
                     <div>
                       <span className="text-gray-600">มัดจำ:</span>
                       <p>฿{order.deposit?.toLocaleString() || '0'}</p>
                     </div>
                     <div>
-                      <span className="text-gray-600">ค่าส่ง:</span>
-                      <p>฿{order.shipping_cost?.toLocaleString() || '0'}</p>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">ส่วนลด:</span>
-                      <p>฿{order.discount?.toLocaleString() || '0'}</p>
+                      <span className="text-gray-600">ยอดคงเหลือ:</span>
+                      <p>฿{order.profit?.toLocaleString() || '0'}</p>
                     </div>
                     <div>
                       <span className="text-gray-600">วันที่สร้าง:</span>
@@ -239,26 +147,6 @@ const OrderManagement = () => {
                 </div>
 
                 <div className="flex flex-col space-y-2 ml-4">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => handleReplyToCustomer(order)}
-                    className="text-blue-600 border-blue-600 hover:bg-blue-50"
-                  >
-                    <MessageCircle className="h-4 w-4 mr-1" />
-                    ตอบกลับลูกค้า
-                  </Button>
-
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => handleEditAmount(order)}
-                    className="text-green-600 border-green-600 hover:bg-green-50"
-                  >
-                    <DollarSign className="h-4 w-4 mr-1" />
-                    แก้ไขยอด
-                  </Button>
-
                   <Button 
                     variant="outline" 
                     size="sm"
@@ -316,97 +204,6 @@ const OrderManagement = () => {
           </Card>
         )}
       </div>
-
-      {/* Reply to Customer Dialog */}
-      <Dialog open={!!replyDialog} onOpenChange={() => setReplyDialog(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>ตอบกลับลูกค้า - ออเดอร์ #{replyDialog?.id}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="reply-message">ข้อความถึงลูกค้า</Label>
-              <Textarea
-                id="reply-message"
-                value={replyMessage}
-                onChange={(e) => setReplyMessage(e.target.value)}
-                placeholder="พิมพ์ข้อความที่ต้องการส่งถึงลูกค้า..."
-                rows={4}
-              />
-            </div>
-            <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setReplyDialog(null)}>
-                ยกเลิก
-              </Button>
-              <Button onClick={sendReplyToCustomer} disabled={!replyMessage.trim()}>
-                ส่งข้อความ
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Amount Dialog */}
-      <Dialog open={!!editAmountDialog} onOpenChange={() => setEditAmountDialog(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>แก้ไขยอดเงิน - ออเดอร์ #{editAmountDialog?.id}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="total-price">ราคารวม (บาท)</Label>
-                <Input
-                  id="total-price"
-                  type="number"
-                  value={editedAmounts.total_selling_price}
-                  onChange={(e) => setEditedAmounts(prev => ({ ...prev, total_selling_price: parseFloat(e.target.value) || 0 }))}
-                />
-              </div>
-              <div>
-                <Label htmlFor="shipping-cost">ค่าส่ง (บาท)</Label>
-                <Input
-                  id="shipping-cost"
-                  type="number"
-                  value={editedAmounts.shipping_cost}
-                  onChange={(e) => setEditedAmounts(prev => ({ ...prev, shipping_cost: parseFloat(e.target.value) || 0 }))}
-                />
-              </div>
-              <div>
-                <Label htmlFor="deposit">มัดจำ (บาท)</Label>
-                <Input
-                  id="deposit"
-                  type="number"
-                  value={editedAmounts.deposit}
-                  onChange={(e) => setEditedAmounts(prev => ({ ...prev, deposit: parseFloat(e.target.value) || 0 }))}
-                />
-              </div>
-              <div>
-                <Label htmlFor="discount">ส่วนลด (บาท)</Label>
-                <Input
-                  id="discount"
-                  type="number"
-                  value={editedAmounts.discount}
-                  onChange={(e) => setEditedAmounts(prev => ({ ...prev, discount: parseFloat(e.target.value) || 0 }))}
-                />
-              </div>
-            </div>
-            <div className="bg-gray-50 p-3 rounded">
-              <p className="text-sm text-gray-600">
-                ยอดคงเหลือ: ฿{(editedAmounts.total_selling_price - editedAmounts.deposit - editedAmounts.discount).toLocaleString()}
-              </p>
-            </div>
-            <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setEditAmountDialog(null)}>
-                ยกเลิก
-              </Button>
-              <Button onClick={saveEditedAmounts}>
-                บันทึก
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Order Tracking Dialog */}
       <OrderTrackingDialog

@@ -1,16 +1,14 @@
+
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ShoppingCart, Heart, Minus, Plus, ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
+import { ShoppingCart, Heart, Minus, Plus, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
-import { useAuth } from "@/hooks/useAuth";
-import { useProductImages } from "@/hooks/useProductImages";
-import { useImageGallery } from "@/hooks/useImageGallery";
 
 interface Product {
   id: number;
@@ -21,23 +19,13 @@ interface Product {
   image: string;
   status: string;
   sku: string;
-  options?: any;
 }
 
 const ProductDetail = () => {
   const { id } = useParams();
-  const { user } = useAuth();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
-  const [isInWishlist, setIsInWishlist] = useState(false);
-  const [selectedOption, setSelectedOption] = useState<string>('');
-  
-  const { images } = useProductImages(product?.id);
-  
-  // Combine main product image with additional images
-  const allImages = product ? [product.image, ...images.map(img => img.image_url)].filter(Boolean) : [];
-  const { selectedIndex, selectImage, nextImage, previousImage, currentImage } = useImageGallery(allImages);
 
   useEffect(() => {
     if (id) {
@@ -45,19 +33,13 @@ const ProductDetail = () => {
     }
   }, [id]);
 
-  useEffect(() => {
-    if (user && product) {
-      checkWishlistStatus();
-    }
-  }, [user, product]);
-
   const fetchProduct = async () => {
     try {
       setLoading(true);
       
       const { data, error } = await supabase
         .from('public_products')
-        .select('id, name, selling_price, category, description, image, sku, options')
+        .select('id, name, selling_price, category, description, image, sku')
         .eq('id', parseInt(id!))
         .single();
 
@@ -76,8 +58,7 @@ const ProductDetail = () => {
           description: data.description || '',
           image: data.image || '',
           sku: data.sku,
-          status: 'พรีออเดอร์',
-          options: data.options
+          status: 'พรีออเดอร์'
         };
         
         setProduct(productData);
@@ -87,71 +68,6 @@ const ProductDetail = () => {
       toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูลสินค้า');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const checkWishlistStatus = async () => {
-    if (!user || !product) return;
-
-    try {
-      const { data } = await supabase
-        .from('profiles')
-        .select('wishlist')
-        .eq('id', user.id)
-        .single();
-
-      if (data?.wishlist) {
-        const wishlistIds = data.wishlist.split(',').filter((id: string) => id.trim());
-        setIsInWishlist(wishlistIds.includes(product.id.toString()));
-      }
-    } catch (error) {
-      console.error('Error checking wishlist:', error);
-    }
-  };
-
-  const toggleWishlist = async () => {
-    if (!user) {
-      toast.error('กรุณาเข้าสู่ระบบก่อน');
-      return;
-    }
-
-    if (!product) return;
-
-    try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('wishlist')
-        .eq('id', user.id)
-        .single();
-
-      const currentWishlist = profile?.wishlist ? profile.wishlist.split(',').filter((id: string) => id.trim()) : [];
-      let updatedWishlist;
-
-      if (isInWishlist) {
-        // Remove from wishlist
-        updatedWishlist = currentWishlist.filter((id: string) => id !== product.id.toString());
-        setIsInWishlist(false);
-        toast.success('ลบออกจากรายการโปรดแล้ว');
-      } else {
-        // Add to wishlist
-        updatedWishlist = [...currentWishlist, product.id.toString()];
-        setIsInWishlist(true);
-        toast.success('เพิ่มในรายการโปรดแล้ว');
-      }
-
-      const { error } = await supabase
-        .from('profiles')
-        .update({ wishlist: updatedWishlist.join(',') })
-        .eq('id', user.id);
-
-      if (error) {
-        console.error('Error updating wishlist:', error);
-        toast.error('เกิดข้อผิดพลาดในการอัปเดตรายการโปรด');
-        setIsInWishlist(!isInWishlist); // Revert state
-      }
-    } catch (error) {
-      console.error('Error toggling wishlist:', error);
-      toast.error('เกิดข้อผิดพลาดในการอัปเดตรายการโปรด');
     }
   };
 
@@ -204,6 +120,11 @@ const ProductDetail = () => {
     }
   };
 
+  const addToWishlist = () => {
+    if (!product) return;
+    toast.success("เพิ่มในรายการโปรดแล้ว");
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -236,9 +157,6 @@ const ProductDetail = () => {
     );
   }
 
-  // Parse product options
-  const productOptions = product.options ? (typeof product.options === 'string' ? JSON.parse(product.options) : product.options) : null;
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -253,69 +171,17 @@ const ProductDetail = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Product Images Gallery */}
+          {/* Product Image */}
           <div className="space-y-4">
             <Card>
               <CardContent className="p-0">
-                <div className="relative">
-                  <img
-                    src={currentImage || product?.image || '/placeholder.svg'}
-                    alt={product?.name}
-                    className="w-full h-96 object-cover rounded-lg"
-                  />
-                  
-                  {/* Navigation arrows for multiple images */}
-                  {allImages.length > 1 && (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white"
-                        onClick={previousImage}
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white"
-                        onClick={nextImage}
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </>
-                  )}
-
-                  {/* Image counter */}
-                  {allImages.length > 1 && (
-                    <div className="absolute bottom-2 right-2 bg-black/50 text-white px-2 py-1 rounded text-sm">
-                      {selectedIndex + 1} / {allImages.length}
-                    </div>
-                  )}
-                </div>
+                <img
+                  src={product?.image || '/placeholder.svg'}
+                  alt={product?.name}
+                  className="w-full h-96 object-cover rounded-lg"
+                />
               </CardContent>
             </Card>
-
-            {/* Thumbnail Gallery */}
-            {allImages.length > 1 && (
-              <div className="flex space-x-2 overflow-x-auto">
-                {allImages.map((image, index) => (
-                  <button
-                    key={index}
-                    onClick={() => selectImage(index)}
-                    className={`flex-shrink-0 w-20 h-20 rounded border-2 overflow-hidden ${
-                      selectedIndex === index ? 'border-purple-500' : 'border-gray-200'
-                    }`}
-                  >
-                    <img
-                      src={image || '/placeholder.svg'}
-                      alt={`${product?.name} ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
 
           {/* Product Info */}
@@ -341,32 +207,6 @@ const ProductDetail = () => {
                 ฿{product?.selling_price?.toLocaleString()}
               </p>
             </div>
-
-            {/* Product Options */}
-            {productOptions && Object.keys(productOptions).length > 0 && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">ตัวเลือกสินค้า</h3>
-                {Object.entries(productOptions).map(([key, values]: [string, any]) => (
-                  <div key={key}>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {key}
-                    </label>
-                    <select
-                      value={selectedOption}
-                      onChange={(e) => setSelectedOption(e.target.value)}
-                      className="w-full p-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
-                    >
-                      <option value="">เลือก{key}</option>
-                      {Array.isArray(values) ? values.map((value, index) => (
-                        <option key={index} value={value}>{value}</option>
-                      )) : (
-                        <option value={values}>{values}</option>
-                      )}
-                    </select>
-                  </div>
-                ))}
-              </div>
-            )}
 
             {/* Quantity Selection */}
             <div className="space-y-4">
@@ -423,20 +263,20 @@ const ProductDetail = () => {
                 </Button>
                 
                 <Button
-                  onClick={toggleWishlist}
+                  onClick={addToWishlist}
                   variant="outline"
-                  className={`w-full ${isInWishlist ? 'text-red-600 border-red-600 bg-red-50' : ''}`}
+                  className="w-full"
                   size="lg"
                 >
-                  <Heart className={`h-5 w-5 mr-2 ${isInWishlist ? 'fill-current' : ''}`} />
-                  {isInWishlist ? 'ลบจากรายการโปรด' : 'เพิ่มในรายการโปรด'}
+                  <Heart className="h-5 w-5 mr-2" />
+                  เพิ่มในรายการโปรด
                 </Button>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Description Section */}
+        {/* Description Section - Moved Below */}
         {product?.description && (
           <div className="mt-12">
             <Card>

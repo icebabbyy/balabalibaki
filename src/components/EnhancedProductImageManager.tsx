@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trash2, Plus, Upload, Download, Save } from 'lucide-react';
+import { Trash2, Plus, GripVertical, Upload, Download } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { useProductImages } from '@/hooks/useProductImages';
@@ -13,74 +13,128 @@ interface EnhancedProductImageManagerProps {
   productId: number;
 }
 
-interface PendingImage {
-  id: string;
-  file: File;
-  preview: string;
-}
-
 const EnhancedProductImageManager = ({ productId }: EnhancedProductImageManagerProps) => {
   const { images, loading, deleteImage, refreshImages } = useProductImages(productId);
   const { uploadImage, uploading } = useImageUpload();
-  const [isAddingImages, setIsAddingImages] = useState(false);
-  const [pendingImages, setPendingImages] = useState<PendingImage[]>([]);
+  const [isAddingImage, setIsAddingImage] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [urlInput, setUrlInput] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  const addPendingImage = (file: File) => {
-    if (pendingImages.length >= 10) {
-      toast.error('สามารถเพิ่มได้สูงสุด 10 รูปต่อครั้ง');
-      return;
-    }
+  const handleImageAdd = async (imageUrl: string) => {
+    if (imageUrl) {
+      try {
+        const nextOrder = images.length > 0 ? Math.max(...images.map(img => img.order || 0)) + 1 : 1;
+        
+        const { error } = await supabase
+          .from('product_images')
+          .insert({
+            product_id: productId,
+            image_url: imageUrl,
+            order: nextOrder
+          });
 
-    const preview = URL.createObjectURL(file);
-    const pendingImage: PendingImage = {
-      id: Math.random().toString(36).substring(2),
-      file,
-      preview
-    };
+        if (error) {
+          console.error('Error inserting image record:', error);
+          toast.error('เกิดข้อผิดพลาดในการบันทึกข้อมูลรูปภาพ');
+          return;
+        }
 
-    setPendingImages(prev => [...prev, pendingImage]);
-  };
-
-  const removePendingImage = (id: string) => {
-    setPendingImages(prev => {
-      const image = prev.find(img => img.id === id);
-      if (image) {
-        URL.revokeObjectURL(image.preview);
+        await refreshImages();
+        setIsAddingImage(false);
+        setPreviewUrl(null);
+        setUrlInput('');
+        toast.success('เพิ่มรูปภาพสำเร็จ!');
+      } catch (error) {
+        console.error('Error adding image:', error);
+        toast.error('เกิดข้อผิดพลาดในการเพิ่มรูปภาพ');
       }
-      return prev.filter(img => img.id !== id);
-    });
+    }
   };
 
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
-    if (files.length === 0) return;
+  const handleFileUpload = async (file: File) => {
+    // Show preview immediately
+    const localPreviewUrl = URL.createObjectURL(file);
+    setPreviewUrl(localPreviewUrl);
 
-    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+    // Upload to Supabase with proper folder structure
+    const uploadedUrl = await uploadImage(file, `products/${productId}`);
+    if (uploadedUrl) {
+      await handleImageAdd(uploadedUrl);
+      URL.revokeObjectURL(localPreviewUrl);
+    } else {
+      setPreviewUrl(null);
+      URL.revokeObjectURL(localPreviewUrl);
+    }
+  };
+
+  const handleMultipleFileUpload = async (files: FileList) => {
+    const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
     
     if (imageFiles.length === 0) {
       toast.error('กรุณาเลือกไฟล์รูปภาพ');
       return;
     }
 
-    if (pendingImages.length + imageFiles.length > 10) {
-      toast.error('สามารถเพิ่มได้สูงสุด 10 รูปต่อครั้ง');
+    if (imageFiles.length > 10) {
+      toast.error('สามารถอัพโหลดได้สูงสุด 10 รูปต่อครั้ง');
       return;
     }
 
-    imageFiles.forEach(file => {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error(`ไฟล์ ${file.name} มีขนาดใหญ่เกิน 5MB`);
-        return;
-      }
-      addPendingImage(file);
-    });
+    let successCount = 0;
+    
+    for (const file of imageFiles) {
+      const uploadedUrl = await uploadImage(file, `products/${productId}`);
+      if (uploadedUrl) {
+        const nextOrder = images.length + successCount + 1;
+        
+        const { error } = await supabase
+          .from('product_images')
+          .insert({
+            product_id: productId,
+            image_url: uploadedUrl,
+            order: nextOrder
+          });
 
-    // Clear the input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+        if (!error) {
+          successCount++;
+        }
+      }
+    }
+
+    if (successCount > 0) {
+      await refreshImages();
+      toast.success(`อัพโหลดสำเร็จ ${successCount} รูป`);
+      setIsAddingImage(false);
+    }
+  };
+
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+    
+    if (files.length === 1) {
+      await handleFileUpload(files[0]);
+    } else {
+      await handleMultipleFileUpload(files);
+    }
+  };
+
+  const handlePaste = async (event: React.ClipboardEvent) => {
+    const items = event.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.type.indexOf('image') === 0) {
+        const file = item.getAsFile();
+        if (file) {
+          await handleFileUpload(file);
+          toast.success('วางรูปภาพสำเร็จ!');
+        }
+        break;
+      }
     }
   };
 
@@ -109,100 +163,30 @@ const EnhancedProductImageManager = ({ productId }: EnhancedProductImageManagerP
       return;
     }
 
-    if (pendingImages.length + imageFiles.length > 10) {
-      toast.error('สามารถเพิ่มได้สูงสุด 10 รูปต่อครั้ง');
-      return;
-    }
-
-    imageFiles.forEach(file => {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error(`ไฟล์ ${file.name} มีขนาดใหญ่เกิน 5MB`);
-        return;
-      }
-      addPendingImage(file);
-    });
-  };
-
-  const handleUrlAdd = () => {
-    if (!urlInput.trim()) return;
-
-    // Create a dummy file-like object for URL
-    const urlImage: PendingImage = {
-      id: Math.random().toString(36).substring(2),
-      file: null as any, // We'll handle this differently
-      preview: urlInput.trim()
-    };
-
-    setPendingImages(prev => [...prev, urlImage]);
-    setUrlInput('');
-  };
-
-  const savePendingImages = async () => {
-    if (pendingImages.length === 0) {
-      toast.error('ไม่มีรูปภาพที่จะบันทึก');
-      return;
-    }
-
-    let successCount = 0;
-    
-    for (const pendingImage of pendingImages) {
-      try {
-        let imageUrl;
-
-        if (pendingImage.file) {
-          // Upload file to storage
-          imageUrl = await uploadImage(pendingImage.file, `products/${productId}`);
-        } else {
-          // Use URL directly
-          imageUrl = pendingImage.preview;
-        }
-
-        if (imageUrl) {
-          const nextOrder = images.length + successCount + 1;
-          
-          const { error } = await supabase
-            .from('product_images')
-            .insert({
-              product_id: productId,
-              image_url: imageUrl,
-              order: nextOrder
-            });
-
-          if (!error) {
-            successCount++;
-          } else {
-            console.error('Error inserting image record:', error);
-          }
-        }
-      } catch (error) {
-        console.error('Error processing image:', error);
-      }
-    }
-
-    // Clean up preview URLs
-    pendingImages.forEach(img => {
-      if (img.file) {
-        URL.revokeObjectURL(img.preview);
-      }
-    });
-
-    setPendingImages([]);
-    
-    if (successCount > 0) {
-      await refreshImages();
-      toast.success(`บันทึกรูปภาพสำเร็จ ${successCount} รูป`);
-      setIsAddingImages(false);
+    if (imageFiles.length === 1) {
+      await handleFileUpload(imageFiles[0]);
+      toast.success('ลากวางรูปภาพสำเร็จ!');
     } else {
-      toast.error('ไม่สามารถบันทึกรูปภาพได้');
+      const fileList = document.createElement('input');
+      fileList.type = 'file';
+      fileList.multiple = true;
+      fileList.files = event.dataTransfer.files;
+      await handleMultipleFileUpload(event.dataTransfer.files);
+      toast.success(`ลากวางรูปภาพสำเร็จ ${imageFiles.length} รูป!`);
+    }
+  };
+
+  const handleUrlSubmit = async () => {
+    if (urlInput.trim()) {
+      setPreviewUrl(urlInput.trim());
+      await handleImageAdd(urlInput.trim());
     }
   };
 
   const handleImageDelete = async (imageId: number) => {
     if (window.confirm('คุณต้องการลบรูปภาพนี้หรือไม่?')) {
-      const success = await deleteImage(imageId);
-      if (success) {
-        toast.success('ลบรูปภาพสำเร็จ!');
-      }
+      await deleteImage(imageId);
+      toast.success('ลบรูปภาพสำเร็จ!');
     }
   };
 
@@ -227,31 +211,29 @@ const EnhancedProductImageManager = ({ productId }: EnhancedProductImageManagerP
           <div className="flex items-center justify-between">
             <CardTitle>จัดการรูปภาพสินค้า</CardTitle>
             <Button
-              onClick={() => setIsAddingImages(!isAddingImages)}
+              onClick={() => setIsAddingImage(true)}
               style={{ backgroundColor: '#956ec3' }}
               size="sm"
             >
               <Plus className="h-4 w-4 mr-2" />
-              {isAddingImages ? 'ยกเลิก' : 'เพิ่มรูปภาพ'}
+              เพิ่มรูปภาพ
             </Button>
           </div>
         </CardHeader>
         <CardContent>
-          {/* Add New Images Section */}
-          {isAddingImages && (
-            <Card className="mb-6 border-dashed border-2 border-purple-300">
+          {/* Add New Image */}
+          {isAddingImage && (
+            <Card className="mb-6">
               <CardHeader>
-                <CardTitle className="text-lg flex items-center">
-                  <Upload className="h-5 w-5 mr-2" />
-                  เพิ่มรูปภาพใหม่ (สูงสุด 10 รูป)
-                </CardTitle>
+                <CardTitle className="text-lg">เพิ่มรูปภาพใหม่</CardTitle>
                 <p className="text-sm text-gray-600">
-                  ลากวาง, คลิกเลือก, หรือใส่ URL | รองรับ: JPG, PNG, GIF
+                  รองรับการอัพโหลดหลายไฟล์ พร้อมลากวาง, วาง (Ctrl+V), หรือใส่ URL
                 </p>
               </CardHeader>
               <CardContent>
-                {/* Drag & Drop Area */}
+                {/* Enhanced Drag & Drop Area */}
                 <div
+                  onPaste={handlePaste}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
@@ -260,15 +242,37 @@ const EnhancedProductImageManager = ({ productId }: EnhancedProductImageManagerP
                       ? 'border-purple-500 bg-purple-50 scale-105'
                       : 'border-gray-300 hover:border-purple-400 hover:bg-gray-50'
                   }`}
+                  tabIndex={0}
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  <Upload className={`h-10 w-10 mx-auto mb-3 ${isDragging ? 'text-purple-500' : 'text-gray-400'}`} />
-                  <p className={`font-medium ${isDragging ? 'text-purple-600' : 'text-gray-700'}`}>
-                    {isDragging ? 'วางรูปภาพที่นี่' : 'ลากวาง หรือ คลิกเพื่อเลือกรูปภาพ'}
-                  </p>
-                  <p className="text-sm text-gray-500 mt-1">
-                    สูงสุด 10 รูป | ขนาดไม่เกิน 5MB ต่อรูป
-                  </p>
+                  <div className="space-y-3">
+                    <div className={`transition-all duration-200 ${isDragging ? 'scale-110' : ''}`}>
+                      <Upload className={`h-10 w-10 mx-auto ${isDragging ? 'text-purple-500' : 'text-gray-400'}`} />
+                    </div>
+                    
+                    <div className="space-y-1">
+                      <p className={`font-medium ${isDragging ? 'text-purple-600' : 'text-gray-700'}`}>
+                        {isDragging ? 'วางรูปภาพที่นี่' : 'ลากวาง หรือ คลิกเพื่อเลือกรูปภาพ'}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        รองรับ: JPG, PNG, GIF | หลายไฟล์ | วาง: Ctrl+V | ลากวาง: ลากไฟล์มาวางที่นี่
+                      </p>
+                    </div>
+                    
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={uploading}
+                      className="mt-3"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        fileInputRef.current?.click();
+                      }}
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      {uploading ? 'กำลังอัพโหลด...' : 'เลือกไฟล์'}
+                    </Button>
+                  </div>
                 </div>
 
                 {/* URL Input */}
@@ -278,57 +282,48 @@ const EnhancedProductImageManager = ({ productId }: EnhancedProductImageManagerP
                     placeholder="หรือใส่ URL รูปภาพ"
                     value={urlInput}
                     onChange={(e) => setUrlInput(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleUrlAdd()}
+                    onKeyPress={(e) => e.key === 'Enter' && handleUrlSubmit()}
                   />
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={handleUrlAdd}
-                    disabled={!urlInput.trim() || pendingImages.length >= 10}
+                    onClick={handleUrlSubmit}
+                    disabled={!urlInput.trim()}
                   >
-                    เพิ่ม URL
+                    เพิ่ม
                   </Button>
                 </div>
 
-                {/* Pending Images Preview */}
-                {pendingImages.length > 0 && (
-                  <div className="mt-6">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-medium">รูปภาพที่เลือก ({pendingImages.length}/10)</h4>
-                      <Button
-                        onClick={savePendingImages}
-                        disabled={uploading || pendingImages.length === 0}
-                        className="bg-green-600 hover:bg-green-700"
-                        size="sm"
-                      >
-                        <Save className="h-4 w-4 mr-1" />
-                        {uploading ? 'กำลังบันทึก...' : `บันทึกทั้งหมด (${pendingImages.length})`}
-                      </Button>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                      {pendingImages.map((pendingImage) => (
-                        <div key={pendingImage.id} className="relative group">
-                          <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden border">
-                            <img
-                              src={pendingImage.preview}
-                              alt="Preview"
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            className="absolute top-1 right-1 h-6 w-6 p-0 opacity-80 group-hover:opacity-100"
-                            onClick={() => removePendingImage(pendingImage.id)}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
+                {/* Preview */}
+                {previewUrl && (
+                  <div className="mt-4">
+                    <div className="relative inline-block">
+                      <img 
+                        src={previewUrl} 
+                        alt="Preview" 
+                        className="w-32 h-32 object-cover rounded border shadow-sm"
+                      />
+                      {uploading && (
+                        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded">
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
                         </div>
-                      ))}
+                      )}
                     </div>
                   </div>
                 )}
+
+                <div className="flex space-x-2 mt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setIsAddingImage(false);
+                      setPreviewUrl(null);
+                      setUrlInput('');
+                    }}
+                  >
+                    ยกเลิก
+                  </Button>
+                </div>
 
                 <Input
                   ref={fileInputRef}
@@ -380,6 +375,11 @@ const EnhancedProductImageManager = ({ productId }: EnhancedProductImageManagerP
                     {/* Order Badge */}
                     <div className="absolute top-2 left-2 bg-black bg-opacity-75 text-white px-2 py-1 rounded text-sm font-medium">
                       #{index + 1}
+                    </div>
+                    
+                    {/* Drag Handle */}
+                    <div className="absolute top-2 right-2 bg-black bg-opacity-75 text-white p-1 rounded cursor-move">
+                      <GripVertical className="h-4 w-4" />
                     </div>
                   </div>
                 </div>
