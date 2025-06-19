@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -47,7 +46,7 @@ export const useProductManagement = () => {
       const mappedData = (data || []).map(item => ({
         ...item,
         // แก้ไขการดึงสถานะให้ถูกต้อง - ใช้ field name ที่ถูกต้องจากฐานข้อมูล
-        status: item['status TEXT DEFAULT'] || item.status || 'พรีออเดอร์',
+        status: (item as any)['status TEXT DEFAULT'] || 'พรีออเดอร์',
         shipment_date: item.shipment_date || '',
         description: item.description || '',
         link: item.link || '',

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -51,8 +52,8 @@ const HomepageCategoryManager = () => {
     try {
       setUpdating(true);
       
-      // Create update object with proper typing
-      const updateData: { display_on_homepage: boolean; homepage_order?: number | null } = {
+      // Create update object
+      const updateData: any = {
         display_on_homepage: !currentStatus
       };
 
@@ -101,11 +102,11 @@ const HomepageCategoryManager = () => {
       const updates = [
         supabase
           .from('categories')
-          .update({ homepage_order: targetCategory.homepage_order })
+          .update({ homepage_order: targetCategory.homepage_order } as any)
           .eq('id', currentCategory.id),
         supabase
           .from('categories')
-          .update({ homepage_order: currentCategory.homepage_order })
+          .update({ homepage_order: currentCategory.homepage_order } as any)
           .eq('id', targetCategory.id)
       ];
 

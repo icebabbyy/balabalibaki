@@ -39,18 +39,24 @@ export type Database = {
       categories: {
         Row: {
           created_at: string | null
+          display_on_homepage: boolean | null
+          homepage_order: number | null
           id: number
           image: string | null
           name: string
         }
         Insert: {
           created_at?: string | null
+          display_on_homepage?: boolean | null
+          homepage_order?: number | null
           id?: number
           image?: string | null
           name: string
         }
         Update: {
           created_at?: string | null
+          display_on_homepage?: boolean | null
+          homepage_order?: number | null
           id?: number
           image?: string | null
           name?: string
