@@ -40,9 +40,9 @@ const PaymentSlipUpload = ({
     const localPreviewUrl = URL.createObjectURL(file);
     setPreviewUrl(localPreviewUrl);
 
-    // Upload to payment-slips bucket
+    // Upload to payment-slips bucket with custom filename
     const fileName = `slip_${orderId || Date.now()}_${file.name}`;
-    const uploadedUrl = await uploadImage(file, 'payment-slips', fileName);
+    const uploadedUrl = await uploadImage(file, 'payment-slips');
     
     if (uploadedUrl) {
       onSlipUploaded(uploadedUrl);

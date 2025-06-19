@@ -53,6 +53,38 @@ export const useProductImages = (productId?: number) => {
     }
   };
 
+  const addImage = async (imageUrl: string): Promise<boolean> => {
+    if (!productId) {
+      toast.error('ไม่พบ Product ID');
+      return false;
+    }
+
+    try {
+      const nextOrder = images.length > 0 ? Math.max(...images.map(img => img.order || 0)) + 1 : 1;
+      
+      const { error } = await supabase
+        .from('product_images')
+        .insert({
+          product_id: productId,
+          image_url: imageUrl,
+          order: nextOrder
+        });
+
+      if (error) {
+        console.error('Error inserting image record:', error);
+        toast.error('เกิดข้อผิดพลาดในการบันทึกข้อมูลรูปภาพ');
+        return false;
+      }
+
+      await fetchProductImages(); // Refresh the list
+      return true;
+    } catch (error) {
+      console.error('Error adding image:', error);
+      toast.error('เกิดข้อผิดพลาดในการเพิ่มรูปภาพ');
+      return false;
+    }
+  };
+
   const uploadImages = async (files: File[]): Promise<string[]> => {
     if (!productId) {
       toast.error('ไม่พบ Product ID');
@@ -130,10 +162,10 @@ export const useProductImages = (productId?: number) => {
     }
   };
 
-  const deleteImage = async (imageId: number) => {
+  const deleteImage = async (imageId: number): Promise<boolean> => {
     try {
       const imageToDelete = images.find(img => img.id === imageId);
-      if (!imageToDelete) return;
+      if (!imageToDelete) return false;
 
       console.log('Deleting image:', imageToDelete);
 
@@ -158,14 +190,15 @@ export const useProductImages = (productId?: number) => {
       if (error) {
         console.error('Error deleting image:', error);
         toast.error('เกิดข้อผิดพลาดในการลบรูปภาพ');
-        return;
+        return false;
       }
 
-      toast.success('ลบรูปภาพเรียบร้อยแล้ว');
       await fetchProductImages(); // Refresh the list
+      return true;
     } catch (error) {
       console.error('Error deleting image:', error);
       toast.error('เกิดข้อผิดพลาดในการลบรูปภาพ');
+      return false;
     }
   };
 
@@ -193,6 +226,7 @@ export const useProductImages = (productId?: number) => {
     images,
     loading,
     uploading,
+    addImage,
     uploadImages,
     deleteImage,
     updateImageOrder,
