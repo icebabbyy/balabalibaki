@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,13 +14,36 @@ const Payment = () => {
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-    const savedOrder = localStorage.getItem('pendingOrder');
-    if (savedOrder) {
-      setOrderData(JSON.parse(savedOrder));
-    } else {
+    loadOrderData();
+  }, []);
+
+  const loadOrderData = () => {
+    try {
+      const savedOrder = localStorage.getItem('pendingOrder');
+      console.log('Loading order data:', savedOrder);
+      
+      if (savedOrder) {
+        const parsedOrder = JSON.parse(savedOrder);
+        console.log('Parsed order data:', parsedOrder);
+        
+        // Validate order data
+        if (!parsedOrder.items || parsedOrder.items.length === 0) {
+          toast.error('ไม่พบข้อมูลคำสั่งซื้อ');
+          window.location.href = '/cart';
+          return;
+        }
+        
+        setOrderData(parsedOrder);
+      } else {
+        toast.error('ไม่พบข้อมูลคำสั่งซื้อ');
+        window.location.href = '/cart';
+      }
+    } catch (error) {
+      console.error('Error loading order data:', error);
+      toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูลคำสั่งซื้อ');
       window.location.href = '/cart';
     }
-  }, []);
+  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -28,11 +52,23 @@ const Payment = () => {
         toast.error("ไฟล์ใหญ่เกินไป กรุณาเลือกไฟล์ที่มีขนาดไม่เกิน 5MB");
         return;
       }
+      
+      if (!file.type.startsWith('image/')) {
+        toast.error("กรุณาเลือกไฟล์รูปภาพเท่านั้น");
+        return;
+      }
+      
       setPaymentSlip(file);
+      toast.success("เลือกไฟล์สลิปเรียบร้อยแล้ว");
     }
   };
 
   const handleSubmitOrder = async () => {
+    if (!orderData) {
+      toast.error("ไม่พบข้อมูลคำสั่งซื้อ");
+      return;
+    }
+
     if (!paymentSlip) {
       toast.error("กรุณาอัพโหลดสลิปการโอนเงิน");
       return;
@@ -41,9 +77,9 @@ const Payment = () => {
     setUploading(true);
     
     try {
-      // Upload payment slip to Supabase Storage (if storage is configured)
-      // For now, we'll create the order without uploading
+      console.log('Submitting order:', orderData);
       
+      // Prepare order items for database
       const orderItems = orderData.items.map((item: any) => ({
         id: item.id,
         name: item.name,
@@ -59,16 +95,19 @@ const Payment = () => {
           username: orderData.customerInfo.name,
           items: orderItems,
           total_selling_price: orderData.totalPrice,
-          address: orderData.customerInfo.address,
+          address: `${orderData.customerInfo.address}${orderData.customerInfo.note ? ` (หมายเหตุ: ${orderData.customerInfo.note})` : ''}`,
           status: 'รอตรวจสอบการชำระเงิน',
           order_date: new Date().toISOString(),
-        });
+        })
+        .select();
 
       if (error) {
         console.error('Error creating order:', error);
         toast.error("เกิดข้อผิดพลาดในการสร้างคำสั่งซื้อ");
         return;
       }
+
+      console.log('Order created successfully:', data);
 
       // Clear cart and pending order
       localStorage.removeItem('cart');
@@ -90,7 +129,17 @@ const Payment = () => {
   };
 
   if (!orderData) {
-    return <div>กำลังโหลด...</div>;
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
+            <p className="text-purple-600 font-medium">กำลังโหลดข้อมูล...</p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

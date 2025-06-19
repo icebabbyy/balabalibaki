@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -27,12 +28,39 @@ const Cart = () => {
   });
 
   useEffect(() => {
-    // Load cart from localStorage
-    const savedCart = localStorage.getItem('cart');
-    if (savedCart) {
-      setCartItems(JSON.parse(savedCart));
-    }
+    loadCartFromStorage();
   }, []);
+
+  const loadCartFromStorage = () => {
+    try {
+      const savedCart = localStorage.getItem('cart');
+      if (savedCart) {
+        const parsedCart = JSON.parse(savedCart);
+        console.log('Loaded cart from storage:', parsedCart);
+        
+        // Validate cart items
+        const validatedCart = parsedCart.filter((item: any) => {
+          return item && item.id && item.name && item.price && item.quantity > 0;
+        });
+        
+        setCartItems(validatedCart);
+      }
+    } catch (error) {
+      console.error('Error loading cart from storage:', error);
+      setCartItems([]);
+      localStorage.removeItem('cart'); // Clear corrupted cart
+    }
+  };
+
+  const updateCartStorage = (items: CartItem[]) => {
+    try {
+      localStorage.setItem('cart', JSON.stringify(items));
+      console.log('Updated cart in storage:', items);
+    } catch (error) {
+      console.error('Error updating cart storage:', error);
+      toast.error('เกิดข้อผิดพลาดในการอัพเดตตะกร้า');
+    }
+  };
 
   const updateQuantity = (id: number, newQuantity: number) => {
     if (newQuantity <= 0) {
@@ -44,41 +72,74 @@ const Cart = () => {
       item.id === id ? { ...item, quantity: newQuantity } : item
     );
     setCartItems(updatedItems);
-    localStorage.setItem('cart', JSON.stringify(updatedItems));
+    updateCartStorage(updatedItems);
+    toast.success("อัพเดตจำนวนสินค้าแล้ว");
   };
 
   const removeItem = (id: number) => {
     const updatedItems = cartItems.filter(item => item.id !== id);
     setCartItems(updatedItems);
-    localStorage.setItem('cart', JSON.stringify(updatedItems));
+    updateCartStorage(updatedItems);
     toast.success("ลบสินค้าออกจากตะกร้าแล้ว");
   };
 
   const getTotalPrice = () => {
-    return cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
+    return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
   };
 
   const handleCheckout = () => {
-    if (cartItems.length === 0) {
+    console.log('Checkout clicked, cart items:', cartItems);
+    
+    if (!cartItems || cartItems.length === 0) {
       toast.error("ตะกร้าสินค้าว่างเปล่า");
       return;
     }
 
-    if (!customerInfo.name || !customerInfo.phone || !customerInfo.address) {
-      toast.error("กรุณากรอกข้อมูลให้ครบถ้วน");
+    if (!customerInfo.name.trim()) {
+      toast.error("กรุณากรอกชื่อ-นามสกุล");
       return;
     }
 
-    // Save order info and redirect to payment
-    const orderData = {
-      items: cartItems,
-      customerInfo,
-      totalPrice: getTotalPrice(),
-      orderDate: new Date().toISOString()
-    };
-    
-    localStorage.setItem('pendingOrder', JSON.stringify(orderData));
-    window.location.href = '/payment';
+    if (!customerInfo.phone.trim()) {
+      toast.error("กรุณากรอกเบอร์โทรศัพท์");
+      return;
+    }
+
+    if (!customerInfo.address.trim()) {
+      toast.error("กรุณากรอกที่อยู่จัดส่ง");
+      return;
+    }
+
+    try {
+      // Prepare order data
+      const orderData = {
+        items: cartItems.map(item => ({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          sku: item.sku,
+          image: item.image
+        })),
+        customerInfo: {
+          name: customerInfo.name.trim(),
+          phone: customerInfo.phone.trim(),
+          address: customerInfo.address.trim(),
+          note: customerInfo.note.trim()
+        },
+        totalPrice: getTotalPrice(),
+        orderDate: new Date().toISOString()
+      };
+      
+      console.log('Saving order data:', orderData);
+      localStorage.setItem('pendingOrder', JSON.stringify(orderData));
+      
+      // Redirect to payment page
+      window.location.href = '/payment';
+    } catch (error) {
+      console.error('Error during checkout:', error);
+      toast.error('เกิดข้อผิดพลาดในการสั่งซื้อ');
+    }
   };
 
   if (cartItems.length === 0) {
@@ -115,7 +176,7 @@ const Cart = () => {
           <div className="lg:col-span-2">
             <Card>
               <CardContent className="p-6">
-                <h2 className="text-xl font-bold mb-4">รายการสินค้า</h2>
+                <h2 className="text-xl font-bold mb-4">รายการสินค้า ({cartItems.length} รายการ)</h2>
                 
                 {cartItems.map((item) => (
                   <div key={item.id} className="flex items-center justify-between border-b py-4 last:border-b-0">
@@ -192,6 +253,7 @@ const Cart = () => {
                       value={customerInfo.name}
                       onChange={(e) => setCustomerInfo({...customerInfo, name: e.target.value})}
                       placeholder="กรุณากรอกชื่อ-นามสกุล"
+                      required
                     />
                   </div>
                   
@@ -203,6 +265,7 @@ const Cart = () => {
                       value={customerInfo.phone}
                       onChange={(e) => setCustomerInfo({...customerInfo, phone: e.target.value})}
                       placeholder="กรุณากรอกเบอร์โทรศัพท์"
+                      required
                     />
                   </div>
                   
@@ -215,6 +278,7 @@ const Cart = () => {
                       onChange={(e) => setCustomerInfo({...customerInfo, address: e.target.value})}
                       placeholder="กรุณากรอกที่อยู่จัดส่ง"
                       rows={3}
+                      required
                     />
                   </div>
                   

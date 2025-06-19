@@ -63,6 +63,10 @@ const ProductEditDialog = ({ product, isOpen, onClose, onSave }: ProductEditDial
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleImageChange = (imageUrl: string) => {
+    setFormData(prev => ({ ...prev, image: imageUrl }));
+  };
+
   if (!product) return null;
 
   return (
@@ -97,7 +101,7 @@ const ProductEditDialog = ({ product, isOpen, onClose, onSave }: ProductEditDial
 
           <PhotoCopyPaste
             currentImage={formData.image}
-            onImageChange={(imageUrl) => handleInputChange('image', imageUrl)}
+            onImageChange={handleImageChange}
             label="รูปภาพสินค้า"
             folder="products"
           />
