@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,8 +7,8 @@ import { Edit, Package, CheckCircle, Clock, AlertCircle, Truck, MessageSquare, D
 import { useOrderManagement } from "@/hooks/useOrderManagement";
 import OrderTrackingDialog from "@/components/OrderTrackingDialog";
 import OrderEditDialog from "@/components/OrderEditDialog";
-import { supabase } from "@/lib/supabase";
-import { toast } from "react-toastify";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const OrderManagement = () => {
   const { orders, loading, updateOrderStatus, refetch } = useOrderManagement();
