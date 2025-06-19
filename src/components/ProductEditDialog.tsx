@@ -9,38 +9,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { useProductManagement } from '@/hooks/useProductManagement';
 import PhotoCopyPaste from '@/components/PhotoCopyPaste';
-
-interface Product {
-  id: number;
-  name: string;
-  selling_price: number;
-  category: string;
-  description: string;
-  image: string;
-  status: string;
-  sku: string;
-  price_yuan: number;
-  exchange_rate: number;
-  import_cost: number;
-  cost_thb: number;
-  quantity: number;
-  shipment_date: string;
-  options: any;
-  link: string;
-  created_at: string;
-  updated_at: string;
-}
+import { ProductAdmin } from '@/types/product';
 
 interface ProductEditDialogProps {
-  product: Product | null;
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: (product: Product) => void;
+  product: ProductAdmin | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (product: ProductAdmin) => void;
 }
 
-const ProductEditDialog = ({ product, isOpen, onClose, onSave }: ProductEditDialogProps) => {
+const ProductEditDialog = ({ product, open, onOpenChange, onSave }: ProductEditDialogProps) => {
   const { updateProduct } = useProductManagement();
-  const [formData, setFormData] = useState<Partial<Product>>({});
+  const [formData, setFormData] = useState<Partial<ProductAdmin>>({});
 
   useEffect(() => {
     if (product) {
@@ -54,12 +34,12 @@ const ProductEditDialog = ({ product, isOpen, onClose, onSave }: ProductEditDial
 
     const success = await updateProduct(product.id, formData);
     if (success) {
-      onSave({ ...product, ...formData } as Product);
-      onClose();
+      onSave({ ...product, ...formData } as ProductAdmin);
+      onOpenChange(false);
     }
   };
 
-  const handleInputChange = (field: keyof Product, value: any) => {
+  const handleInputChange = (field: keyof ProductAdmin, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -70,7 +50,7 @@ const ProductEditDialog = ({ product, isOpen, onClose, onSave }: ProductEditDial
   if (!product) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>แก้ไขสินค้า - {product.name}</DialogTitle>
@@ -128,10 +108,10 @@ const ProductEditDialog = ({ product, isOpen, onClose, onSave }: ProductEditDial
             </div>
             
             <div>
-              <Label htmlFor="status">สถานะ</Label>
+              <Label htmlFor="product_status">สถานะ</Label>
               <Select
-                value={formData.status || ''}
-                onValueChange={(value) => handleInputChange('status', value)}
+                value={formData.product_status || ''}
+                onValueChange={(value) => handleInputChange('product_status', value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="เลือกสถานะ" />
@@ -139,7 +119,7 @@ const ProductEditDialog = ({ product, isOpen, onClose, onSave }: ProductEditDial
                 <SelectContent>
                   <SelectItem value="พรีออเดอร์">พรีออเดอร์</SelectItem>
                   <SelectItem value="พร้อมส่ง">พร้อมส่ง</SelectItem>
-                  <SelectItem value="หมด">หมด</SelectItem>
+                  <SelectItem value="สินค้าหมด">สินค้าหมด</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -227,7 +207,7 @@ const ProductEditDialog = ({ product, isOpen, onClose, onSave }: ProductEditDial
           </div>
 
           <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               ยกเลิก
             </Button>
             <Button type="submit" style={{ backgroundColor: '#956ec3' }}>

@@ -2,32 +2,10 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-
-interface Product {
-  id: number;
-  name: string;
-  selling_price: number;
-  category: string;
-  description: string;
-  image: string;
-  product_status: string;
-  sku: string;
-  price_yuan: number;
-  exchange_rate: number;
-  import_cost: number;
-  cost_thb: number;
-  quantity: number;
-  shipment_date: string;
-  options: any;
-  link: string;
-  product_type: string;
-  shipping_fee: string;
-  created_at: string;
-  updated_at: string;
-}
+import { ProductAdmin } from '@/types/product';
 
 export const useProductManagement = () => {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<ProductAdmin[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
 
@@ -79,7 +57,7 @@ export const useProductManagement = () => {
     }
   };
 
-  const updateProduct = async (productId: number, updates: Partial<Product>) => {
+  const updateProduct = async (productId: number, updates: Partial<ProductAdmin>) => {
     try {
       setUpdating(true);
       

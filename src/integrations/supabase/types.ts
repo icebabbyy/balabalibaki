@@ -208,6 +208,7 @@ export type Database = {
           created_at: string | null
           description: string | null
           exchange_rate: number
+          extra_images: string | null
           id: number
           image: string
           import_cost: number
@@ -230,6 +231,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           exchange_rate?: number
+          extra_images?: string | null
           id?: number
           image: string
           import_cost?: number
@@ -252,6 +254,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           exchange_rate?: number
+          extra_images?: string | null
           id?: number
           image?: string
           import_cost?: number
@@ -317,39 +320,48 @@ export type Database = {
       public_products: {
         Row: {
           category: string | null
+          created_at: string | null
           description: string | null
           id: number | null
           image: string | null
-          name: string | null
           options: Json | null
+          product_name: string | null
+          product_sku: string | null
           product_status: string | null
+          product_type: string | null
           selling_price: number | null
           shipment_date: string | null
-          sku: string | null
+          updated_at: string | null
         }
         Insert: {
           category?: string | null
+          created_at?: string | null
           description?: string | null
           id?: number | null
           image?: string | null
-          name?: string | null
           options?: Json | null
+          product_name?: string | null
+          product_sku?: string | null
           product_status?: string | null
+          product_type?: string | null
           selling_price?: number | null
           shipment_date?: string | null
-          sku?: string | null
+          updated_at?: string | null
         }
         Update: {
           category?: string | null
+          created_at?: string | null
           description?: string | null
           id?: number | null
           image?: string | null
-          name?: string | null
           options?: Json | null
+          product_name?: string | null
+          product_sku?: string | null
           product_status?: string | null
+          product_type?: string | null
           selling_price?: number | null
           shipment_date?: string | null
-          sku?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
