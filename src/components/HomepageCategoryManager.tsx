@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,7 +29,7 @@ const HomepageCategoryManager = () => {
       setLoading(true);
       const { data, error } = await supabase
         .from('categories')
-        .select('*')
+        .select('id, name, image, display_on_homepage, homepage_order')
         .order('name');
 
       if (error) {
@@ -51,12 +50,21 @@ const HomepageCategoryManager = () => {
   const toggleHomepageDisplay = async (categoryId: number, currentStatus: boolean) => {
     try {
       setUpdating(true);
+      
+      // Create update object with proper typing
+      const updateData: { display_on_homepage: boolean; homepage_order?: number | null } = {
+        display_on_homepage: !currentStatus
+      };
+
+      if (!currentStatus) {
+        updateData.homepage_order = Date.now();
+      } else {
+        updateData.homepage_order = null;
+      }
+
       const { error } = await supabase
         .from('categories')
-        .update({ 
-          display_on_homepage: !currentStatus,
-          homepage_order: !currentStatus ? Date.now() : null
-        })
+        .update(updateData)
         .eq('id', categoryId);
 
       if (error) {

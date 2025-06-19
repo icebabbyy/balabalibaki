@@ -46,8 +46,8 @@ export const useProductManagement = () => {
       // Map the data to ensure all required fields are present with correct status handling
       const mappedData = (data || []).map(item => ({
         ...item,
-        // แก้ไขการดึงสถานะให้ถูกต้อง
-        status: item.status || item['status TEXT DEFAULT'] || 'พรีออเดอร์',
+        // แก้ไขการดึงสถานะให้ถูกต้อง - ใช้ field name ที่ถูกต้องจากฐานข้อมูล
+        status: item['status TEXT DEFAULT'] || item.status || 'พรีออเดอร์',
         shipment_date: item.shipment_date || '',
         description: item.description || '',
         link: item.link || '',
