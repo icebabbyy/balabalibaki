@@ -72,7 +72,7 @@ const Categories = () => {
       // ใช้ public_products เพื่อความปลอดภัย - ไม่แสดงข้อมูลต้นทุน
       const { data, error } = await supabase
         .from('public_products')
-        .select('id, name, selling_price, category, description, image, sku, status TEXT DEFAULT')
+        .select('id, name, selling_price, category, description, image, sku, "status TEXT DEFAULT" as status')
         .order('id', { ascending: false });
 
       if (error) {
@@ -90,7 +90,7 @@ const Categories = () => {
         description: item.description || '',
         image: item.image || '',
         sku: item.sku || '',
-        status: item['status TEXT DEFAULT'] || 'พรีออเดอร์'
+        status: item.status || 'พรีออเดอร์'
       }));
 
       setProducts(safeProducts);

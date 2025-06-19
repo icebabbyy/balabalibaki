@@ -40,7 +40,7 @@ const ProductDetail = () => {
       // ใช้ public_products เพื่อความปลอดภัย - ไม่แสดงข้อมูลต้นทุน
       const { data, error } = await supabase
         .from('public_products')
-        .select('id, name, selling_price, category, description, image, sku, status TEXT DEFAULT')
+        .select('id, name, selling_price, category, description, image, sku, "status TEXT DEFAULT" as status')
         .eq('id', parseInt(id!))
         .single();
 
@@ -60,7 +60,7 @@ const ProductDetail = () => {
           description: data.description || '',
           image: data.image || '',
           sku: data.sku,
-          status: data['status TEXT DEFAULT'] || 'พรีออเดอร์'
+          status: data.status || 'พรีออเดอร์'
         };
         
         setProduct(productData);
@@ -181,8 +181,8 @@ const ProductDetail = () => {
             <Card>
               <CardContent className="p-0">
                 <img
-                  src={product.image || '/placeholder.svg'}
-                  alt={product.name}
+                  src={product?.image || '/placeholder.svg'}
+                  alt={product?.name}
                   className="w-full h-96 object-cover rounded-lg"
                 />
               </CardContent>
@@ -192,27 +192,27 @@ const ProductDetail = () => {
           {/* Product Info */}
           <div className="space-y-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-800 mb-2">{product.name}</h1>
-              <p className="text-sm text-gray-600 mb-4">SKU: {product.sku}</p>
+              <h1 className="text-3xl font-bold text-gray-800 mb-2">{product?.name}</h1>
+              <p className="text-sm text-gray-600 mb-4">SKU: {product?.sku}</p>
               
               {/* Status Badge */}
               <Badge 
                 className={`text-white mb-4 ${
-                  product.status === 'พรีออเดอร์' 
+                  product?.status === 'พรีออเดอร์' 
                     ? 'bg-orange-500' 
                     : 'bg-green-500'
                 }`}
               >
-                {product.status}
+                {product?.status}
               </Badge>
               
               <p className="text-4xl font-bold mb-6" style={{ color: '#956ec3' }}>
-                ฿{product.selling_price?.toLocaleString()}
+                ฿{product?.selling_price?.toLocaleString()}
               </p>
             </div>
 
             {/* Description */}
-            {product.description && (
+            {product?.description && (
               <div>
                 <h3 className="text-lg font-semibold mb-2">รายละเอียดสินค้า</h3>
                 <p className="text-gray-600 leading-relaxed">{product.description}</p>
@@ -290,15 +290,15 @@ const ProductDetail = () => {
               <div className="grid grid-cols-1 gap-4 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600">หมวดหมู่:</span>
-                  <span className="font-medium">{product.category}</span>
+                  <span className="font-medium">{product?.category}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">รหัสสินค้า:</span>
-                  <span className="font-medium">{product.sku}</span>
+                  <span className="font-medium">{product?.sku}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">สถานะ:</span>
-                  <span className="font-medium">{product.status}</span>
+                  <span className="font-medium">{product?.status}</span>
                 </div>
               </div>
             </div>
