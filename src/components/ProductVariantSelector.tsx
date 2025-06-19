@@ -14,21 +14,30 @@ const ProductVariantSelector = ({ options, selectedVariant, onVariantChange }: P
     return null;
   }
 
+  console.log('ProductVariantSelector options:', options);
+
   // Handle different option formats
   const renderOptions = () => {
     // If options is an array of strings
     if (Array.isArray(options)) {
-      return options.map((option: string, index: number) => (
-        <Button
-          key={index}
-          variant={selectedVariant === option ? "default" : "outline"}
-          size="sm"
-          onClick={() => onVariantChange(option)}
-          className="mr-2 mb-2"
-        >
-          {option}
-        </Button>
-      ));
+      return options.map((option: any, index: number) => {
+        // Convert option to string if it's an object
+        const optionText = typeof option === 'object' ? 
+          (option.name || option.label || JSON.stringify(option)) : 
+          String(option);
+        
+        return (
+          <Button
+            key={index}
+            variant={selectedVariant === optionText ? "default" : "outline"}
+            size="sm"
+            onClick={() => onVariantChange(optionText)}
+            className="mr-2 mb-2"
+          >
+            {optionText}
+          </Button>
+        );
+      });
     }
 
     // If options is an object with different categories
@@ -38,16 +47,23 @@ const ProductVariantSelector = ({ options, selectedVariant, onVariantChange }: P
           {key}:
         </label>
         <div className="flex flex-wrap gap-2">
-          {Array.isArray(values) ? values.map((value: string, index: number) => (
-            <Button
-              key={`${key}-${index}`}
-              variant={selectedVariant === `${key}:${value}` ? "default" : "outline"}
-              size="sm"
-              onClick={() => onVariantChange(`${key}:${value}`)}
-            >
-              {value}
-            </Button>
-          )) : (
+          {Array.isArray(values) ? values.map((value: any, index: number) => {
+            // Convert value to string if it's an object
+            const valueText = typeof value === 'object' ? 
+              (value.name || value.label || JSON.stringify(value)) : 
+              String(value);
+            
+            return (
+              <Button
+                key={`${key}-${index}`}
+                variant={selectedVariant === `${key}:${valueText}` ? "default" : "outline"}
+                size="sm"
+                onClick={() => onVariantChange(`${key}:${valueText}`)}
+              >
+                {valueText}
+              </Button>
+            );
+          }) : (
             <Badge variant="secondary">{String(values)}</Badge>
           )}
         </div>

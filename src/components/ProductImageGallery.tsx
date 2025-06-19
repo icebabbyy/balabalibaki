@@ -7,10 +7,10 @@ import { Button } from '@/components/ui/button';
 interface ProductImageGalleryProps {
   mainImage: string;
   additionalImages: string[];
-  productName: string;
+  productName?: string;
 }
 
-const ProductImageGallery = ({ mainImage, additionalImages, productName }: ProductImageGalleryProps) => {
+const ProductImageGallery = ({ mainImage, additionalImages, productName = "สินค้า" }: ProductImageGalleryProps) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   
   // Combine main image with additional images

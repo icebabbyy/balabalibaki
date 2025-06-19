@@ -23,17 +23,20 @@ const ProductDetail = () => {
 
   useEffect(() => {
     if (id) {
-      fetchProduct();
-      fetchProductImages();
+      const productId = parseInt(id, 10);
+      if (!isNaN(productId)) {
+        fetchProduct(productId);
+        fetchProductImages(productId);
+      }
     }
   }, [id]);
 
-  const fetchProduct = async () => {
+  const fetchProduct = async (productId: number) => {
     try {
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('id', id)
+        .eq('id', productId)
         .single();
 
       if (error) {
@@ -52,12 +55,12 @@ const ProductDetail = () => {
     }
   };
 
-  const fetchProductImages = async () => {
+  const fetchProductImages = async (productId: number) => {
     try {
       const { data, error } = await supabase
         .from('product_images')
         .select('*')
-        .eq('product_id', id)
+        .eq('product_id', productId)
         .order('order', { ascending: true });
 
       if (error) {
@@ -156,6 +159,9 @@ const ProductDetail = () => {
     );
   }
 
+  // Convert images array to proper format for ProductImageGallery
+  const additionalImageUrls = images.map(img => img.image_url);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -182,7 +188,8 @@ const ProductDetail = () => {
             <div>
               <ProductImageGallery 
                 mainImage={product.image}
-                additionalImages={images}
+                additionalImages={additionalImageUrls}
+                productName={product.name}
               />
             </div>
 
