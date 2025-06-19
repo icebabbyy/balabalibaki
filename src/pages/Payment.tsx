@@ -1,114 +1,18 @@
 
-import { useState, useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Upload } from "lucide-react";
-import { toast } from "sonner";
+import { useState } from "react";
 import Header from "@/components/Header";
-import { supabase } from "@/integrations/supabase/client";
-import PaymentSlipUpload from "@/components/PaymentSlipUpload";
+import OrderSummary from "@/components/payment/OrderSummary";
+import PaymentInfo from "@/components/payment/PaymentInfo";
+import { useOrderData } from "@/hooks/useOrderData";
+import { useOrderSubmission } from "@/hooks/useOrderSubmission";
 
 const Payment = () => {
-  const [orderData, setOrderData] = useState<any>(null);
+  const { orderData } = useOrderData();
+  const { submitting, handleSubmitOrder } = useOrderSubmission();
   const [paymentSlipUrl, setPaymentSlipUrl] = useState<string>("");
-  const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    loadOrderData();
-  }, []);
-
-  const loadOrderData = () => {
-    try {
-      const savedOrder = localStorage.getItem('pendingOrder');
-      console.log('Loading order data:', savedOrder);
-      
-      if (savedOrder) {
-        const parsedOrder = JSON.parse(savedOrder);
-        console.log('Parsed order data:', parsedOrder);
-        
-        // Validate order data
-        if (!parsedOrder.items || parsedOrder.items.length === 0) {
-          toast.error('ไม่พบข้อมูลคำสั่งซื้อ');
-          window.location.href = '/cart';
-          return;
-        }
-        
-        setOrderData(parsedOrder);
-      } else {
-        toast.error('ไม่พบข้อมูลคำสั่งซื้อ');
-        window.location.href = '/cart';
-      }
-    } catch (error) {
-      console.error('Error loading order data:', error);
-      toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูลคำสั่งซื้อ');
-      window.location.href = '/cart';
-    }
-  };
-
-  const handleSubmitOrder = async () => {
-    if (!orderData) {
-      toast.error("ไม่พบข้อมูลคำสั่งซื้อ");
-      return;
-    }
-
-    if (!paymentSlipUrl) {
-      toast.error("กรุณาอัพโหลดสลิปการโอนเงิน");
-      return;
-    }
-
-    setSubmitting(true);
-    
-    try {
-      console.log('Submitting order:', orderData);
-      
-      // Prepare order items for database
-      const orderItems = orderData.items.map((item: any) => ({
-        id: item.id,
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity,
-        sku: item.sku
-      }));
-
-      // Create order in database
-      const { data, error } = await supabase
-        .from('orders')
-        .insert({
-          username: orderData.customerInfo.name,
-          items: orderItems,
-          total_selling_price: orderData.totalPrice,
-          address: `${orderData.customerInfo.address}${orderData.customerInfo.note ? ` (หมายเหตุ: ${orderData.customerInfo.note})` : ''}`,
-          status: 'รอตรวจสอบการชำระเงิน',
-          order_date: new Date().toISOString(),
-          payment_slip_url: paymentSlipUrl,
-        })
-        .select();
-
-      if (error) {
-        console.error('Error creating order:', error);
-        toast.error("เกิดข้อผิดพลาดในการสร้างคำสั่งซื้อ");
-        return;
-      }
-
-      console.log('Order created successfully:', data);
-
-      // Clear cart and pending order
-      localStorage.removeItem('cart');
-      localStorage.removeItem('pendingOrder');
-      
-      toast.success("ส่งคำสั่งซื้อเรียบร้อยแล้ว รอการตรวจสอบจากเจ้าหน้าที่");
-      
-      // Redirect to order status page
-      setTimeout(() => {
-        window.location.href = '/order-status';
-      }, 2000);
-
-    } catch (error) {
-      console.error('Error submitting order:', error);
-      toast.error("เกิดข้อผิดพลาดในการส่งคำสั่งซื้อ");
-    } finally {
-      setSubmitting(false);
-    }
+  const onSubmitOrder = () => {
+    handleSubmitOrder(orderData, paymentSlipUrl);
   };
 
   if (!orderData) {
@@ -133,81 +37,15 @@ const Payment = () => {
         <h1 className="text-3xl font-bold text-gray-800 mb-8">ชำระเงิน</h1>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Order Summary */}
-          <Card>
-            <CardContent className="p-6">
-              <h2 className="text-xl font-bold mb-4">สรุปคำสั่งซื้อ</h2>
-              
-              <div className="space-y-3 mb-4">
-                {orderData.items.map((item: any) => (
-                  <div key={item.id} className="flex justify-between">
-                    <span>{item.name} x {item.quantity}</span>
-                    <span>฿{(item.price * item.quantity).toLocaleString()}</span>
-                  </div>
-                ))}
-              </div>
-              
-              <div className="border-t pt-4">
-                <div className="flex justify-between text-xl font-bold">
-                  <span>รวมทั้งหมด:</span>
-                  <span style={{ color: '#956ec3' }}>฿{orderData.totalPrice.toLocaleString()}</span>
-                </div>
-              </div>
-              
-              <div className="mt-6 pt-4 border-t">
-                <h3 className="font-bold mb-2">ข้อมูลการจัดส่ง:</h3>
-                <p><strong>ชื่อ:</strong> {orderData.customerInfo.name}</p>
-                <p><strong>เบอร์โทร:</strong> {orderData.customerInfo.phone}</p>
-                <p><strong>ที่อยู่:</strong> {orderData.customerInfo.address}</p>
-                {orderData.customerInfo.note && (
-                  <p><strong>หมายเหตุ:</strong> {orderData.customerInfo.note}</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          <OrderSummary orderData={orderData} />
           
-          {/* Payment Info */}
-          <Card>
-            <CardContent className="p-6">
-              <h2 className="text-xl font-bold mb-4">ข้อมูลการชำระเงิน</h2>
-              
-              <div className="mb-6">
-                <div className="bg-purple-50 p-4 rounded-lg mb-4">
-                  <h3 className="font-bold text-purple-800 mb-2">โอนเงินผ่าน QR Code</h3>
-                  <div className="text-center">
-                    <div className="w-48 h-48 bg-gray-200 mx-auto mb-4 rounded-lg flex items-center justify-center">
-                      <span className="text-gray-500">QR Code การชำระเงิน</span>
-                    </div>
-                    <p className="text-sm text-gray-600">สแกน QR Code เพื่อชำระเงิน</p>
-                    <p className="font-bold text-lg" style={{ color: '#956ec3' }}>
-                      ยอดชำระ: ฿{orderData.totalPrice.toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <PaymentSlipUpload 
-                  onSlipUploaded={setPaymentSlipUrl}
-                  currentSlip={paymentSlipUrl}
-                />
-                
-                <Button
-                  onClick={handleSubmitOrder}
-                  disabled={!paymentSlipUrl || submitting}
-                  className="w-full text-white hover:opacity-90"
-                  style={{ backgroundColor: '#956ec3' }}
-                  size="lg"
-                >
-                  {submitting ? "กำลังส่งคำสั่งซื้อ..." : "ยืนยันการชำระเงิน"}
-                </Button>
-                
-                <p className="text-xs text-gray-500 text-center">
-                  หลังจากยืนยันการชำระเงิน เจ้าหน้าที่จะตรวจสอบและติดต่อกลับภายใน 24 ชั่วโมง
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          <PaymentInfo
+            totalPrice={orderData.totalPrice}
+            paymentSlipUrl={paymentSlipUrl}
+            onSlipUploaded={setPaymentSlipUrl}
+            onSubmitOrder={onSubmitOrder}
+            submitting={submitting}
+          />
         </div>
       </div>
     </div>
