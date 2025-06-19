@@ -15,7 +15,7 @@ import OrderManagement from "@/components/OrderManagement";
 import { useProductManagement } from "@/hooks/useProductManagement";
 import { useOrderManagement } from "@/hooks/useOrderManagement";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import EnhancedProductImageManager from "@/components/EnhancedProductImageManager";
+import ProductImageManager from "@/components/ProductImageManager";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -292,16 +292,14 @@ const Admin = () => {
         onSave={handleSaveProduct}
       />
 
-      {/* Enhanced Product Image Management Dialog */}
+      {/* Product Image Management Dialog */}
       {managingImages && (
         <Dialog open={!!managingImages} onOpenChange={() => setManagingImages(null)}>
-          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="text-xl font-semibold">
-                จัดการรูปภาพเพิ่มเติม - {managingImages.name}
-              </DialogTitle>
+              <DialogTitle>จัดการรูปภาพ - {managingImages.name}</DialogTitle>
             </DialogHeader>
-            <EnhancedProductImageManager productId={managingImages.id} />
+            <ProductImageManager productId={managingImages.id} />
           </DialogContent>
         </Dialog>
       )}

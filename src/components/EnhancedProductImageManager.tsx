@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trash2, Plus, GripVertical, Upload, Download } from 'lucide-react';
+import { Trash2, Plus, GripVertical, Upload } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { useProductImages } from '@/hooks/useProductImages';
@@ -58,7 +57,7 @@ const EnhancedProductImageManager = ({ productId }: EnhancedProductImageManagerP
     const localPreviewUrl = URL.createObjectURL(file);
     setPreviewUrl(localPreviewUrl);
 
-    // Upload to Supabase with proper folder structure
+    // Upload to Supabase
     const uploadedUrl = await uploadImage(file, `products/${productId}`);
     if (uploadedUrl) {
       await handleImageAdd(uploadedUrl);
@@ -69,56 +68,10 @@ const EnhancedProductImageManager = ({ productId }: EnhancedProductImageManagerP
     }
   };
 
-  const handleMultipleFileUpload = async (files: FileList) => {
-    const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
-    
-    if (imageFiles.length === 0) {
-      toast.error('กรุณาเลือกไฟล์รูปภาพ');
-      return;
-    }
-
-    if (imageFiles.length > 10) {
-      toast.error('สามารถอัพโหลดได้สูงสุด 10 รูปต่อครั้ง');
-      return;
-    }
-
-    let successCount = 0;
-    
-    for (const file of imageFiles) {
-      const uploadedUrl = await uploadImage(file, `products/${productId}`);
-      if (uploadedUrl) {
-        const nextOrder = images.length + successCount + 1;
-        
-        const { error } = await supabase
-          .from('product_images')
-          .insert({
-            product_id: productId,
-            image_url: uploadedUrl,
-            order: nextOrder
-          });
-
-        if (!error) {
-          successCount++;
-        }
-      }
-    }
-
-    if (successCount > 0) {
-      await refreshImages();
-      toast.success(`อัพโหลดสำเร็จ ${successCount} รูป`);
-      setIsAddingImage(false);
-    }
-  };
-
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-    
-    if (files.length === 1) {
-      await handleFileUpload(files[0]);
-    } else {
-      await handleMultipleFileUpload(files);
-    }
+    const file = event.target.files?.[0];
+    if (!file) return;
+    await handleFileUpload(file);
   };
 
   const handlePaste = async (event: React.ClipboardEvent) => {
@@ -156,23 +109,13 @@ const EnhancedProductImageManager = ({ productId }: EnhancedProductImageManagerP
     setIsDragging(false);
 
     const files = Array.from(event.dataTransfer.files);
-    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+    const imageFile = files.find(file => file.type.startsWith('image/'));
     
-    if (imageFiles.length === 0) {
-      toast.error('กรุณาเลือกไฟล์รูปภาพ');
-      return;
-    }
-
-    if (imageFiles.length === 1) {
-      await handleFileUpload(imageFiles[0]);
+    if (imageFile) {
+      await handleFileUpload(imageFile);
       toast.success('ลากวางรูปภาพสำเร็จ!');
     } else {
-      const fileList = document.createElement('input');
-      fileList.type = 'file';
-      fileList.multiple = true;
-      fileList.files = event.dataTransfer.files;
-      await handleMultipleFileUpload(event.dataTransfer.files);
-      toast.success(`ลากวางรูปภาพสำเร็จ ${imageFiles.length} รูป!`);
+      toast.error('กรุณาเลือกไฟล์รูปภาพ');
     }
   };
 
@@ -188,11 +131,6 @@ const EnhancedProductImageManager = ({ productId }: EnhancedProductImageManagerP
       await deleteImage(imageId);
       toast.success('ลบรูปภาพสำเร็จ!');
     }
-  };
-
-  const copyImageUrl = (imageUrl: string) => {
-    navigator.clipboard.writeText(imageUrl);
-    toast.success('คัดลอก URL รูปภาพแล้ว!');
   };
 
   if (loading) {
@@ -227,7 +165,7 @@ const EnhancedProductImageManager = ({ productId }: EnhancedProductImageManagerP
               <CardHeader>
                 <CardTitle className="text-lg">เพิ่มรูปภาพใหม่</CardTitle>
                 <p className="text-sm text-gray-600">
-                  รองรับการอัพโหลดหลายไฟล์ พร้อมลากวาง, วาง (Ctrl+V), หรือใส่ URL
+                  คุณสามารถลากวาง, วาง (Ctrl+V), หรือเลือกไฟล์ได้
                 </p>
               </CardHeader>
               <CardContent>
@@ -255,7 +193,7 @@ const EnhancedProductImageManager = ({ productId }: EnhancedProductImageManagerP
                         {isDragging ? 'วางรูปภาพที่นี่' : 'ลากวาง หรือ คลิกเพื่อเลือกรูปภาพ'}
                       </p>
                       <p className="text-sm text-gray-500">
-                        รองรับ: JPG, PNG, GIF | หลายไฟล์ | วาง: Ctrl+V | ลากวาง: ลากไฟล์มาวางที่นี่
+                        รองรับ: JPG, PNG, GIF | วาง: Ctrl+V | ลากวาง: ลากไฟล์มาวางที่นี่
                       </p>
                     </div>
                     
@@ -329,7 +267,6 @@ const EnhancedProductImageManager = ({ productId }: EnhancedProductImageManagerP
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
-                  multiple
                   onChange={handleFileSelect}
                   className="hidden"
                 />
@@ -352,15 +289,6 @@ const EnhancedProductImageManager = ({ productId }: EnhancedProductImageManagerP
                     {/* Overlay Controls */}
                     <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity rounded-lg flex items-center justify-center">
                       <div className="opacity-0 group-hover:opacity-100 transition-opacity flex space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => copyImageUrl(image.image_url)}
-                          className="bg-white text-gray-700 hover:bg-gray-100"
-                        >
-                          <Download className="h-4 w-4 mr-1" />
-                          คัดลอก
-                        </Button>
                         <Button
                           variant="destructive"
                           size="sm"
@@ -387,8 +315,7 @@ const EnhancedProductImageManager = ({ productId }: EnhancedProductImageManagerP
             </div>
           ) : (
             <div className="text-center py-8 text-gray-500">
-              <Upload className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-              <p className="text-lg font-medium">ยังไม่มีรูปภาพสินค้า</p>
+              <p>ยังไม่มีรูปภาพสินค้า</p>
               <p className="text-sm">คลิก "เพิ่มรูปภาพ" เพื่อเริ่มต้น</p>
             </div>
           )}
