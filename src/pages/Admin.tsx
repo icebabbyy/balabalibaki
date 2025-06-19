@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,23 @@ const Admin = () => {
   const [user, setUser] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [activeTab, setActiveTab] = useState("products");
+  
+  // Form state variables
+  const [productName, setProductName] = useState("");
+  const [sellingPrice, setSellingPrice] = useState("");
+  const [costPrice, setCostPrice] = useState("");
+  const [category, setCategory] = useState("");
+  const [description, setDescription] = useState("");
+  const [image, setImage] = useState("");
+  const [status, setStatus] = useState("พร้อมขาย");
+  const [sku, setSku] = useState("");
+  const [options, setOptions] = useState<any>({});
+  
+  // Option management state
+  const [isAddingOption, setIsAddingOption] = useState(false);
+  const [newOptionName, setNewOptionName] = useState("");
+  const [newOptionValues, setNewOptionValues] = useState("");
+  
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -53,7 +71,7 @@ const Admin = () => {
 
       setUser(session.user);
 
-      // Check if user is admin
+      // Check if user is admin by email
       const isAdminUser = session.user.email === 'wishyouluckyshop@gmail.com';
       
       if (!isAdminUser) {
