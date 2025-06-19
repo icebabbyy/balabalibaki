@@ -198,7 +198,7 @@ export type Database = {
           selling_price: number
           shipment_date: string | null
           sku: string
-          "status TEXT DEFAULT": string | null
+          status: string | null
           updated_at: string | null
         }
         Insert: {
@@ -218,7 +218,7 @@ export type Database = {
           selling_price?: number
           shipment_date?: string | null
           sku: string
-          "status TEXT DEFAULT"?: string | null
+          status?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -238,7 +238,7 @@ export type Database = {
           selling_price?: number
           shipment_date?: string | null
           sku?: string
-          "status TEXT DEFAULT"?: string | null
+          status?: string | null
           updated_at?: string | null
         }
         Relationships: []

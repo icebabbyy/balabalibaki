@@ -1,10 +1,11 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import { toast } from "sonner";
@@ -35,7 +36,7 @@ const Categories = () => {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
   useEffect(() => {
     fetchCategories();
@@ -44,7 +45,7 @@ const Categories = () => {
 
   useEffect(() => {
     filterProducts();
-  }, [products, searchTerm, selectedCategory]);
+  }, [products, searchTerm, selectedCategories]);
 
   const fetchCategories = async () => {
     try {
@@ -104,10 +105,12 @@ const Categories = () => {
   const filterProducts = () => {
     let filtered = products;
 
-    if (selectedCategory !== "all") {
-      filtered = filtered.filter(product => product.category === selectedCategory);
+    // Filter by selected categories
+    if (selectedCategories.length > 0) {
+      filtered = filtered.filter(product => selectedCategories.includes(product.category));
     }
 
+    // Filter by search term
     if (searchTerm) {
       filtered = filtered.filter(product =>
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -116,6 +119,14 @@ const Categories = () => {
     }
 
     setFilteredProducts(filtered);
+  };
+
+  const handleCategoryChange = (categoryName: string, checked: boolean) => {
+    if (checked) {
+      setSelectedCategories(prev => [...prev, categoryName]);
+    } else {
+      setSelectedCategories(prev => prev.filter(cat => cat !== categoryName));
+    }
   };
 
   const handleProductClick = (productId: number) => {
@@ -144,8 +155,8 @@ const Categories = () => {
         <h1 className="text-3xl font-bold text-gray-800 mb-8">สินค้าทั้งหมด</h1>
         
         {/* Search and Filter */}
-        <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="relative">
+        <div className="mb-8">
+          <div className="relative mb-6">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
               placeholder="ค้นหาสินค้า..."
@@ -155,19 +166,56 @@ const Categories = () => {
             />
           </div>
           
-          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-            <SelectTrigger>
-              <SelectValue placeholder="เลือกหมวดหมู่" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">ทุกหมวดหมู่</SelectItem>
+          {/* Category Checkboxes */}
+          <div className="bg-white p-6 rounded-lg shadow-sm border">
+            <h3 className="text-lg font-semibold mb-4">เลือกหมวดหมู่</h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {categories.map((category) => (
-                <SelectItem key={category.id} value={category.name}>
-                  {category.name}
-                </SelectItem>
+                <div key={category.id} className="flex items-center space-x-3">
+                  <Checkbox
+                    id={`category-${category.id}`}
+                    checked={selectedCategories.includes(category.name)}
+                    onCheckedChange={(checked) => 
+                      handleCategoryChange(category.name, checked as boolean)
+                    }
+                  />
+                  <label 
+                    htmlFor={`category-${category.id}`}
+                    className="text-sm font-medium cursor-pointer"
+                  >
+                    {category.name}
+                  </label>
+                </div>
               ))}
-            </SelectContent>
-          </Select>
+            </div>
+            
+            {selectedCategories.length > 0 && (
+              <div className="mt-4 pt-4 border-t">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">
+                    เลือกแล้ว: {selectedCategories.length} หมวดหมู่
+                  </span>
+                  <button
+                    onClick={() => setSelectedCategories([])}
+                    className="text-sm text-purple-600 hover:text-purple-800"
+                  >
+                    ล้างการเลือก
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {selectedCategories.map((category) => (
+                    <Badge 
+                      key={category} 
+                      variant="secondary"
+                      className="text-xs"
+                    >
+                      {category}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Products Grid */}

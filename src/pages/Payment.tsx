@@ -2,16 +2,16 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Upload } from "lucide-react";
 import { toast } from "sonner";
 import Header from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
+import PaymentSlipUpload from "@/components/PaymentSlipUpload";
 
 const Payment = () => {
   const [orderData, setOrderData] = useState<any>(null);
-  const [paymentSlip, setPaymentSlip] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
+  const [paymentSlipUrl, setPaymentSlipUrl] = useState<string>("");
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     loadOrderData();
@@ -45,36 +45,18 @@ const Payment = () => {
     }
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error("ไฟล์ใหญ่เกินไป กรุณาเลือกไฟล์ที่มีขนาดไม่เกิน 5MB");
-        return;
-      }
-      
-      if (!file.type.startsWith('image/')) {
-        toast.error("กรุณาเลือกไฟล์รูปภาพเท่านั้น");
-        return;
-      }
-      
-      setPaymentSlip(file);
-      toast.success("เลือกไฟล์สลิปเรียบร้อยแล้ว");
-    }
-  };
-
   const handleSubmitOrder = async () => {
     if (!orderData) {
       toast.error("ไม่พบข้อมูลคำสั่งซื้อ");
       return;
     }
 
-    if (!paymentSlip) {
+    if (!paymentSlipUrl) {
       toast.error("กรุณาอัพโหลดสลิปการโอนเงิน");
       return;
     }
 
-    setUploading(true);
+    setSubmitting(true);
     
     try {
       console.log('Submitting order:', orderData);
@@ -98,6 +80,7 @@ const Payment = () => {
           address: `${orderData.customerInfo.address}${orderData.customerInfo.note ? ` (หมายเหตุ: ${orderData.customerInfo.note})` : ''}`,
           status: 'รอตรวจสอบการชำระเงิน',
           order_date: new Date().toISOString(),
+          payment_slip_url: paymentSlipUrl,
         })
         .select();
 
@@ -124,7 +107,7 @@ const Payment = () => {
       console.error('Error submitting order:', error);
       toast.error("เกิดข้อผิดพลาดในการส่งคำสั่งซื้อ");
     } finally {
-      setUploading(false);
+      setSubmitting(false);
     }
   };
 
@@ -204,35 +187,19 @@ const Payment = () => {
               </div>
               
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    อัพโหลดสลิปการโอนเงิน *
-                  </label>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileSelect}
-                      className="hidden"
-                      id="payment-slip"
-                    />
-                    <label htmlFor="payment-slip" className="cursor-pointer">
-                      <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                      <p className="text-sm text-gray-600">
-                        {paymentSlip ? paymentSlip.name : "คลิกเพื่อเลือกไฟล์สลิป"}
-                      </p>
-                    </label>
-                  </div>
-                </div>
+                <PaymentSlipUpload 
+                  onSlipUploaded={setPaymentSlipUrl}
+                  currentSlip={paymentSlipUrl}
+                />
                 
                 <Button
                   onClick={handleSubmitOrder}
-                  disabled={!paymentSlip || uploading}
+                  disabled={!paymentSlipUrl || submitting}
                   className="w-full text-white hover:opacity-90"
                   style={{ backgroundColor: '#956ec3' }}
                   size="lg"
                 >
-                  {uploading ? "กำลังส่งคำสั่งซื้อ..." : "ยืนยันการชำระเงิน"}
+                  {submitting ? "กำลังส่งคำสั่งซื้อ..." : "ยืนยันการชำระเงิน"}
                 </Button>
                 
                 <p className="text-xs text-gray-500 text-center">
