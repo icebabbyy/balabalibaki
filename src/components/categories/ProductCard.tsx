@@ -1,20 +1,10 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-
-interface Product {
-  id: number;
-  name: string;
-  selling_price: number;
-  category: string;
-  description: string;
-  image: string;
-  status: string;
-  sku: string;
-}
+import { ProductPublic } from "@/types/product";
 
 interface ProductCardProps {
-  product: Product;
+  product: ProductPublic;
   onProductClick: (productId: number) => void;
 }
 
@@ -33,12 +23,12 @@ const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
           />
           <Badge 
             className={`absolute top-2 left-2 text-white ${
-              product.status === 'พรีออเดอร์' 
+              product.product_status === 'พรีออเดอร์' 
                 ? 'bg-orange-500' 
                 : 'bg-green-500'
             }`}
           >
-            {product.status}
+            {product.product_status}
           </Badge>
         </div>
         

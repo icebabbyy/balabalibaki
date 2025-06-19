@@ -8,6 +8,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import Autoplay from "embla-carousel-autoplay";
+import { ProductPublic } from "@/types/product";
 
 interface Banner {
   id: string;
@@ -17,15 +18,6 @@ interface Banner {
   link_url?: string;
   active: boolean;
   position: number;
-}
-
-interface Product {
-  id: number;
-  name: string;
-  selling_price: number;
-  image: string;
-  status?: string;
-  category: string;
 }
 
 interface Category {
@@ -41,10 +33,10 @@ const Index = () => {
   const [secondBanners, setSecondBanners] = useState<Banner[]>([]);
   const [thirdBanners, setThirdBanners] = useState<Banner[]>([]);
   const [fourthBanners, setFourthBanners] = useState<Banner[]>([]);
-  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [featuredProducts, setFeaturedProducts] = useState<ProductPublic[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [homepageCategories, setHomepageCategories] = useState<Category[]>([]);
-  const [categoryProducts, setCategoryProducts] = useState<{[key: string]: Product[]}>({});
+  const [categoryProducts, setCategoryProducts] = useState<{[key: string]: ProductPublic[]}>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -87,7 +79,25 @@ const Index = () => {
         .select('*')
         .limit(8);
       
-      setFeaturedProducts(data || []);
+      // Map the public_products view data to ProductPublic interface
+      const mappedProducts: ProductPublic[] = (data || []).map(item => ({
+        id: item.id || 0,
+        name: item.product_name || '',
+        selling_price: item.selling_price || 0,
+        category: item.category || '',
+        description: item.description || '',
+        image: item.image || '',
+        product_status: item.product_status || 'พรีออเดอร์',
+        sku: item.product_sku || '',
+        quantity: 0,
+        shipment_date: item.shipment_date || '',
+        options: item.options || null,
+        product_type: item.product_type || 'ETC',
+        created_at: item.created_at || '',
+        updated_at: item.updated_at || ''
+      }));
+      
+      setFeaturedProducts(mappedProducts);
     } catch (error) {
       console.error('Error fetching featured products:', error);
     } finally {
@@ -112,7 +122,7 @@ const Index = () => {
       // ดึงหมวดหมู่ที่ต้องการแสดงในหน้าแรก (สำหรับตอนนี้ใช้ hardcode ก่อน)
       const displayCategories = ['Nikke', 'Honkai : Star Rail', 'League of Legends'];
       const categoriesData = [];
-      const productsData: {[key: string]: Product[]} = {};
+      const productsData: {[key: string]: ProductPublic[]} = {};
 
       for (const categoryName of displayCategories) {
         // ดึงข้อมูลหมวดหมู่
@@ -132,7 +142,25 @@ const Index = () => {
             .eq('category', categoryName)
             .limit(5);
 
-          productsData[categoryName] = products || [];
+          // Map the products
+          const mappedProducts: ProductPublic[] = (products || []).map(item => ({
+            id: item.id || 0,
+            name: item.product_name || '',
+            selling_price: item.selling_price || 0,
+            category: item.category || '',
+            description: item.description || '',
+            image: item.image || '',
+            product_status: item.product_status || 'พรีออเดอร์',
+            sku: item.product_sku || '',
+            quantity: 0,
+            shipment_date: item.shipment_date || '',
+            options: item.options || null,
+            product_type: item.product_type || 'ETC',
+            created_at: item.created_at || '',
+            updated_at: item.updated_at || ''
+          }));
+
+          productsData[categoryName] = mappedProducts;
         }
       }
 
@@ -147,7 +175,7 @@ const Index = () => {
     navigate(`/product/${productId}`);
   };
 
-  const addToCart = (product: Product) => {
+  const addToCart = (product: ProductPublic) => {
     const cartItem = {
       id: product.id,
       name: product.name,
@@ -169,7 +197,7 @@ const Index = () => {
     alert('เพิ่มสินค้าลงตะกร้าแล้ว');
   };
 
-  const ProductCard = ({ product }: { product: Product }) => (
+  const ProductCard = ({ product }: { product: ProductPublic }) => (
     <Card className="hover:shadow-lg transition-shadow cursor-pointer">
       <div className="relative">
         <img
@@ -178,9 +206,9 @@ const Index = () => {
           className="w-full h-48 object-cover rounded-t-lg"
           onClick={() => handleProductClick(product.id)}
         />
-        {product.status && (
+        {product.product_status && (
           <Badge className="absolute top-2 left-2 bg-purple-600">
-            {product.status}
+            {product.product_status}
           </Badge>
         )}
       </div>
@@ -213,7 +241,7 @@ const Index = () => {
     </Card>
   );
 
-  const CategorySection = ({ title, products, categoryName }: { title: string; products: Product[]; categoryName: string }) => (
+  const CategorySection = ({ title, products, categoryName }: { title: string; products: ProductPublic[]; categoryName: string }) => (
     <section className="py-12 bg-white">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between mb-8">

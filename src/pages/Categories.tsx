@@ -7,17 +7,7 @@ import CategoryFilters from "@/components/categories/CategoryFilters";
 import ProductGrid from "@/components/categories/ProductGrid";
 import { useCategoryFiltering } from "@/hooks/useCategoryFiltering";
 import { toast } from "sonner";
-
-interface Product {
-  id: number;
-  name: string;
-  selling_price: number;
-  category: string;
-  description: string;
-  image: string;
-  status: string;
-  sku: string;
-}
+import { ProductPublic } from "@/types/product";
 
 interface Category {
   id: number;
@@ -29,7 +19,7 @@ interface Category {
 
 const Categories = () => {
   const navigate = useNavigate();
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<ProductPublic[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -71,7 +61,7 @@ const Categories = () => {
       
       const { data, error } = await supabase
         .from('public_products')
-        .select('id, name, selling_price, category, description, image, sku')
+        .select('*')
         .order('id', { ascending: false });
 
       if (error) {
@@ -80,18 +70,25 @@ const Categories = () => {
         return;
       }
 
-      const safeProducts: Product[] = (data || []).map(item => ({
-        id: item.id,
-        name: item.name || '',
+      // Map the public_products view data to ProductPublic interface
+      const mappedProducts: ProductPublic[] = (data || []).map(item => ({
+        id: item.id || 0,
+        name: item.product_name || '',
         selling_price: item.selling_price || 0,
         category: item.category || '',
         description: item.description || '',
         image: item.image || '',
-        sku: item.sku || '',
-        status: 'พรีออเดอร์'
+        product_status: item.product_status || 'พรีออเดอร์',
+        sku: item.product_sku || '',
+        quantity: 0, // Not available in public view
+        shipment_date: item.shipment_date || '',
+        options: item.options || null,
+        product_type: item.product_type || 'ETC',
+        created_at: item.created_at || '',
+        updated_at: item.updated_at || ''
       }));
 
-      setProducts(safeProducts);
+      setProducts(mappedProducts);
     } catch (error) {
       console.error('Error fetching products:', error);
       toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูลสินค้า');

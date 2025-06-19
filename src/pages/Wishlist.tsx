@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import Header from "@/components/Header";
@@ -8,22 +7,11 @@ import { Heart, ShoppingCart, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-
-interface WishlistProduct {
-  id: number;
-  name: string;
-  selling_price: number;
-  category: string;
-  image: string;
-  sku: string;
-  description: string;
-  options: any;
-  shipment_date: string;
-}
+import { ProductPublic } from "@/types/product";
 
 const Wishlist = () => {
   const { user, loading: authLoading } = useAuth();
-  const [wishlistItems, setWishlistItems] = useState<WishlistProduct[]>([]);
+  const [wishlistItems, setWishlistItems] = useState<ProductPublic[]>([]);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
 
@@ -70,7 +58,25 @@ const Wishlist = () => {
         .in('id', numericIds);
 
       if (products) {
-        setWishlistItems(products);
+        // Map the public_products view data to ProductPublic interface
+        const mappedProducts: ProductPublic[] = products.map(item => ({
+          id: item.id || 0,
+          name: item.product_name || '',
+          selling_price: item.selling_price || 0,
+          category: item.category || '',
+          description: item.description || '',
+          image: item.image || '',
+          product_status: item.product_status || 'พรีออเดอร์',
+          sku: item.product_sku || '',
+          quantity: 0,
+          shipment_date: item.shipment_date || '',
+          options: item.options || null,
+          product_type: item.product_type || 'ETC',
+          created_at: item.created_at || '',
+          updated_at: item.updated_at || ''
+        }));
+
+        setWishlistItems(mappedProducts);
       }
     } catch (error) {
       console.error('Error fetching wishlist products:', error);
@@ -100,7 +106,7 @@ const Wishlist = () => {
     }
   };
 
-  const addToCart = (item: WishlistProduct) => {
+  const addToCart = (item: ProductPublic) => {
     try {
       const cart = localStorage.getItem('cart');
       let cartItems = cart ? JSON.parse(cart) : [];

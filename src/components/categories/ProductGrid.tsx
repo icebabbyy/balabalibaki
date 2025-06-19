@@ -1,19 +1,9 @@
 
 import ProductCard from "./ProductCard";
-
-interface Product {
-  id: number;
-  name: string;
-  selling_price: number;
-  category: string;
-  description: string;
-  image: string;
-  status: string;
-  sku: string;
-}
+import { ProductPublic } from "@/types/product";
 
 interface ProductGridProps {
-  products: Product[];
+  products: ProductPublic[];
   onProductClick: (productId: number) => void;
 }
 
