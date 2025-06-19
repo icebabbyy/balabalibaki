@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -32,6 +33,7 @@ interface Category {
   id: number;
   name: string;
   image?: string;
+  display_on_homepage?: boolean;
 }
 
 const Index = () => {
@@ -39,16 +41,17 @@ const Index = () => {
   const [banners, setBanners] = useState<Banner[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [nikkeProducts, setNikkeProducts] = useState<Product[]>([]);
-  const [honkaiProducts, setHonkaiProducts] = useState<Product[]>([]);
-  const [lolProducts, setLolProducts] = useState<Product[]>([]);
+  const [homepageCategories, setHomepageCategories] = useState<Category[]>([]);
+  const [categoryProducts, setCategoryProducts] = useState<{[key: string]: Product[]}>({});
+  const [secondBanners, setSecondBanners] = useState<Banner[]>([]);
+  const [thirdBanners, setThirdBanners] = useState<Banner[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchBanners();
     fetchFeaturedProducts();
     fetchCategories();
-    fetchCategoryProducts();
+    fetchHomepageCategories();
   }, []);
 
   const fetchBanners = async () => {
@@ -58,11 +61,18 @@ const Index = () => {
         .from('banners')
         .select('*')
         .eq('active', true)
-        .eq('position', 1) // Only get position 1 banners for main carousel
         .order('created_at', { ascending: false });
       
-      console.log('Fetched banners:', data);
-      setBanners(data || []);
+      console.log('Fetched all banners:', data);
+      
+      // แยกแบนเนอร์ตามตำแหน่ง
+      const position1 = (data || []).filter(banner => banner.position === 1);
+      const position2 = (data || []).filter(banner => banner.position === 2);
+      const position3 = (data || []).filter(banner => banner.position === 3);
+      
+      setBanners(position1);
+      setSecondBanners(position2);
+      setThirdBanners(position3);
     } catch (error) {
       console.error('Error fetching banners:', error);
     }
@@ -95,34 +105,39 @@ const Index = () => {
     }
   };
 
-  const fetchCategoryProducts = async () => {
+  const fetchHomepageCategories = async () => {
     try {
-      // Fetch Nikke products
-      const { data: nikkeData } = await supabase
-        .from('public_products')
-        .select('*')
-        .eq('category', 'Nikke')
-        .limit(5);
-      
-      // Fetch Honkai Star Rail products
-      const { data: honkaiData } = await supabase
-        .from('public_products')
-        .select('*')
-        .eq('category', 'Honkai : Star Rail')
-        .limit(5);
-      
-      // Fetch League of Legends products
-      const { data: lolData } = await supabase
-        .from('public_products')
-        .select('*')
-        .eq('category', 'League of Legends')
-        .limit(5);
+      // ดึงหมวดหมู่ที่ต้องการแสดงในหน้าแรก (สำหรับตอนนี้ใช้ hardcode ก่อน)
+      const displayCategories = ['Nikke', 'Honkai : Star Rail', 'League of Legends'];
+      const categoriesData = [];
+      const productsData: {[key: string]: Product[]} = {};
 
-      setNikkeProducts(nikkeData || []);
-      setHonkaiProducts(honkaiData || []);
-      setLolProducts(lolData || []);
+      for (const categoryName of displayCategories) {
+        // ดึงข้อมูลหมวดหมู่
+        const { data: categoryInfo } = await supabase
+          .from('categories')
+          .select('*')
+          .eq('name', categoryName)
+          .single();
+
+        if (categoryInfo) {
+          categoriesData.push(categoryInfo);
+
+          // ดึงสินค้าในหมวดหมู่
+          const { data: products } = await supabase
+            .from('public_products')
+            .select('*')
+            .eq('category', categoryName)
+            .limit(5);
+
+          productsData[categoryName] = products || [];
+        }
+      }
+
+      setHomepageCategories(categoriesData);
+      setCategoryProducts(productsData);
     } catch (error) {
-      console.error('Error fetching category products:', error);
+      console.error('Error fetching homepage categories:', error);
     }
   };
 
@@ -224,11 +239,71 @@ const Index = () => {
     </section>
   );
 
+  const BannerSection = ({ banners, title }: { banners: Banner[]; title?: string }) => (
+    <section className="py-8 bg-gray-50">
+      <div className="max-w-6xl mx-auto px-4">
+        {title && <h3 className="text-xl font-bold mb-4 text-center">{title}</h3>}
+        {banners.length > 0 ? (
+          <div className="h-40 md:h-60 rounded-lg overflow-hidden">
+            <Carousel 
+              className="w-full h-full"
+              plugins={[
+                Autoplay({
+                  delay: 5000,
+                  stopOnInteraction: true,
+                })
+              ]}
+              opts={{
+                align: "start",
+                loop: true,
+              }}
+            >
+              <CarouselContent>
+                {banners.map((banner) => (
+                  <CarouselItem key={banner.id}>
+                    <div className="relative h-40 md:h-60 overflow-hidden rounded-lg">
+                      <img
+                        src={banner.image_url || '/placeholder.svg'}
+                        alt={banner.title || 'Banner'}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          console.error('Banner image failed to load:', banner.image_url);
+                          e.currentTarget.src = '/placeholder.svg';
+                        }}
+                      />
+                      {(banner.title || banner.description) && (
+                        <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
+                          <div className="text-center text-white max-w-md px-4">
+                            {banner.title && <h2 className="text-xl md:text-2xl font-bold mb-2">{banner.title}</h2>}
+                            {banner.description && <p className="text-sm md:text-base">{banner.description}</p>}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious className="left-4" />
+              <CarouselNext className="right-4" />
+            </Carousel>
+          </div>
+        ) : (
+          <div className="h-40 md:h-60 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
+            <div className="text-center text-white">
+              <h3 className="text-xl md:text-2xl font-bold mb-2">ส่วนลดพิเศษ</h3>
+              <p className="text-sm md:text-base">สินค้าคุณภาพ ราคาดีที่สุด</p>
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      {/* แบนเนอร์ขนาดกลางแบบ Auto Carousel - Position 1 only */}
+      {/* แบนเนอร์หลัก - Position 1 */}
       <section className="relative">
         {banners.length > 0 ? (
           <div className="max-w-4xl mx-auto px-4 py-8">
@@ -286,7 +361,7 @@ const Index = () => {
         )}
       </section>
 
-      {/* หมวดหมู่สินค้าทั้งหมด - เน้นรูปภาพ */}
+      {/* หมวดหมู่สินค้าทั้งหมด */}
       <section className="py-12 bg-white">
         <div className="max-w-7xl mx-auto px-4">
           <h2 className="text-2xl font-bold mb-8 text-center">หมวดหมู่สินค้า</h2>
@@ -307,7 +382,6 @@ const Index = () => {
                           <div className="w-8 h-8 bg-white rounded-full opacity-80"></div>
                         </div>
                       )}
-                      {/* เอฟเฟกต์ overlay เมื่อ hover */}
                       <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-10 transition-all duration-300"></div>
                     </div>
                     <h3 className="font-medium text-xs text-center text-gray-800 line-clamp-2 leading-tight">
@@ -348,26 +422,21 @@ const Index = () => {
         </div>
       </section>
 
-      {/* หมวดหมู่ยอดนิยม - Nikke */}
-      <CategorySection title="Nikke" products={nikkeProducts} categoryName="Nikke" />
+      {/* แบนเนอร์ตำแหน่งที่ 2 - ใต้สินค้ามาใหม่ */}
+      <BannerSection banners={secondBanners} />
 
-      {/* แบนเนอร์รูปภาพ */}
-      <section className="py-8 bg-gray-50">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="h-40 md:h-60 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-            <div className="text-center text-white">
-              <h3 className="text-xl md:text-2xl font-bold mb-2">ส่วนลดพิเศษ</h3>
-              <p className="text-sm md:text-base">สินค้าคุณภาพ ราคาดีที่สุด</p>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* แสดงหมวดหมู่ที่เลือกไว้ */}
+      {homepageCategories.map((category) => (
+        <CategorySection 
+          key={category.id}
+          title={category.name} 
+          products={categoryProducts[category.name] || []} 
+          categoryName={category.name} 
+        />
+      ))}
 
-      {/* หมวดหมู่ยอดนิยม - Honkai : Star Rail */}
-      <CategorySection title="Honkai : Star Rail" products={honkaiProducts} categoryName="Honkai : Star Rail" />
-
-      {/* หมวดหมู่ยอดนิยม - League of Legends */}
-      <CategorySection title="League of Legends" products={lolProducts} categoryName="League of Legends" />
+      {/* แบนเนอร์ตำแหน่งที่ 3 - ใต้ League of Legends */}
+      <BannerSection banners={thirdBanners} />
     </div>
   );
 };

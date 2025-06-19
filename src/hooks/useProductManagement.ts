@@ -43,10 +43,11 @@ export const useProductManagement = () => {
         return;
       }
 
-      // Map the data to ensure all required fields are present
+      // Map the data to ensure all required fields are present with correct status handling
       const mappedData = (data || []).map(item => ({
         ...item,
-        status: item['status TEXT DEFAULT'] || 'พรีออเดอร์', // Access the oddly named status field
+        // แก้ไขการดึงสถานะให้ถูกต้อง
+        status: item.status || item['status TEXT DEFAULT'] || 'พรีออเดอร์',
         shipment_date: item.shipment_date || '',
         description: item.description || '',
         link: item.link || '',
@@ -55,6 +56,7 @@ export const useProductManagement = () => {
       }));
 
       setProducts(mappedData);
+      console.log('Fetched products with status:', mappedData.map(p => ({ id: p.id, name: p.name, status: p.status })));
     } catch (error) {
       console.error('Error fetching products:', error);
       toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูลสินค้า');
@@ -66,12 +68,22 @@ export const useProductManagement = () => {
   const updateProduct = async (productId: number, updates: Partial<Product>) => {
     try {
       setUpdating(true);
+      
+      // แก้ไขการอัปเดตสถานะให้ถูกต้อง
+      const updateData: any = {
+        ...updates,
+        updated_at: new Date().toISOString()
+      };
+
+      // ถ้ามีการอัปเดตสถานะ ให้ใช้ field ที่ถูกต้อง
+      if (updates.status) {
+        updateData['status TEXT DEFAULT'] = updates.status;
+        delete updateData.status;
+      }
+
       const { error } = await supabase
         .from('products')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', productId);
 
       if (error) {

@@ -1,7 +1,8 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trash2, Plus } from 'lucide-react';
+import { Trash2, Plus, GripVertical } from 'lucide-react';
 import { toast } from 'sonner';
 import { useProductImages } from '@/hooks/useProductImages';
 import PhotoCopyPaste from '@/components/PhotoCopyPaste';
@@ -26,10 +27,8 @@ const EnhancedProductImageManager = ({ productId }: EnhancedProductImageManagerP
 
   const handleImageDelete = async (imageId: number) => {
     if (window.confirm('คุณต้องการลบรูปภาพนี้หรือไม่?')) {
-      const success = await deleteImage(imageId);
-      if (success) {
-        toast.success('ลบรูปภาพสำเร็จ!');
-      }
+      await deleteImage(imageId);
+      toast.success('ลบรูปภาพสำเร็จ!');
     }
   };
 
@@ -59,11 +58,14 @@ const EnhancedProductImageManager = ({ productId }: EnhancedProductImageManagerP
           </div>
         </CardHeader>
         <CardContent>
-          {/* Add New Image */}
+          {/* Add New Image - ใช้ PhotoCopyPaste ที่ปรับปรุงแล้ว */}
           {isAddingImage && (
             <Card className="mb-6">
               <CardHeader>
                 <CardTitle className="text-lg">เพิ่มรูปภาพใหม่</CardTitle>
+                <p className="text-sm text-gray-600">
+                  คุณสามารถลากวาง, วาง (Ctrl+V), หรือเลือกไฟล์ได้
+                </p>
               </CardHeader>
               <CardContent>
                 <PhotoCopyPaste
@@ -88,24 +90,36 @@ const EnhancedProductImageManager = ({ productId }: EnhancedProductImageManagerP
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {images.map((image, index) => (
                 <div key={image.id} className="relative group">
-                  <img
-                    src={image.image_url || '/placeholder.svg'}
-                    alt={`Product image ${index + 1}`}
-                    className="w-full h-48 object-cover rounded-lg border"
-                  />
-                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity rounded-lg flex items-center justify-center">
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleImageDelete(image.id)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <Trash2 className="h-4 w-4 mr-1" />
-                      ลบ
-                    </Button>
-                  </div>
-                  <div className="absolute top-2 left-2 bg-black bg-opacity-75 text-white px-2 py-1 rounded text-sm">
-                    #{index + 1}
+                  <div className="relative">
+                    <img
+                      src={image.image_url || '/placeholder.svg'}
+                      alt={`Product image ${index + 1}`}
+                      className="w-full h-48 object-cover rounded-lg border"
+                    />
+                    
+                    {/* Overlay Controls */}
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity rounded-lg flex items-center justify-center">
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex space-x-2">
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleImageDelete(image.id)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          ลบ
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    {/* Order Badge */}
+                    <div className="absolute top-2 left-2 bg-black bg-opacity-75 text-white px-2 py-1 rounded text-sm font-medium">
+                      #{index + 1}
+                    </div>
+                    
+                    {/* Drag Handle */}
+                    <div className="absolute top-2 right-2 bg-black bg-opacity-75 text-white p-1 rounded cursor-move">
+                      <GripVertical className="h-4 w-4" />
+                    </div>
                   </div>
                 </div>
               ))}
