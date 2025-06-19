@@ -87,16 +87,26 @@ const Admin = () => {
 
       // Map the data to ensure all required fields are present
       const mappedProducts: Product[] = (data || []).map(item => ({
-        ...item,
-        created_at: item.created_at || new Date().toISOString(),
-        updated_at: item.updated_at || new Date().toISOString(),
+        id: item.id,
+        name: item.name || '',
+        category: item.category || '',
+        selling_price: item.selling_price || 0,
+        cost_thb: item.cost_thb || 0,
+        import_cost: item.import_cost || 0,
+        exchange_rate: item.exchange_rate || 0,
+        price_yuan: item.price_yuan || 0,
+        image: item.image || '',
+        description: item.description || '',
+        sku: item.sku || '',
+        quantity: item.quantity || 0,
         product_status: item.product_status || 'พรีออเดอร์',
         product_type: item.product_type || 'ETC',
-        shipping_fee: item.shipping_fee || '',
-        shipment_date: item.shipment_date || '',
         link: item.link || '',
-        description: item.description || '',
-        options: item.options || null
+        shipment_date: item.shipment_date || '',
+        shipping_fee: item.shipping_fee || '',
+        options: item.options || null,
+        created_at: item.created_at || new Date().toISOString(),
+        updated_at: item.updated_at || new Date().toISOString()
       }));
 
       setProducts(mappedProducts);
