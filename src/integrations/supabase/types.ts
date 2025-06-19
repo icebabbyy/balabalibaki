@@ -61,15 +61,20 @@ export type Database = {
         Row: {
           address: string | null
           admin_notes: string | null
+          admin_read: boolean | null
           created_at: string | null
           deposit: number | null
           discount: number | null
           id: number
           items: Json
+          notification_sent: boolean | null
           order_date: string | null
+          payment_confirmed_at: string | null
           payment_date: string | null
           payment_slip: string | null
+          payment_slip_url: string | null
           profit: number | null
+          qr_code_generated: boolean | null
           shipping_cost: number | null
           status: string | null
           total_cost: number | null
@@ -81,15 +86,20 @@ export type Database = {
         Insert: {
           address?: string | null
           admin_notes?: string | null
+          admin_read?: boolean | null
           created_at?: string | null
           deposit?: number | null
           discount?: number | null
           id?: number
           items: Json
+          notification_sent?: boolean | null
           order_date?: string | null
+          payment_confirmed_at?: string | null
           payment_date?: string | null
           payment_slip?: string | null
+          payment_slip_url?: string | null
           profit?: number | null
+          qr_code_generated?: boolean | null
           shipping_cost?: number | null
           status?: string | null
           total_cost?: number | null
@@ -101,15 +111,20 @@ export type Database = {
         Update: {
           address?: string | null
           admin_notes?: string | null
+          admin_read?: boolean | null
           created_at?: string | null
           deposit?: number | null
           discount?: number | null
           id?: number
           items?: Json
+          notification_sent?: boolean | null
           order_date?: string | null
+          payment_confirmed_at?: string | null
           payment_date?: string | null
           payment_slip?: string | null
+          payment_slip_url?: string | null
           profit?: number | null
+          qr_code_generated?: boolean | null
           shipping_cost?: number | null
           status?: string | null
           total_cost?: number | null
