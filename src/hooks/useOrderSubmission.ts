@@ -7,20 +7,36 @@ export const useOrderSubmission = () => {
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmitOrder = async (orderData: any, paymentSlipUrl: string) => {
+    console.log('handleSubmitOrder called with:', { orderData, paymentSlipUrl });
+    
     if (!orderData) {
+      console.error('No order data provided');
       toast.error("ไม่พบข้อมูลคำสั่งซื้อ");
       return;
     }
 
-    if (!paymentSlipUrl) {
+    if (!paymentSlipUrl || paymentSlipUrl.trim() === '') {
+      console.error('No payment slip URL provided');
       toast.error("กรุณาอัพโหลดสลิปการโอนเงิน");
+      return;
+    }
+
+    if (!orderData.items || orderData.items.length === 0) {
+      console.error('No items in order');
+      toast.error("ไม่พบสินค้าในคำสั่งซื้อ");
+      return;
+    }
+
+    if (!orderData.customerInfo || !orderData.customerInfo.name || !orderData.customerInfo.phone || !orderData.customerInfo.address) {
+      console.error('Incomplete customer info');
+      toast.error("ข้อมูลลูกค้าไม่ครบถ้วน");
       return;
     }
 
     setSubmitting(true);
     
     try {
-      console.log('Submitting order:', orderData);
+      console.log('Submitting order to database:', orderData);
       
       // Prepare order items for database
       const orderItems = orderData.items.map((item: any) => ({
@@ -28,26 +44,33 @@ export const useOrderSubmission = () => {
         name: item.name,
         price: item.price,
         quantity: item.quantity,
-        sku: item.sku
+        sku: item.sku || '',
+        image: item.image || ''
       }));
 
+      console.log('Prepared order items:', orderItems);
+
       // Create order in database
+      const orderPayload = {
+        username: orderData.customerInfo.name,
+        items: orderItems,
+        total_selling_price: orderData.totalPrice,
+        address: `${orderData.customerInfo.address}${orderData.customerInfo.note ? ` (หมายเหตุ: ${orderData.customerInfo.note})` : ''}`,
+        status: 'รอตรวจสอบการชำระเงิน',
+        order_date: new Date().toISOString(),
+        payment_slip_url: paymentSlipUrl,
+      };
+
+      console.log('Order payload:', orderPayload);
+
       const { data, error } = await supabase
         .from('orders')
-        .insert({
-          username: orderData.customerInfo.name,
-          items: orderItems,
-          total_selling_price: orderData.totalPrice,
-          address: `${orderData.customerInfo.address}${orderData.customerInfo.note ? ` (หมายเหตุ: ${orderData.customerInfo.note})` : ''}`,
-          status: 'รอตรวจสอบการชำระเงิน',
-          order_date: new Date().toISOString(),
-          payment_slip_url: paymentSlipUrl,
-        })
+        .insert(orderPayload)
         .select();
 
       if (error) {
-        console.error('Error creating order:', error);
-        toast.error("เกิดข้อผิดพลาดในการสร้างคำสั่งซื้อ");
+        console.error('Supabase error creating order:', error);
+        toast.error(`เกิดข้อผิดพลาดในการสร้างคำสั่งซื้อ: ${error.message}`);
         return;
       }
 

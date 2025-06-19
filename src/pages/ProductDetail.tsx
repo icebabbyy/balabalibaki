@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -36,7 +37,6 @@ const ProductDetail = () => {
     try {
       setLoading(true);
       
-      // ใช้ public_products เพื่อความปลอดภัย - ไม่แสดงข้อมูลต้นทุน (ไม่ query status เพราะไม่มี column นี้)
       const { data, error } = await supabase
         .from('public_products')
         .select('id, name, selling_price, category, description, image, sku')
@@ -50,7 +50,6 @@ const ProductDetail = () => {
       }
 
       if (data) {
-        // แปลงข้อมูลให้ตรงกับ interface
         const productData: Product = {
           id: data.id,
           name: data.name,
@@ -59,7 +58,7 @@ const ProductDetail = () => {
           description: data.description || '',
           image: data.image || '',
           sku: data.sku,
-          status: 'พรีออเดอร์' // ใช้ default value เพราะ public_products ไม่มี status column
+          status: 'พรีออเดอร์'
         };
         
         setProduct(productData);
@@ -113,10 +112,7 @@ const ProductDetail = () => {
         sku: product.sku
       };
 
-      // Clear existing cart and add this item
       localStorage.setItem('cart', JSON.stringify([cartItem]));
-      
-      // Redirect to cart page
       window.location.href = '/cart';
     } catch (error) {
       console.error('Error in buy now:', error);
@@ -192,11 +188,11 @@ const ProductDetail = () => {
           <div className="space-y-6">
             <div>
               <h1 className="text-3xl font-bold text-gray-800 mb-2">{product?.name}</h1>
-              <p className="text-sm text-gray-600 mb-4">SKU: {product?.sku}</p>
+              <p className="text-sm text-gray-600 mb-2">SKU: {product?.sku}</p>
               
               {/* Status Badge */}
               <Badge 
-                className={`text-white mb-4 ${
+                className={`text-white mb-2 ${
                   product?.status === 'พรีออเดอร์' 
                     ? 'bg-orange-500' 
                     : 'bg-green-500'
@@ -205,18 +201,12 @@ const ProductDetail = () => {
                 {product?.status}
               </Badge>
               
+              <p className="text-sm text-gray-600 mb-4">หมวดหมู่: {product?.category}</p>
+              
               <p className="text-4xl font-bold mb-6" style={{ color: '#956ec3' }}>
                 ฿{product?.selling_price?.toLocaleString()}
               </p>
             </div>
-
-            {/* Description */}
-            {product?.description && (
-              <div>
-                <h3 className="text-lg font-semibold mb-2">รายละเอียดสินค้า</h3>
-                <p className="text-gray-600 leading-relaxed">{product.description}</p>
-              </div>
-            )}
 
             {/* Quantity Selection */}
             <div className="space-y-4">
@@ -283,26 +273,20 @@ const ProductDetail = () => {
                 </Button>
               </div>
             </div>
-
-            {/* Additional Info */}
-            <div className="border-t pt-6">
-              <div className="grid grid-cols-1 gap-4 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">หมวดหมู่:</span>
-                  <span className="font-medium">{product?.category}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">รหัสสินค้า:</span>
-                  <span className="font-medium">{product?.sku}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">สถานะ:</span>
-                  <span className="font-medium">{product?.status}</span>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
+
+        {/* Description Section - Moved Below */}
+        {product?.description && (
+          <div className="mt-12">
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="text-2xl font-bold mb-4">รายละเอียดสินค้า</h3>
+                <p className="text-gray-600 leading-relaxed whitespace-pre-line">{product.description}</p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   );
