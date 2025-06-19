@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,6 +9,8 @@ import { ShoppingCart, Heart, Minus, Plus, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
+import ProductImageGallery from "@/components/ProductImageGallery";
+import { useProductImages } from "@/hooks/useProductImages";
 
 interface Product {
   id: number;
@@ -18,6 +21,7 @@ interface Product {
   image: string;
   status: string;
   sku: string;
+  options: any;
 }
 
 const ProductDetail = () => {
@@ -25,6 +29,9 @@ const ProductDetail = () => {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
+  
+  const { images } = useProductImages(product?.id);
 
   useEffect(() => {
     if (id) {
@@ -36,10 +43,9 @@ const ProductDetail = () => {
     try {
       setLoading(true);
       
-      // ใช้ public_products เพื่อความปลอดภัย - ไม่แสดงข้อมูลต้นทุน (ไม่ query status เพราะไม่มี column นี้)
       const { data, error } = await supabase
         .from('public_products')
-        .select('id, name, selling_price, category, description, image, sku')
+        .select('id, name, selling_price, category, description, image, sku, options')
         .eq('id', parseInt(id!))
         .single();
 
@@ -50,7 +56,6 @@ const ProductDetail = () => {
       }
 
       if (data) {
-        // แปลงข้อมูลให้ตรงกับ interface
         const productData: Product = {
           id: data.id,
           name: data.name,
@@ -59,7 +64,8 @@ const ProductDetail = () => {
           description: data.description || '',
           image: data.image || '',
           sku: data.sku,
-          status: 'พรีออเดอร์' // ใช้ default value เพราะ public_products ไม่มี status column
+          status: 'พรีออเดอร์',
+          options: data.options
         };
         
         setProduct(productData);
@@ -88,7 +94,8 @@ const ProductDetail = () => {
           price: product.selling_price,
           quantity: quantity,
           image: product.image,
-          sku: product.sku
+          sku: product.sku,
+          selectedOptions
         });
       }
 
@@ -110,13 +117,11 @@ const ProductDetail = () => {
         price: product.selling_price,
         quantity: quantity,
         image: product.image,
-        sku: product.sku
+        sku: product.sku,
+        selectedOptions
       };
 
-      // Clear existing cart and add this item
       localStorage.setItem('cart', JSON.stringify([cartItem]));
-      
-      // Redirect to cart page
       window.location.href = '/cart';
     } catch (error) {
       console.error('Error in buy now:', error);
@@ -161,6 +166,9 @@ const ProductDetail = () => {
     );
   }
 
+  // Get additional images from product_images
+  const additionalImages = images.map(img => img.image_url);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -175,46 +183,64 @@ const ProductDetail = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Product Image */}
-          <div className="space-y-4">
-            <Card>
-              <CardContent className="p-0">
-                <img
-                  src={product?.image || '/placeholder.svg'}
-                  alt={product?.name}
-                  className="w-full h-96 object-cover rounded-lg"
-                />
-              </CardContent>
-            </Card>
+          {/* Product Images */}
+          <div>
+            <ProductImageGallery
+              mainImage={product.image}
+              additionalImages={additionalImages}
+              productName={product.name}
+            />
           </div>
 
           {/* Product Info */}
           <div className="space-y-6">
+            {/* Product Header */}
             <div>
-              <h1 className="text-3xl font-bold text-gray-800 mb-2">{product?.name}</h1>
-              <p className="text-sm text-gray-600 mb-4">SKU: {product?.sku}</p>
+              <h1 className="text-3xl font-bold text-gray-800 mb-3">{product.name}</h1>
               
-              {/* Status Badge */}
-              <Badge 
-                className={`text-white mb-4 ${
-                  product?.status === 'พรีออเดอร์' 
-                    ? 'bg-orange-500' 
-                    : 'bg-green-500'
-                }`}
-              >
-                {product?.status}
-              </Badge>
+              <div className="flex items-center space-x-4 mb-4">
+                <Badge 
+                  className={`text-white ${
+                    product.status === 'พรีออเดอร์' 
+                      ? 'bg-orange-500' 
+                      : 'bg-green-500'
+                  }`}
+                >
+                  {product.status}
+                </Badge>
+                <span className="text-sm text-gray-600">หมวดหมู่: {product.category}</span>
+                <span className="text-sm text-gray-600">SKU: {product.sku}</span>
+              </div>
               
               <p className="text-4xl font-bold mb-6" style={{ color: '#956ec3' }}>
-                ฿{product?.selling_price?.toLocaleString()}
+                ฿{product.selling_price?.toLocaleString()}
               </p>
             </div>
 
-            {/* Description */}
-            {product?.description && (
-              <div>
-                <h3 className="text-lg font-semibold mb-2">รายละเอียดสินค้า</h3>
-                <p className="text-gray-600 leading-relaxed">{product.description}</p>
+            {/* Product Options */}
+            {product.options && Object.keys(product.options).length > 0 && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">ตัวเลือกสินค้า</h3>
+                {Object.entries(product.options).map(([optionName, optionValues]: [string, any]) => (
+                  <div key={optionName}>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      {optionName}
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {(Array.isArray(optionValues) ? optionValues : [optionValues]).map((value: string, index: number) => (
+                        <Button
+                          key={index}
+                          variant={selectedOptions[optionName] === value ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setSelectedOptions(prev => ({ ...prev, [optionName]: value }))}
+                          style={selectedOptions[optionName] === value ? { backgroundColor: '#956ec3' } : {}}
+                        >
+                          {value}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
 
@@ -283,26 +309,24 @@ const ProductDetail = () => {
                 </Button>
               </div>
             </div>
-
-            {/* Additional Info */}
-            <div className="border-t pt-6">
-              <div className="grid grid-cols-1 gap-4 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">หมวดหมู่:</span>
-                  <span className="font-medium">{product?.category}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">รหัสสินค้า:</span>
-                  <span className="font-medium">{product?.sku}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">สถานะ:</span>
-                  <span className="font-medium">{product?.status}</span>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
+
+        {/* Product Description */}
+        {product.description && (
+          <div className="mt-12">
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="text-xl font-semibold mb-4">รายละเอียดสินค้า</h3>
+                <div className="prose max-w-none">
+                  <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                    {product.description}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   );

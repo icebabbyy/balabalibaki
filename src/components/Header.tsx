@@ -24,7 +24,6 @@ const Header = () => {
   }, [user]);
 
   useEffect(() => {
-    // Update cart count from localStorage
     const updateCartCount = () => {
       const cart = localStorage.getItem('cart');
       if (cart) {
@@ -37,11 +36,7 @@ const Header = () => {
     };
 
     updateCartCount();
-
-    // Listen for storage changes
     window.addEventListener('storage', updateCartCount);
-    
-    // Custom event for cart updates
     window.addEventListener('cartUpdated', updateCartCount);
 
     return () => {
@@ -56,7 +51,7 @@ const Header = () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('username, role')
+        .select('username, role, full_name')
         .eq('id', user.id)
         .maybeSingle();
 
@@ -90,10 +85,12 @@ const Header = () => {
     }
   };
 
-  // Get display name - show username only, fallback to email username part
   const getDisplayName = () => {
     if (profile?.username && profile.username.trim() !== '') {
       return profile.username;
+    }
+    if (profile?.full_name && profile.full_name.trim() !== '') {
+      return profile.full_name;
     }
     return user?.email?.split('@')[0] || 'ผู้ใช้';
   };
@@ -142,7 +139,6 @@ const Header = () => {
             </button>
           </nav>
 
-          {/* Search Bar */}
           <form onSubmit={handleSearch} className="hidden md:flex items-center space-x-2">
             <div className="relative">
               <Input
@@ -196,7 +192,7 @@ const Header = () => {
                         <User className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56 bg-white">
+                    <DropdownMenuContent className="w-56 bg-white z-50">
                       <DropdownMenuItem onClick={() => navigate('/profile')}>
                         <User className="mr-2 h-4 w-4" />
                         <span>จัดการโปรไฟล์</span>

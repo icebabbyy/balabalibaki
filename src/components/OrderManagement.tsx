@@ -3,13 +3,15 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Package, CheckCircle, Clock, AlertCircle, Truck } from "lucide-react";
+import { Edit, Package, CheckCircle, Clock, AlertCircle, Truck, MessageSquare, DollarSign } from "lucide-react";
 import { useOrderManagement } from "@/hooks/useOrderManagement";
 import OrderTrackingDialog from "@/components/OrderTrackingDialog";
+import OrderEditDialog from "@/components/OrderEditDialog";
 
 const OrderManagement = () => {
-  const { orders, loading, updateOrderStatus } = useOrderManagement();
+  const { orders, loading, updateOrderStatus, refetch } = useOrderManagement();
   const [editingOrder, setEditingOrder] = useState(null);
+  const [trackingOrder, setTrackingOrder] = useState(null);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -88,7 +90,7 @@ const OrderManagement = () => {
                     <div>
                       <span className="text-gray-600">สินค้า:</span>
                       <p className="font-medium">
-                        {order.items && order.items[0] ? order.items[0].productName : 'ไม่ระบุสินค้า'}
+                        {order.items && order.items[0] ? order.items[0].name : 'ไม่ระบุสินค้า'}
                       </p>
                     </div>
                     <div>
@@ -105,45 +107,55 @@ const OrderManagement = () => {
                     </div>
                   </div>
 
-                  {/* Tracking & Notes Section */}
+                  {/* Financial Summary */}
                   <div className="bg-gray-50 rounded-lg p-3 mb-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                       <div>
-                        <span className="text-gray-600">หมายเลขติดตาม:</span>
-                        <p className="font-medium">
-                          {order.tracking_number ? (
-                            <span className="font-mono bg-blue-100 px-2 py-1 rounded">
-                              {order.tracking_number}
-                            </span>
-                          ) : (
-                            <span className="text-gray-400">ยังไม่ได้ระบุ</span>
-                          )}
-                        </p>
+                        <span className="text-gray-600">มัดจำ:</span>
+                        <p>฿{order.deposit?.toLocaleString() || '0'}</p>
                       </div>
                       <div>
-                        <span className="text-gray-600">หมายเหตุแอดมิน:</span>
-                        <p className="font-medium">
-                          {order.admin_notes || <span className="text-gray-400">ไม่มีหมายเหตุ</span>}
+                        <span className="text-gray-600">ค่าส่ง:</span>
+                        <p>฿{order.shipping_cost?.toLocaleString() || '0'}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">ส่วนลด:</span>
+                        <p>฿{order.discount?.toLocaleString() || '0'}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">กำไร:</span>
+                        <p className="font-medium text-green-600">
+                          ฿{order.profit?.toLocaleString() || '0'}
                         </p>
                       </div>
                     </div>
                   </div>
 
-                  {/* Financial Info */}
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+                  {/* Tracking & Notes */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span className="text-gray-600">มัดจำ:</span>
-                      <p>฿{order.deposit?.toLocaleString() || '0'}</p>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">ยอดคงเหลือ:</span>
-                      <p>฿{order.profit?.toLocaleString() || '0'}</p>
+                      <span className="text-gray-600">หมายเลขติดตาม:</span>
+                      <p className="font-medium">
+                        {order.tracking_number ? (
+                          <span className="font-mono bg-blue-100 px-2 py-1 rounded">
+                            {order.tracking_number}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">ยังไม่ได้ระบุ</span>
+                        )}
+                      </p>
                     </div>
                     <div>
                       <span className="text-gray-600">วันที่สร้าง:</span>
                       <p>{order.created_at ? new Date(order.created_at).toLocaleDateString('th-TH') : 'ไม่ระบุ'}</p>
                     </div>
                   </div>
+
+                  {order.admin_notes && (
+                    <div className="mt-3 p-3 bg-blue-50 rounded border-l-4 border-blue-400">
+                      <p className="text-sm text-blue-800">{order.admin_notes}</p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex flex-col space-y-2 ml-4">
@@ -152,8 +164,17 @@ const OrderManagement = () => {
                     size="sm"
                     onClick={() => setEditingOrder(order)}
                   >
+                    <DollarSign className="h-4 w-4 mr-1" />
+                    แก้ไขยอด
+                  </Button>
+
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setTrackingOrder(order)}
+                  >
                     <Edit className="h-4 w-4 mr-1" />
-                    แก้ไข Tracking
+                    Tracking
                   </Button>
 
                   {order.status === 'รอชำระเงิน' && (
@@ -205,11 +226,19 @@ const OrderManagement = () => {
         )}
       </div>
 
-      {/* Order Tracking Dialog */}
-      <OrderTrackingDialog
+      {/* Order Edit Dialog */}
+      <OrderEditDialog
         order={editingOrder}
         isOpen={!!editingOrder}
         onClose={() => setEditingOrder(null)}
+        onUpdate={refetch}
+      />
+
+      {/* Order Tracking Dialog */}
+      <OrderTrackingDialog
+        order={trackingOrder}
+        isOpen={!!trackingOrder}
+        onClose={() => setTrackingOrder(null)}
       />
     </div>
   );

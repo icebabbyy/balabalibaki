@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import Header from "@/components/Header";
@@ -15,7 +16,6 @@ interface WishlistProduct {
   category: string;
   image: string;
   sku: string;
-  "status TEXT DEFAULT": string;
   description: string;
   options: any;
   shipment_date: string;
@@ -45,7 +45,6 @@ const Wishlist = () => {
       
       if (data) {
         setProfile(data);
-        // Parse wishlist from string (comma-separated IDs) to array
         const wishlistIds = data.wishlist ? data.wishlist.split(',').filter((id: string) => id.trim()) : [];
         await fetchWishlistProducts(wishlistIds);
       }
@@ -63,7 +62,6 @@ const Wishlist = () => {
     }
 
     try {
-      // Convert string IDs to numbers for the query
       const numericIds = productIds.map(id => parseInt(id)).filter(id => !isNaN(id));
       
       const { data: products } = await supabase
@@ -82,12 +80,9 @@ const Wishlist = () => {
 
   const removeFromWishlist = async (itemId: number) => {
     try {
-      // Get current wishlist
       const currentWishlist = profile?.wishlist ? profile.wishlist.split(',').filter((id: string) => id.trim()) : [];
-      // Remove the item
       const updatedWishlist = currentWishlist.filter((id: string) => id !== itemId.toString());
       
-      // Update in database
       const { error } = await supabase
         .from('profiles')
         .update({ wishlist: updatedWishlist.join(',') })
@@ -95,7 +90,6 @@ const Wishlist = () => {
 
       if (error) throw error;
 
-      // Update local state
       setWishlistItems(items => items.filter(item => item.id !== itemId));
       setProfile((prev: any) => ({ ...prev, wishlist: updatedWishlist.join(',') }));
       
@@ -111,14 +105,11 @@ const Wishlist = () => {
       const cart = localStorage.getItem('cart');
       let cartItems = cart ? JSON.parse(cart) : [];
       
-      // Check if item already exists in cart
       const existingItemIndex = cartItems.findIndex((cartItem: any) => cartItem.id === item.id);
       
       if (existingItemIndex > -1) {
-        // Item exists, increase quantity
         cartItems[existingItemIndex].quantity += 1;
       } else {
-        // New item, add to cart
         cartItems.push({
           id: item.id,
           name: item.name,
@@ -130,8 +121,6 @@ const Wishlist = () => {
       }
       
       localStorage.setItem('cart', JSON.stringify(cartItems));
-      
-      // Dispatch custom event to update cart count
       window.dispatchEvent(new CustomEvent('cartUpdated'));
       
       toast.success(`เพิ่ม ${item.name} ลงในตะกร้าแล้ว`);
