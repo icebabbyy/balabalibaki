@@ -13,8 +13,6 @@ interface Order {
   deposit: number;
   profit: number;
   total_selling_price: number;
-  shipping_cost: number;
-  discount: number;
   created_at: string;
   updated_at: string;
 }
