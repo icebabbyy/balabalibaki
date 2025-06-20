@@ -148,6 +148,8 @@ export type Database = {
           image_url: string | null
           order: number | null
           product_id: number | null
+          variant_id: string | null
+          variant_name: string | null
         }
         Insert: {
           created_at?: string
@@ -155,6 +157,8 @@ export type Database = {
           image_url?: string | null
           order?: number | null
           product_id?: number | null
+          variant_id?: string | null
+          variant_name?: string | null
         }
         Update: {
           created_at?: string
@@ -162,6 +166,8 @@ export type Database = {
           image_url?: string | null
           order?: number | null
           product_id?: number | null
+          variant_id?: string | null
+          variant_name?: string | null
         }
         Relationships: [
           {
@@ -208,7 +214,6 @@ export type Database = {
           created_at: string | null
           description: string | null
           exchange_rate: number
-          extra_images: string | null
           id: number
           image: string
           import_cost: number
@@ -231,7 +236,6 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           exchange_rate?: number
-          extra_images?: string | null
           id?: number
           image: string
           import_cost?: number
@@ -254,7 +258,6 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           exchange_rate?: number
-          extra_images?: string | null
           id?: number
           image?: string
           import_cost?: number

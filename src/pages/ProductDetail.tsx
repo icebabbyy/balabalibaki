@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,7 +5,7 @@ import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, ShoppingCart, Package, Calendar, Truck, CreditCard } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Package, Calendar, Truck, CreditCard, Clock } from "lucide-react";
 import { toast } from "sonner";
 import ProductImageGallery from "@/components/ProductImageGallery";
 import ProductVariantSelector from "@/components/ProductVariantSelector";
@@ -88,7 +87,7 @@ const ProductDetail = () => {
       id: product.id,
       name: product.name,
       price: product.selling_price,
-      image: product.image,
+      image: variantImage || product.image,
       quantity: quantity,
       sku: product.sku,
       variant: selectedVariant || null,
@@ -129,7 +128,7 @@ const ProductDetail = () => {
       id: product.id,
       name: product.name,
       price: product.selling_price,
-      image: product.image,
+      image: variantImage || product.image,
       quantity: quantity,
       sku: product.sku,
       variant: selectedVariant || null,
@@ -144,13 +143,13 @@ const ProductDetail = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'พรีออเดอร์':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-orange-100 text-orange-800 border-orange-200';
       case 'พร้อมส่ง':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-100 text-green-800 border-green-200';
       case 'สินค้าหมด':
-        return 'bg-red-100 text-red-800';
+        return 'bg-red-100 text-red-800 border-red-200';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
@@ -228,27 +227,43 @@ const ProductDetail = () => {
                   {product.name}
                 </h1>
                 
-                {/* Reorganized Product Information */}
-                <div className="space-y-3">
+                {/* Product Information - Reorganized */}
+                <div className="space-y-4">
                   {/* Category */}
                   <div className="flex items-center space-x-2">
                     <Package className="h-4 w-4 text-gray-500" />
                     <span className="text-gray-600">หมวดหมู่:</span>
-                    <span className="font-medium">{product.category}</span>
+                    <span className="font-medium text-purple-600">{product.category}</span>
                   </div>
                   
-                  {/* Status and Shipment Date */}
-                  <div className="flex items-center space-x-4">
-                    <div className="flex items-center space-x-2">
-                      <Badge className={getStatusColor(product.product_status)}>
-                        {product.product_status}
-                      </Badge>
+                  {/* Status and Shipment Date - Enhanced UI */}
+                  <div className="bg-white rounded-lg border p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="flex items-center space-x-2">
+                          {product.product_status === 'พรีออเดอร์' ? (
+                            <Clock className="h-4 w-4 text-orange-500" />
+                          ) : (
+                            <Package className="h-4 w-4 text-green-500" />
+                          )}
+                          <span className="text-sm font-medium text-gray-700">สถานะสินค้า:</span>
+                        </div>
+                        <Badge className={`${getStatusColor(product.product_status)} font-medium`}>
+                          {product.product_status}
+                        </Badge>
+                      </div>
                     </div>
+                    
                     {product.shipment_date && (
-                      <div className="flex items-center space-x-2">
-                        <Calendar className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm text-gray-600">
-                          กำหนดส่ง: {new Date(product.shipment_date).toLocaleDateString('th-TH')}
+                      <div className="flex items-center space-x-2 pt-2 border-t">
+                        <Calendar className="h-4 w-4 text-blue-500" />
+                        <span className="text-sm font-medium text-gray-700">กำหนดส่ง:</span>
+                        <span className="text-sm text-blue-600 font-medium">
+                          {new Date(product.shipment_date).toLocaleDateString('th-TH', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}
                         </span>
                       </div>
                     )}
@@ -257,7 +272,7 @@ const ProductDetail = () => {
                   {/* SKU */}
                   <div className="flex items-center space-x-2">
                     <span className="text-gray-600">SKU:</span>
-                    <span className="font-mono text-sm">{product.sku}</span>
+                    <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">{product.sku}</span>
                   </div>
                 </div>
               </div>
@@ -267,7 +282,7 @@ const ProductDetail = () => {
                 ฿{product.selling_price?.toLocaleString()}
               </div>
 
-              {/* Product Options */}
+              {/* Product Options with Enhanced Variant Selector */}
               {product.options && (
                 <ProductVariantSelector
                   options={product.options}
