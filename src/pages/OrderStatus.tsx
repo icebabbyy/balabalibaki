@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,11 +8,36 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Search, Package, Truck, CheckCircle, Clock, AlertCircle, ExternalLink, User, Calendar, Hash } from "lucide-react";
 import { usePublineOrders } from "@/hooks/usePublineOrders";
+import { supabase } from "@/integrations/supabase/client";
 
 const OrderStatus = () => {
   const [username, setUsername] = useState('');
   const [searchResults, setSearchResults] = useState([]);
+  const [products, setProducts] = useState<Record<string, any>>({});
   const { orders, loading, searchOrdersByUsername } = usePublineOrders();
+
+  // Fetch all products to create SKU mapping
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      const { data } = await supabase
+        .from('products')
+        .select('sku, name, image');
+      
+      if (data) {
+        const productMap = data.reduce((acc, product) => {
+          acc[product.sku] = product;
+          return acc;
+        }, {});
+        setProducts(productMap);
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    }
+  };
 
   const handleSearch = () => {
     if (username.trim()) {
@@ -21,6 +46,14 @@ const OrderStatus = () => {
     } else {
       setSearchResults([]);
     }
+  };
+
+  const getProductInfo = (sku: string) => {
+    const product = products[sku];
+    return {
+      name: product?.name || 'ไม่พบชื่อสินค้า',
+      image: product?.image || '/lovable-uploads/3a94bca0-09e6-4f37-bfc1-d924f4dc55b1.png'
+    };
   };
 
   const getStatusIcon = (status) => {
@@ -111,130 +144,136 @@ const OrderStatus = () => {
           <div className="mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">ผลการค้นหา</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {searchResults.map((order, index) => (
-                <Dialog key={index}>
-                  <DialogTrigger asChild>
-                    <Card className="hover:shadow-lg transition-shadow duration-300 cursor-pointer" style={{ borderColor: '#956ec3' }}>
-                      <CardContent className="p-4">
-                        <div className="flex items-center space-x-3">
+              {searchResults.map((order, index) => {
+                const productInfo = getProductInfo(order.sku);
+                
+                return (
+                  <Dialog key={index}>
+                    <DialogTrigger asChild>
+                      <Card className="hover:shadow-lg transition-shadow duration-300 cursor-pointer" style={{ borderColor: '#956ec3' }}>
+                        <CardContent className="p-4">
+                          <div className="flex items-center space-x-3">
+                            <img 
+                              src={productInfo.image} 
+                              alt="Product" 
+                              className="w-16 h-16 object-cover rounded-lg"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between mb-1">
+                                <h3 className="font-semibold text-sm truncate" style={{ color: '#956ec3' }}>
+                                  {order.username}
+                                </h3>
+                                <Badge className={`${getStatusColor(order.status)} border text-xs`}>
+                                  {order.status}
+                                </Badge>
+                              </div>
+                              <p className="text-xs text-gray-900 font-medium line-clamp-2 mb-1">
+                                {productInfo.name}
+                              </p>
+                              <div className="flex items-center justify-between text-xs text-gray-500">
+                                <span className="flex items-center">
+                                  <Hash className="h-3 w-3 mr-1" />
+                                  {order.id}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </DialogTrigger>
+                    
+                    {/* Order Detail Modal */}
+                    <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>รายละเอียดออเดอร์</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        {/* Product Info */}
+                        <div className="flex space-x-3">
                           <img 
-                            src={order.photo || '/lovable-uploads/3a94bca0-09e6-4f37-bfc1-d924f4dc55b1.png'} 
+                            src={productInfo.image} 
                             alt="Product" 
                             className="w-16 h-16 object-cover rounded-lg"
                           />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-1">
-                              <h3 className="font-semibold text-sm truncate" style={{ color: '#956ec3' }}>
-                                {order.username}
-                              </h3>
-                              <Badge className={`${getStatusColor(order.status)} border text-xs`}>
-                                {order.status}
-                              </Badge>
-                            </div>
-                            <p className="text-xs text-gray-600 line-clamp-2 mb-1">{order.item}</p>
-                            <div className="flex items-center justify-between text-xs text-gray-500">
-                              <span className="flex items-center">
-                                <Hash className="h-3 w-3 mr-1" />
-                                {order.id}
-                              </span>
-                            </div>
+                          <div className="flex-1">
+                            <Badge className={`text-xs mb-2 ${getStatusColor(order.status)}`}>
+                              {order.status}
+                            </Badge>
+                            <h3 className="font-semibold text-sm leading-tight">{productInfo.name}</h3>
+                            <p className="text-xs text-gray-600 mt-1">{order.username} / {order.qty}</p>
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  </DialogTrigger>
-                  
-                  {/* Order Detail Modal */}
-                  <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
-                    <DialogHeader>
-                      <DialogTitle>รายละเอียดออเดอร์</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      {/* Product Info */}
-                      <div className="flex space-x-3">
-                        <img 
-                          src={order.photo || '/lovable-uploads/3a94bca0-09e6-4f37-bfc1-d924f4dc55b1.png'} 
-                          alt="Product" 
-                          className="w-16 h-16 object-cover rounded-lg"
-                        />
-                        <div className="flex-1">
-                          <Badge className={`text-xs mb-2 ${getStatusColor(order.status)}`}>
-                            {order.status}
-                          </Badge>
-                          <h3 className="font-semibold text-sm leading-tight">{order.item}</h3>
-                          <p className="text-xs text-gray-600 mt-1">{order.username} / {order.qty}</p>
-                        </div>
-                      </div>
 
-                      {/* Status Progress */}
-                      <div>
-                        <div className="flex items-center justify-between text-sm mb-2">
-                          <span>สถานะการจัดส่ง</span>
-                          <span className="text-xs text-gray-500">
-                            {getProgressPercentage(order.status, order.tracking_number)}% เสร็จสิ้น
-                          </span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="h-2 rounded-full" 
-                            style={{ 
-                              backgroundColor: '#956ec3', 
-                              width: `${getProgressPercentage(order.status, order.tracking_number)}%` 
-                            }}
-                          ></div>
-                        </div>
-                      </div>
-
-                      {/* Order Details Grid */}
-                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        {/* Status Progress */}
                         <div>
-                          <span className="text-gray-600">ราคา</span>
-                          <p className="font-semibold">฿{order.price}</p>
-                        </div>
-                        <div>
-                          <span className="text-gray-600">SKU</span>
-                          <p className="font-semibold">{order.sku}</p>
-                        </div>
-                        <div>
-                          <span className="text-gray-600">จำนวน</span>
-                          <p className="font-semibold">{order.qty}</p>
-                        </div>
-                        <div>
-                          <span className="text-gray-600">มัดจำ</span>
-                          <p className="font-semibold">฿{order.deposit}</p>
-                        </div>
-                      </div>
-
-                      {/* Admin Notes */}
-                      {order.admin_notes && (
-                        <div className="bg-blue-50 p-3 rounded-lg">
-                          <div className="text-sm font-medium text-blue-700 mb-1">หมายเหตุจากแอดมิน</div>
-                          <p className="text-sm text-blue-800">{order.admin_notes}</p>
-                        </div>
-                      )}
-
-                      {/* Tracking Info */}
-                      {order.tracking_number && (
-                        <div className="border rounded-lg p-3">
-                          <div className="text-sm text-gray-600 mb-1">หมายเลขติดตาม</div>
-                          <div className="font-mono text-sm bg-gray-100 p-2 rounded mb-2">
-                            {order.tracking_number}
+                          <div className="flex items-center justify-between text-sm mb-2">
+                            <span>สถานะการจัดส่ง</span>
+                            <span className="text-xs text-gray-500">
+                              {getProgressPercentage(order.status, order.tracking_number)}% เสร็จสิ้น
+                            </span>
                           </div>
-                          <Button 
-                            variant="outline" 
-                            className="w-full text-sm"
-                            style={{ borderColor: '#956ec3', color: '#956ec3' }}
-                            onClick={() => window.open(`https://track.thailandpost.co.th/?trackNumber=${order.tracking_number}`, '_blank')}
-                          >
-                            <ExternalLink className="h-4 w-4 mr-2" />
-                            ติดตามพัสดุ - Thailand Post
-                          </Button>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div 
+                              className="h-2 rounded-full" 
+                              style={{ 
+                                backgroundColor: '#956ec3', 
+                                width: `${getProgressPercentage(order.status, order.tracking_number)}%` 
+                              }}
+                            ></div>
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              ))}
+
+                        {/* Order Details Grid */}
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="text-gray-600">ราคา</span>
+                            <p className="font-semibold">฿{order.price}</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">SKU</span>
+                            <p className="font-semibold">{order.sku}</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">จำนวน</span>
+                            <p className="font-semibold">{order.qty}</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">มัดจำ</span>
+                            <p className="font-semibold">฿{order.deposit}</p>
+                          </div>
+                        </div>
+
+                        {/* Admin Notes */}
+                        {order.admin_notes && (
+                          <div className="bg-blue-50 p-3 rounded-lg">
+                            <div className="text-sm font-medium text-blue-700 mb-1">หมายเหตุจากแอดมิน</div>
+                            <p className="text-sm text-blue-800">{order.admin_notes}</p>
+                          </div>
+                        )}
+
+                        {/* Tracking Info */}
+                        {order.tracking_number && (
+                          <div className="border rounded-lg p-3">
+                            <div className="text-sm text-gray-600 mb-1">หมายเลขติดตาม</div>
+                            <div className="font-mono text-sm bg-gray-100 p-2 rounded mb-2">
+                              {order.tracking_number}
+                            </div>
+                            <Button 
+                              variant="outline" 
+                              className="w-full text-sm"
+                              style={{ borderColor: '#956ec3', color: '#956ec3' }}
+                              onClick={() => window.open(`https://track.thailandpost.co.th/?trackNumber=${order.tracking_number}`, '_blank')}
+                            >
+                              <ExternalLink className="h-4 w-4 mr-2" />
+                              ติดตามพัสดุ - Thailand Post
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                );
+              })}
             </div>
           </div>
         )}

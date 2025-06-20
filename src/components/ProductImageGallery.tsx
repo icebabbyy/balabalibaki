@@ -47,13 +47,14 @@ const ProductImageGallery = ({
 
   return (
     <div className="space-y-4">
-      {/* Main Image Display */}
+      {/* Main Image Display - Updated with size constraints */}
       <Card>
         <CardContent className="p-0 relative">
           <img
             src={currentImage}
             alt={productName}
-            className="w-full h-96 object-cover rounded-lg"
+            className="w-full max-w-[700px] h-auto max-h-[500px] object-cover rounded-lg"
+            style={{ aspectRatio: '7/10', maxHeight: '500px' }}
           />
           
           {/* Navigation Arrows */}

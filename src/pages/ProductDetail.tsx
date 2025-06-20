@@ -135,9 +135,20 @@ const ProductDetail = () => {
       product_type: product.product_type || 'ETC'
     };
 
-    // Store single item for direct purchase
-    localStorage.setItem('directPurchase', JSON.stringify([cartItem]));
-    navigate('/payment');
+    // Store order data for direct purchase
+    const orderData = {
+      items: [cartItem],
+      totalPrice: cartItem.price * cartItem.quantity,
+      customerInfo: {
+        name: '',
+        address: '',
+        note: ''
+      }
+    };
+
+    // Store in localStorage for payment page
+    localStorage.setItem('pendingOrder', JSON.stringify(orderData));
+    navigate('/cart');
   };
 
   const getStatusColor = (status: string) => {
@@ -209,8 +220,8 @@ const ProductDetail = () => {
           </Button>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Product Images */}
-            <div>
+            {/* Product Images - Updated size constraints */}
+            <div className="max-w-[700px]">
               <ProductImageGallery 
                 mainImage={product.image}
                 additionalImages={additionalImageUrls}
@@ -321,7 +332,7 @@ const ProductDetail = () => {
 
               {/* Action Buttons */}
               <div className="space-y-3">
-                {/* Buy Now Button */}
+                {/* Buy Now Button - Fixed */}
                 <Button 
                   onClick={buyNow}
                   className="w-full py-3 text-lg"

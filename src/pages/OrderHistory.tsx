@@ -19,9 +19,14 @@ const OrderHistory = () => {
   useEffect(() => {
     if (user) {
       fetchUserProfile();
-      fetchOrderHistory();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (profile?.username) {
+      fetchOrderHistory();
+    }
+  }, [profile]);
 
   const fetchUserProfile = async () => {
     if (!user) return;
@@ -42,17 +47,25 @@ const OrderHistory = () => {
   };
 
   const fetchOrderHistory = async () => {
-    if (!user) return;
+    if (!profile?.username) return;
     
     try {
-      // ใช้ orders table สำหรับ user ที่ login แล้ว
-      const { data: ordersData } = await supabase
+      console.log('Fetching orders for username:', profile.username);
+      
+      // Fetch orders for this user
+      const { data: ordersData, error } = await supabase
         .from('orders')
-        .select('id, username, items, total_selling_price, status, order_date, address, tracking_number, admin_notes')
-        .eq('username', profile?.username || user.email?.split('@')[0])
+        .select('*')
+        .eq('username', profile.username)
         .order('id', { ascending: false });
 
-      setOrders(ordersData || []);
+      if (error) {
+        console.error('Error fetching orders:', error);
+        setOrders([]);
+      } else {
+        console.log('Found orders:', ordersData);
+        setOrders(ordersData || []);
+      }
     } catch (error) {
       console.error('Error fetching order history:', error);
     } finally {
@@ -135,6 +148,9 @@ const OrderHistory = () => {
               <CardTitle className="flex items-center space-x-2">
                 <Package className="h-6 w-6" />
                 <span>ประวัติการสั่งซื้อ</span>
+                {profile?.username && (
+                  <span className="text-sm text-gray-500">({profile.username})</span>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -176,8 +192,8 @@ const OrderHistory = () => {
                           <div className="flex items-center space-x-2 text-sm text-gray-500 mt-1">
                             <Calendar className="h-4 w-4" />
                             <span>
-                              {order.order_date 
-                                ? new Date(order.order_date).toLocaleDateString('th-TH', {
+                              {order.created_at || order.order_date
+                                ? new Date(order.created_at || order.order_date).toLocaleDateString('th-TH', {
                                     year: 'numeric',
                                     month: 'long',
                                     day: 'numeric'
