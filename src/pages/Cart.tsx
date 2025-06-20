@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,153 +17,114 @@ interface CartItem {
   image: string;
   sku: string;
   variant?: string | null;
-  product_type?: string;
 }
 
 const Cart = () => {
+  const navigate = useNavigate();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [customerInfo, setCustomerInfo] = useState({
-    name: "",
-    phone: "",
-    address: "",
-    note: ""
-  });
+  const [customerInfo, setCustomerInfo] = useState({ name: "", phone: "", address: "", note: "" });
+  const [updateProfile, setUpdateProfile] = useState(false);
+  const [profileId, setProfileId] = useState<string | null>(null);
 
   useEffect(() => {
-    const pendingOrder = localStorage.getItem("pendingOrder");
+    const loadUserProfile = async () => {
+      const user = supabase.auth.user();
+      if (user) {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("id,name,phone,address")
+          .eq("id", user.id)
+          .single();
 
-    if (pendingOrder) {
-      try {
-        const parsedOrder = JSON.parse(pendingOrder);
-        if (parsedOrder.items && Array.isArray(parsedOrder.items)) {
-          setCartItems(parsedOrder.items);
-          setCustomerInfo(parsedOrder.customerInfo || {
-            name: "",
-            phone: "",
-            address: "",
+        if (!error && data) {
+          setProfileId(data.id);
+          setCustomerInfo({
+            name: data.name || "",
+            phone: data.phone || "",
+            address: data.address || "",
             note: ""
           });
-          localStorage.removeItem("pendingOrder");
-          return;
         }
-      } catch (error) {
-        console.error("Error parsing pendingOrder:", error);
       }
-    }
-
-    loadCartFromStorage(); // fallback ถ้าไม่มี pendingOrder
+    };
+    loadUserProfile();
+    loadCartFromStorage();
   }, []);
 
   const loadCartFromStorage = () => {
     try {
-      const savedCart = localStorage.getItem("cart");
-      if (savedCart) {
-        const parsedCart = JSON.parse(savedCart);
-        const validatedCart = parsedCart.filter((item: any) => {
-          return item && item.id && item.name && item.price && item.quantity > 0;
-        });
-        setCartItems(validatedCart);
+      const saved = localStorage.getItem("cart");
+      if (saved) {
+        const arr = JSON.parse(saved).filter((i: any) => i?.id && i?.price && i.quantity > 0);
+        setCartItems(arr);
       }
-    } catch (error) {
-      console.error("Error loading cart from storage:", error);
+    } catch {
       setCartItems([]);
       localStorage.removeItem("cart");
     }
   };
 
-  const updateCartStorage = (items: CartItem[]) => {
-    try {
-      localStorage.setItem("cart", JSON.stringify(items));
-    } catch (error) {
-      console.error("Error updating cart storage:", error);
-      toast.error("เกิดข้อผิดพลาดในการอัพเดตตะกร้า");
-    }
+  const updateStorage = (items: CartItem[]) => {
+    localStorage.setItem("cart", JSON.stringify(items));
   };
 
-  const updateQuantity = (id: number, newQuantity: number) => {
-    if (newQuantity <= 0) {
-      removeItem(id);
-      return;
-    }
-
-    const updatedItems = cartItems.map(item =>
-      item.id === id ? { ...item, quantity: newQuantity } : item
-    );
-    setCartItems(updatedItems);
-    updateCartStorage(updatedItems);
-    toast.success("อัพเดตจำนวนสินค้าแล้ว");
+  const updateQty = (id: number, qty: number) => {
+    if (qty <= 0) return removeItem(id);
+    const arr = cartItems.map(i => i.id === id ? { ...i, quantity: qty } : i);
+    setCartItems(arr);
+    updateStorage(arr);
+    toast.success("อัพเดตจำนวนแล้ว");
   };
 
   const removeItem = (id: number) => {
-    const updatedItems = cartItems.filter(item => item.id !== id);
-    setCartItems(updatedItems);
-    updateCartStorage(updatedItems);
-    toast.success("ลบสินค้าออกจากตะกร้าแล้ว");
+    const arr = cartItems.filter(i => i.id !== id);
+    setCartItems(arr);
+    updateStorage(arr);
+    toast.success("ลบสินค้าแล้ว");
   };
 
-  const getTotalPrice = () => {
-    return cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
-  };
+  const totalPrice = cartItems.reduce((s, i) => s + i.price * i.quantity, 0);
 
-  const handleCheckout = () => {
-    if (!cartItems || cartItems.length === 0) {
-      toast.error("ตะกร้าสินค้าว่างเปล่า");
-      return;
+  const handleCheckout = async () => {
+    if (!customerInfo.name || !customerInfo.phone || !customerInfo.address) {
+      return toast.error("กรุณากรอกข้อมูลให้ครบ");
+    }
+    if (cartItems.length === 0) return toast.error("ตะกร้าว่าง");
+
+    // อัปเดตโปรไฟล์ถ้าเลือก
+    if (updateProfile && profileId) {
+      await supabase
+        .from("profiles")
+        .update({
+          name: customerInfo.name,
+          phone: customerInfo.phone,
+          address: customerInfo.address
+        })
+        .eq("id", profileId);
     }
 
-    if (!customerInfo.name.trim()) {
-      toast.error("กรุณากรอกชื่อ-นามสกุล");
-      return;
-    }
-
-    if (!customerInfo.phone.trim()) {
-      toast.error("กรุณากรอกเบอร์โทรศัพท์");
-      return;
-    }
-
-    if (!customerInfo.address.trim()) {
-      toast.error("กรุณากรอกที่อยู่จัดส่ง");
-      return;
-    }
-
-    try {
-      const orderData = {
-        items: cartItems,
-        customerInfo: {
-          name: customerInfo.name.trim(),
-          phone: customerInfo.phone.trim(),
-          address: customerInfo.address.trim(),
-          note: customerInfo.note.trim()
-        },
-        totalPrice: getTotalPrice(),
-        orderDate: new Date().toISOString()
-      };
-
-      localStorage.setItem("pendingOrder", JSON.stringify(orderData));
-      window.location.href = "/payment";
-    } catch (error) {
-      console.error("Error during checkout:", error);
-      toast.error("เกิดข้อผิดพลาดในการสั่งซื้อ");
-    }
+    const orderData = {
+      items: cartItems,
+      customerInfo,
+      totalPrice,
+      orderDate: new Date().toISOString()
+    };
+    localStorage.setItem("pendingOrder", JSON.stringify(orderData));
+    navigate("/payment");
   };
 
   if (cartItems.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          <div className="text-center py-12">
-            <h1 className="text-2xl font-bold text-gray-800 mb-4">ตะกร้าสินค้า</h1>
-            <p className="text-gray-600 mb-8">ตะกร้าสินค้าของคุณว่างเปล่า</p>
-            <Link to="/categories">
-              <Button
-                style={{ backgroundColor: "#956ec3" }}
-                className="text-white hover:opacity-90"
-              >
-                เลือกซื้อสินค้า
-              </Button>
-            </Link>
-          </div>
+        <div className="max-w-xl mx-auto py-12 text-center">
+          <h1 className="text-2xl font-bold mb-4">ตะกร้าสินค้า</h1>
+          <p className="mb-8">ยังไม่มีสินค้าในตะกร้า</p>
+          <Link to="/categories">
+            <Button style={{ backgroundColor: "#956ec3", color: "#fff" }}>
+              เลือกซื้อสินค้า
+            </Button>
+          </Link>
         </div>
       </div>
     );
@@ -171,157 +133,82 @@ const Cart = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-
       <div className="max-w-6xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-8">ตะกร้าสินค้า</h1>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <h1 className="text-3xl font-bold mb-8">ตะกร้าสินค้า</h1>
+        <div className="grid lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
             <Card>
-              <CardContent className="p-6">
-                <h2 className="text-xl font-bold mb-4">รายการสินค้า ({cartItems.length} รายการ)</h2>
-
-                {cartItems.map((item) => (
-                  <div
-                    key={`${item.id}-${item.variant || ""}`}
-                    className="flex items-center justify-between border-b py-4 last:border-b-0"
-                  >
+              <CardContent className="p-6 space-y-4">
+                {cartItems.map(item => (
+                  <div key={item.id} className="flex justify-between items-center border-b pb-4">
                     <div className="flex items-center space-x-4">
-                      <img
-                        src={item.image || "/placeholder.svg"}
-                        alt={item.name}
-                        className="w-16 h-16 object-cover rounded"
-                      />
+                      <img src={item.image} alt={item.name} className="w-16 h-16 rounded" />
                       <div>
                         <h3 className="font-medium text-gray-800">{item.name}</h3>
-                        <p className="text-sm text-gray-500">SKU: {item.sku}</p>
-                        {item.variant && (
-                          <p className="text-sm text-gray-500">แบบ: {item.variant}</p>
-                        )}
-                        <p className="text-lg font-bold" style={{ color: "#956ec3" }}>
-                          ฿{item.price.toLocaleString()}
-                        </p>
+                        <div className="flex items-center space-x-2 mt-1">
+                          <Button size="icon" onClick={() => updateQty(item.id, item.quantity - 1)}><Minus /></Button>
+                          <span>{item.quantity}</span>
+                          <Button size="icon" onClick={() => updateQty(item.id, item.quantity + 1)}><Plus /></Button>
+                        </div>
                       </div>
                     </div>
-
-                    <div className="flex items-center space-x-3">
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                        >
-                          <Minus className="h-4 w-4" />
-                        </Button>
-                        <span className="text-lg font-medium w-8 text-center">{item.quantity}</span>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
-
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8 text-red-500 hover:bg-red-50"
-                        onClick={() => removeItem(item.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
+                    <div>
+                      <p className="text-lg font-bold text-purple-600">฿{(item.price * item.quantity).toLocaleString()}</p>
+                      <Button size="icon" variant="outline" onClick={() => removeItem(item.id)}>
+                        <Trash2 className="text-red-500" />
                       </Button>
                     </div>
                   </div>
                 ))}
-
-                <div className="mt-6 pt-4 border-t">
-                  <div className="flex justify-between items-center text-xl font-bold">
-                    <span>รวมทั้งหมด:</span>
-                    <span style={{ color: "#956ec3" }}>
-                      ฿{getTotalPrice().toLocaleString()}
-                    </span>
-                  </div>
+                <div className="flex justify-between pt-4 border-t font-bold text-xl">
+                  <span>รวมทั้งหมด</span>
+                  <span>฿{totalPrice.toLocaleString()}</span>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Customer Info */}
-          <div className="lg:col-span-1">
+          <div>
             <Card>
-              <CardContent className="p-6">
-                <h2 className="text-xl font-bold mb-4">ข้อมูลการจัดส่ง</h2>
+              <CardContent className="p-6 space-y-4">
+                <h2 className="text-xl font-bold mb-4">ข้อมูลจัดส่ง</h2>
 
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      ชื่อ-นามสกุล *
-                    </label>
-                    <Input
-                      value={customerInfo.name}
-                      onChange={(e) =>
-                        setCustomerInfo({ ...customerInfo, name: e.target.value })
-                      }
-                      placeholder="กรุณากรอกชื่อ-นามสกุล"
-                      required
+                <Input
+                  placeholder="ชื่อ-นามสกุล"
+                  value={customerInfo.name}
+                  onChange={(e) => setCustomerInfo({ ...customerInfo, name: e.target.value })}
+                />
+                <Input
+                  placeholder="เบอร์โทรศัพท์"
+                  value={customerInfo.phone}
+                  onChange={(e) => setCustomerInfo({ ...customerInfo, phone: e.target.value })}
+                />
+                <Textarea
+                  placeholder="ที่อยู่จัดส่ง"
+                  value={customerInfo.address}
+                  onChange={(e) => setCustomerInfo({ ...customerInfo, address: e.target.value })}
+                />
+                <Textarea
+                  placeholder="หมายเหตุเพิ่มเติม"
+                  value={customerInfo.note}
+                  onChange={(e) => setCustomerInfo({ ...customerInfo, note: e.target.value })}
+                />
+
+                {profileId && (
+                  <div className="flex items-center space-x-2">
+                    <input 
+                      id="updateProfile" 
+                      type="checkbox" 
+                      checked={updateProfile} 
+                      onChange={() => setUpdateProfile(!updateProfile)} 
                     />
+                    <label htmlFor="updateProfile">อัปเดตที่อยู่ในโปรไฟล์</label>
                   </div>
+                )}
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      เบอร์โทรศัพท์ *
-                    </label>
-                    <Input
-                      value={customerInfo.phone}
-                      onChange={(e) =>
-                        setCustomerInfo({ ...customerInfo, phone: e.target.value })
-                      }
-                      placeholder="กรุณากรอกเบอร์โทรศัพท์"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      ที่อยู่จัดส่ง *
-                    </label>
-                    <Textarea
-                      value={customerInfo.address}
-                      onChange={(e) =>
-                        setCustomerInfo({ ...customerInfo, address: e.target.value })
-                      }
-                      placeholder="กรุณากรอกที่อยู่จัดส่ง"
-                      rows={3}
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      หมายเหตุ
-                    </label>
-                    <Textarea
-                      value={customerInfo.note}
-                      onChange={(e) =>
-                        setCustomerInfo({ ...customerInfo, note: e.target.value })
-                      }
-                      placeholder="หมายเหตุเพิ่มเติม (ถ้ามี)"
-                      rows={2}
-                    />
-                  </div>
-
-                  <Button
-                    onClick={handleCheckout}
-                    className="w-full text-white hover:opacity-90"
-                    style={{ backgroundColor: "#956ec3" }}
-                    size="lg"
-                  >
-                    ดำเนินการชำระเงิน
-                  </Button>
-                </div>
+                <Button onClick={handleCheckout} className="w-full py-3 text-lg" style={{ backgroundColor: "#956ec3", color: "#fff" }}>
+                  ดำเนินการชำระเงิน
+                </Button>
               </CardContent>
             </Card>
           </div>
