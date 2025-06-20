@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from 'react';
 import { ProductPublic } from '@/types/product';
 
@@ -8,12 +7,13 @@ export const useCategoryFiltering = (products: ProductPublic[]) => {
 
   const filteredProducts = useMemo(() => {
     return products.filter(product => {
-      const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          product.sku.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchesCategory = selectedCategories.length === 0 || 
-                            selectedCategories.includes(product.category);
-      
+      const matchesSearch =
+        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.sku.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesCategory =
+        selectedCategories.length === 0 || selectedCategories.includes(product.category);
+
       return matchesSearch && matchesCategory;
     });
   }, [products, searchTerm, selectedCategories]);
@@ -35,7 +35,8 @@ export const useCategoryFiltering = (products: ProductPublic[]) => {
     searchTerm,
     setSearchTerm,
     selectedCategories,
+    setSelectedCategories, // ✅ เพิ่มตรงนี้
     handleCategoryChange,
-    clearCategorySelection
+    clearCategorySelection,
   };
 };
