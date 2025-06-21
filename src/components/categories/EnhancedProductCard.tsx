@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,37 +25,27 @@ const EnhancedProductCard = ({ product, onProductClick, onAddToCart }: EnhancedP
         <img
           src={primaryImage}
           alt={product.name}
-          className="w-full h-full object-cover absolute top-0 left-0 transition-opacity duration-500 ease-in-out opacity-100 group-hover:opacity-0"
+          className="w-full h-full object-cover absolute top-0 left-0 transition-opacity duration-300 ease-in-out opacity-100 group-hover:opacity-0"
         />
         <img
           src={hoverImage}
           alt={product.name}
-          className="w-full h-full object-cover absolute top-0 left-0 transition-opacity duration-500 ease-in-out opacity-0 group-hover:opacity-100"
+          className="w-full h-full object-cover absolute top-0 left-0 transition-opacity duration-300 ease-in-out opacity-0 group-hover:opacity-100"
         />
         {product.product_status && (
-          <Badge 
-            className={`absolute top-2 left-2 text-white ${
-              product.product_status === 'พรีออเดอร์'
-                ? 'bg-orange-500'
-                : 'bg-green-500'
-            }`}
-          >
+          <Badge className="absolute top-2 left-2 bg-purple-600 text-white">
             {product.product_status}
           </Badge>
         )}
       </div>
       <CardContent className="p-4">
-        <h3 
-          className="font-semibold text-gray-800 mb-2 line-clamp-2 hover:text-purple-600 transition-colors cursor-pointer"
-          onClick={() => onProductClick(product.id)}
-        >
+        <h3 className="font-semibold mb-2 line-clamp-2" onClick={() => onProductClick(product.id)}>
           {product.name}
         </h3>
         <p className="text-sm text-gray-500 mb-2">SKU: {product.sku}</p>
         <p className="text-xl font-bold mb-3 text-purple-600">
           ฿{product.selling_price.toLocaleString()}
         </p>
-        <p className="text-sm text-gray-600 mb-3">{product.category}</p>
         <div className="space-y-2">
           <Button 
             size="sm" 
