@@ -204,6 +204,11 @@ const OrderHistory = () => {
                           <p className="font-semibold text-purple-600 text-lg">
                             ฿{order.total_selling_price?.toLocaleString() || "0"}
                           </p>
+{order.shipping_cost !== undefined && (
+  <p className="text-sm text-gray-500">
+    รวมค่าจัดส่ง: ฿{order.shipping_cost.toLocaleString()}
+  </p>
+)}
                           {order.tracking_number && (
                             <p className="text-sm text-gray-600 mt-1">
                               หมายเลขติดตาม: <span className="font-mono">{order.tracking_number}</span>
