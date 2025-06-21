@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,10 +13,13 @@ interface EnhancedProductCardProps {
 
 const EnhancedProductCard = ({ product, onProductClick, onAddToCart }: EnhancedProductCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
-  
-  // Get additional images from product_images table or use fallback
+
+  // รูปหลัก
   const primaryImage = product.image || '/placeholder.svg';
-  const hoverImage = primaryImage; // For now, using same image - will be enhanced when product_images integration is ready
+  // ถ้ามีรูปเพิ่มเติม ใช้รูปแรกเป็นรูปเวลา hover
+  const hoverImage = product.extra_images && product.extra_images.length > 0 
+    ? product.extra_images[0] 
+    : primaryImage;
 
   return (
     <Card 
@@ -30,23 +32,25 @@ const EnhancedProductCard = ({ product, onProductClick, onAddToCart }: EnhancedP
           <img
             src={isHovered ? hoverImage : primaryImage}
             alt={product.name}
-            className="w-full h-full object-cover transition-all duration-500 ease-in-out transform hover:scale-105"
+            className="w-full h-full object-cover transition-all duration-500 ease-in-out transform"
             style={{
-              opacity: 1,
+              transform: isHovered ? 'scale(1.05)' : 'scale(1)',
               transition: 'opacity 0.3s ease-in-out, transform 0.3s ease-in-out'
             }}
           />
-          <Badge 
-            className={`absolute top-2 left-2 text-white ${
-              product.product_status === 'พรีออเดอร์' 
-                ? 'bg-orange-500' 
-                : 'bg-green-500'
-            }`}
-          >
-            {product.product_status}
-          </Badge>
+          {product.product_status && (
+            <Badge 
+              className={`absolute top-2 left-2 text-white ${
+                product.product_status === 'พรีออเดอร์' 
+                  ? 'bg-orange-500' 
+                  : 'bg-green-500'
+              }`}
+            >
+              {product.product_status}
+            </Badge>
+          )}
         </div>
-        
+
         <div className="p-4">
           <h3 
             className="font-semibold text-gray-800 mb-2 line-clamp-2 h-12 hover:text-purple-600 transition-colors"
@@ -59,7 +63,7 @@ const EnhancedProductCard = ({ product, onProductClick, onAddToCart }: EnhancedP
             ฿{product.selling_price.toLocaleString()}
           </p>
           <p className="text-sm text-gray-600 mb-3">{product.category}</p>
-          
+
           <div className="space-y-2">
             <Button 
               size="sm" 
