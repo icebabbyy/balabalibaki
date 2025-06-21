@@ -14,12 +14,8 @@ interface EnhancedProductCardProps {
 const EnhancedProductCard = ({ product, onProductClick, onAddToCart }: EnhancedProductCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
 
-  // รูปหลัก
   const primaryImage = product.image || '/placeholder.svg';
-  // ถ้ามีรูปเพิ่มเติม ใช้รูปแรกเป็นรูปเวลา hover
-  const hoverImage = product.extra_images && product.extra_images.length > 0 
-    ? product.extra_images[0] 
-    : primaryImage;
+  const hoverImage = product.extra_images?.[0] || primaryImage;
 
   return (
     <Card 
@@ -32,10 +28,10 @@ const EnhancedProductCard = ({ product, onProductClick, onAddToCart }: EnhancedP
           <img
             src={isHovered ? hoverImage : primaryImage}
             alt={product.name}
-            className="w-full h-full object-cover transition-all duration-500 ease-in-out transform"
+            className="w-full h-full object-cover transition-all duration-500 ease-in-out"
             style={{
               transform: isHovered ? 'scale(1.05)' : 'scale(1)',
-              transition: 'opacity 0.3s ease-in-out, transform 0.3s ease-in-out'
+              transition: 'transform 0.3s ease-in-out'
             }}
           />
           {product.product_status && (
