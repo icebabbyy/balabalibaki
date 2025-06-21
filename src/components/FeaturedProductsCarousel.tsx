@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Card, CardContent } from "@/components/ui/card";
@@ -34,7 +33,10 @@ const FeaturedProductsCarousel = ({ products, onProductClick, onAddToCart }: Fea
 
   const ProductCard = ({ product }: { product: ProductPublic }) => {
     const [isHovered, setIsHovered] = useState(false);
-    
+
+    const primaryImage = product.image || '/placeholder.svg';
+    const hoverImage = product.extra_images?.[0] || primaryImage;
+
     return (
       <Card 
         className="hover:shadow-lg transition-all duration-300 cursor-pointer h-full"
@@ -43,7 +45,7 @@ const FeaturedProductsCarousel = ({ products, onProductClick, onAddToCart }: Fea
       >
         <div className="relative">
           <img
-            src={product.image || '/placeholder.svg'}
+            src={isHovered ? hoverImage : primaryImage}
             alt={product.name}
             className="w-full h-48 object-cover rounded-t-lg transition-all duration-500 ease-in-out"
             style={{
@@ -130,7 +132,6 @@ const FeaturedProductsCarousel = ({ products, onProductClick, onAddToCart }: Fea
         <CarouselNext className="hidden md:flex" />
       </Carousel>
       
-      {/* Dots Navigation */}
       <div className="flex justify-center mt-4 space-x-2">
         {Array.from({ length: count }).map((_, index) => (
           <button
