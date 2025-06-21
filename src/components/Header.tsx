@@ -1,304 +1,248 @@
+
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { Search, ShoppingCart, User, Menu, X, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { ShoppingCart, User, Heart, Package, LogOut, Search, Menu } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 
 const Header = () => {
-  const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const [cartCount, setCartCount] = useState(0);
-  const [profile, setProfile] = useState<any>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  useEffect(() => {
-    if (user) {
-      fetchProfile();
-    }
-  }, [user]);
+  const { user } = useAuth();
+  const [cartItemCount, setCartItemCount] = useState(0);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
     const updateCartCount = () => {
-      const cart = localStorage.getItem('cart');
-      if (cart) {
-        const cartItems = JSON.parse(cart);
-        const totalCount = cartItems.reduce((sum: number, item: any) => sum + item.quantity, 0);
-        setCartCount(totalCount);
-      } else {
-        setCartCount(0);
+      try {
+        const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+        const totalItems = cart.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0);
+        setCartItemCount(totalItems);
+      } catch {
+        setCartItemCount(0);
       }
     };
 
     updateCartCount();
-    window.addEventListener('storage', updateCartCount);
-    window.addEventListener('cartUpdated', updateCartCount);
+    window.addEventListener("storage", updateCartCount);
+    
+    const interval = setInterval(updateCartCount, 1000);
 
     return () => {
-      window.removeEventListener('storage', updateCartCount);
-      window.removeEventListener('cartUpdated', updateCartCount);
+      window.removeEventListener("storage", updateCartCount);
+      clearInterval(interval);
     };
   }, []);
 
-  const fetchProfile = async () => {
-    if (!user) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('username, role, full_name')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error fetching profile:', error);
-        return;
-      }
-
-      if (data) {
-        setProfile(data);
-      }
-    } catch (error) {
-      console.error('Error fetching profile:', error);
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchTerm.trim()) {
+      navigate(`/categories?search=${encodeURIComponent(searchTerm.trim())}`);
+      setSearchTerm("");
+      setIsMenuOpen(false);
     }
   };
 
   const handleSignOut = async () => {
-    try {
-      await signOut();
-      navigate('/');
-      toast.success('ออกจากระบบเรียบร้อยแล้ว');
-    } catch (error) {
-      toast.error('เกิดข้อผิดพลาดในการออกจากระบบ');
-    }
+    await supabase.auth.signOut();
+    navigate("/");
+    setIsMenuOpen(false);
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/categories?search=${encodeURIComponent(searchQuery.trim())}`);
-    }
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
   };
 
-  const getDisplayName = () => {
-    if (profile?.username && profile.username.trim() !== '') {
-      return profile.username;
-    }
-    if (profile?.full_name && profile.full_name.trim() !== '') {
-      return profile.full_name;
-    }
-    return user?.email?.split('@')[0] || 'ผู้ใช้';
+  const closeMenu = () => {
+    setIsMenuOpen(false);
   };
+
+  // Navigation items
+  const navItems = [
+    { label: "หน้าแรก", path: "/" },
+    { label: "สินค้าทั้งหมด", path: "/categories" },
+    { label: "วิธีการสั่งซื้อ", path: "/how-to-order" },
+    { label: "การจัดส่ง", path: "/shipping" },
+    { label: "คำถามที่พบบ่อย", path: "/qa" },
+  ];
 
   return (
-    <header className="text-white shadow-lg sticky top-0 z-50" style={{ backgroundColor: '#a375c9' }}>
-      <div className="container mx-auto px-4 py-4">
-        <div className="flex items-center justify-between">
-          <div 
-            className="text-2xl font-bold cursor-pointer hover:text-purple-200 transition-colors"
-            onClick={() => navigate('/')}
-          >
-            LuckyShop
-          </div>
+    <header className="bg-white shadow-md sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
           
+          {/* Logo */}
+          <Link to="/" className="flex-shrink-0" onClick={closeMenu}>
+            <h1 className="text-2xl font-bold text-purple-600">YourShop</h1>
+          </Link>
+
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex space-x-6">
-            <button
-              onClick={() => navigate('/')}
-              className="hover:text-purple-200 transition-colors"
-            >
-              หน้าแรก
-            </button>
-            <button
-              onClick={() => navigate('/categories')}
-              className="hover:text-purple-200 transition-colors"
-            >
-              หมวดหมู่สินค้า
-            </button>
-            <button
-              onClick={() => navigate('/qa')}
-              className="hover:text-purple-200 transition-colors"
-            >
-              Q&A
-            </button>
-            <button
-              onClick={() => navigate('/order-status')}
-              className="hover:text-purple-200 transition-colors"
-            >
-              เช็คสถานะ
-            </button>
-            <button
-              onClick={() => navigate('/reviews')}
-              className="hover:text-purple-200 transition-colors"
-            >
-              รีวิว
-            </button>
+          <nav className="hidden lg:flex items-center space-x-8">
+            {navItems.map((item) => (
+              <Link
+                key={item.path}
+                to={item.path}
+                className="text-gray-700 hover:text-purple-600 transition-colors duration-200 font-medium"
+              >
+                {item.label}
+              </Link>
+            ))}
           </nav>
 
           {/* Desktop Search */}
-          <form onSubmit={handleSearch} className="hidden md:flex items-center space-x-2">
-            <div className="relative">
+          <form onSubmit={handleSearch} className="hidden md:flex items-center flex-1 max-w-md mx-8">
+            <div className="relative w-full">
               <Input
                 type="text"
                 placeholder="ค้นหาสินค้า..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-64 bg-white text-gray-900 placeholder-gray-500"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4"
               />
-              <Button
-                type="submit"
-                size="sm"
-                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-purple-700"
-                style={{ backgroundColor: '#a375c9' }}
-              >
-                <Search className="h-4 w-4" />
-              </Button>
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             </div>
           </form>
 
-          {/* User Actions - Always visible including cart */}
-          <div className="flex items-center space-x-2">
-            {/* Cart Icon - Always visible on mobile */}
+          {/* Desktop Action Buttons */}
+          <div className="hidden md:flex items-center space-x-4">
             {user && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate('/cart')}
-                className="text-white hover:bg-purple-700 hover:text-white relative"
-              >
-                <ShoppingCart className="h-4 w-4" />
-                {cartCount > 0 && (
-                  <Badge 
-                    variant="destructive" 
-                    className="absolute -top-2 -right-2 px-1 min-w-[1.2rem] h-5 flex items-center justify-center text-xs"
-                  >
-                    {cartCount}
+              <Link to="/wishlist">
+                <Button variant="ghost" size="icon" className="relative">
+                  <Heart className="h-5 w-5" />
+                </Button>
+              </Link>
+            )}
+            
+            <Link to="/cart">
+              <Button variant="ghost" size="icon" className="relative">
+                <ShoppingCart className="h-5 w-5" />
+                {cartItemCount > 0 && (
+                  <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs bg-red-500">
+                    {cartItemCount > 99 ? "99+" : cartItemCount}
                   </Badge>
                 )}
               </Button>
-            )}
+            </Link>
 
-            {/* Desktop User Menu */}
-            {user && (
-              <div className="hidden md:flex items-center space-x-2">
-                <span className="text-sm">สวัสดี, {getDisplayName()}</span>
-                
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-white hover:bg-purple-700 hover:text-white"
-                    >
-                      <User className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-56 bg-white z-50">
-                    <DropdownMenuItem onClick={() => navigate('/profile')}>
-                      <User className="mr-2 h-4 w-4" />
-                      <span>จัดการโปรไฟล์</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/wishlist')}>
-                      <Heart className="mr-2 h-4 w-4" />
-                      <span>รายการโปรด</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/order-history')}>
-                      <Package className="mr-2 h-4 w-4" />
-                      <span>ประวัติการสั่งซื้อ</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleSignOut}>
-                      <LogOut className="mr-2 h-4 w-4" />
-                      <span>ออกจากระบบ</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-
-                {profile?.role === 'admin' && (
-                  <Button
-                    onClick={() => navigate('/admin')}
-                    variant="secondary"
-                    size="sm"
-                    className="ml-2"
-                  >
-                    Admin
+            {user ? (
+              <div className="flex items-center space-x-2">
+                <Link to="/profile">
+                  <Button variant="ghost" size="icon">
+                    <User className="h-5 w-5" />
                   </Button>
-                )}
+                </Link>
+                <Button variant="outline" size="sm" onClick={handleSignOut}>
+                  ออกจากระบบ
+                </Button>
               </div>
-            )}
-
-            {/* Mobile User Menu */}
-            {user && (
-              <div className="md:hidden">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-white hover:bg-purple-700 hover:text-white"
-                    >
-                      <User className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-56 bg-white z-50">
-                    <DropdownMenuItem onClick={() => navigate('/profile')}>
-                      <User className="mr-2 h-4 w-4" />
-                      <span>จัดการโปรไฟล์</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/wishlist')}>
-                      <Heart className="mr-2 h-4 w-4" />
-                      <span>รายการโปรด</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/order-history')}>
-                      <Package className="mr-2 h-4 w-4" />
-                      <span>ประวัติการสั่งซื้อ</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/categories')}>
-                      <Package className="mr-2 h-4 w-4" />
-                      <span>หมวดหมู่สินค้า</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/qa')}>
-                      <Package className="mr-2 h-4 w-4" />
-                      <span>Q&A</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/order-status')}>
-                      <Package className="mr-2 h-4 w-4" />
-                      <span>เช็คสถานะ</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/reviews')}>
-                      <Package className="mr-2 h-4 w-4" />
-                      <span>รีวิว</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleSignOut}>
-                      <LogOut className="mr-2 h-4 w-4" />
-                      <span>ออกจากระบบ</span>
-                    </DropdownMenuItem>
-                    {profile?.role === 'admin' && (
-                      <DropdownMenuItem onClick={() => navigate('/admin')}>
-                        <User className="mr-2 h-4 w-4" />
-                        <span>Admin</span>
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            )}
-            
-            {!user && (
-              <Button
-                onClick={() => navigate('/auth')}
-                variant="secondary"
-                size="sm"
-              >
-                เข้าสู่ระบบ
-              </Button>
+            ) : (
+              <Link to="/auth">
+                <Button variant="outline" size="sm">
+                  เข้าสู่ระบบ
+                </Button>
+              </Link>
             )}
           </div>
+
+          {/* Mobile Menu Button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            onClick={toggleMenu}
+          >
+            {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </Button>
         </div>
+
+        {/* Mobile Menu */}
+        {isMenuOpen && (
+          <div className="md:hidden border-t border-gray-200 bg-white">
+            <div className="px-2 pt-2 pb-3 space-y-1">
+              
+              {/* Mobile Search */}
+              <form onSubmit={handleSearch} className="p-2">
+                <div className="relative">
+                  <Input
+                    type="text"
+                    placeholder="ค้นหาสินค้า..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 pr-4"
+                  />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                </div>
+              </form>
+
+              {/* Mobile Navigation Links */}
+              {navItems.map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-purple-600 hover:bg-gray-50 rounded-md transition-colors duration-200"
+                  onClick={closeMenu}
+                >
+                  {item.label}
+                </Link>
+              ))}
+
+              {/* Mobile Action Buttons */}
+              <div className="pt-4 border-t border-gray-200">
+                <div className="flex items-center justify-around py-2">
+                  
+                  {user && (
+                    <Link to="/wishlist" onClick={closeMenu}>
+                      <Button variant="outline" size="sm" className="flex items-center gap-2">
+                        <Heart className="h-4 w-4" />
+                        รายการโปรด
+                      </Button>
+                    </Link>
+                  )}
+
+                  <Link to="/cart" onClick={closeMenu}>
+                    <Button variant="outline" size="sm" className="flex items-center gap-2 relative">
+                      <ShoppingCart className="h-4 w-4" />
+                      ตะกร้า
+                      {cartItemCount > 0 && (
+                        <Badge className="ml-1 h-5 w-5 flex items-center justify-center p-0 text-xs bg-red-500">
+                          {cartItemCount > 99 ? "99+" : cartItemCount}
+                        </Badge>
+                      )}
+                    </Button>
+                  </Link>
+
+                  {user ? (
+                    <div className="flex items-center gap-2">
+                      <Link to="/profile" onClick={closeMenu}>
+                        <Button variant="outline" size="sm" className="flex items-center gap-2">
+                          <User className="h-4 w-4" />
+                          โปรไฟล์
+                        </Button>
+                      </Link>
+                    </div>
+                  ) : (
+                    <Link to="/auth" onClick={closeMenu}>
+                      <Button variant="outline" size="sm">
+                        เข้าสู่ระบบ
+                      </Button>
+                    </Link>
+                  )}
+                </div>
+
+                {user && (
+                  <div className="px-3 py-2">
+                    <Button variant="ghost" size="sm" onClick={handleSignOut} className="w-full">
+                      ออกจากระบบ
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </header>
   );
