@@ -35,7 +35,7 @@ const FeaturedProductsCarousel = ({ products, onProductClick, onAddToCart }: Fea
     const [isHovered, setIsHovered] = useState(false);
 
     const primaryImage = product.image || '/placeholder.svg';
-    const hoverImage = product.extra_images?.[0] || primaryImage;
+    const hoverImage = product.productImages?.[0] || primaryImage;
 
     return (
       <Card 
