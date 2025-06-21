@@ -8,12 +8,34 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
+type OrderItem = {
+  sku: string;
+  name?: string;
+  variant?: string;
+  quantity?: number;
+  price?: number;
+  image?: string;
+};
+
+type Order = {
+  id: number;
+  items: OrderItem[];
+  status: string;
+  username: string;
+  created_at?: string;
+  total_selling_price?: number;
+  shipping_cost?: number;
+  tracking_number?: string;
+  address?: string;
+  admin_notes?: string;
+};
+
 const OrderHistory = () => {
   const { user, loading: authLoading } = useAuth();
-  const [orders, setOrders] = useState([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState(null);
-  const [expandedOrders, setExpandedOrders] = useState(new Set());
+  const [profile, setProfile] = useState<{ username: string } | null>(null);
+  const [expandedOrders, setExpandedOrders] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     if (user) fetchUserProfile();
@@ -47,9 +69,8 @@ const OrderHistory = () => {
         return;
       }
 
-      // Get all unique SKUs
       const allSkus = ordersData.flatMap(order =>
-        (order.items || []).map((item: any) => item.sku)
+        Array.isArray(order.items) ? order.items.map((item: any) => item.sku) : []
       );
       const uniqueSkus = [...new Set(allSkus)];
 
@@ -62,12 +83,14 @@ const OrderHistory = () => {
         (productImages || []).map(p => [p.product_sku, p.image])
       );
 
-      const enrichedOrders = ordersData.map(order => ({
+      const enrichedOrders: Order[] = ordersData.map(order => ({
         ...order,
-        items: (order.items || []).map((item: any) => ({
-          ...item,
-          image: imageMap.get(item.sku) || null,
-        })),
+        items: Array.isArray(order.items)
+          ? order.items.map((item: any) => ({
+              ...item,
+              image: imageMap.get(item.sku) || null,
+            }))
+          : [],
       }));
 
       setOrders(enrichedOrders);
@@ -105,7 +128,7 @@ const OrderHistory = () => {
     }
   };
 
-  const formatItemName = (item: any) => {
+  const formatItemName = (item: OrderItem) => {
     let name = item.name || "ไม่ระบุชื่อสินค้า";
     if (item.variant) name += ` (${item.variant})`;
     return name;
@@ -164,7 +187,7 @@ const OrderHistory = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {orders.map((order: any) => (
+                  {orders.map((order) => (
                     <div key={order.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center space-x-2">
@@ -204,11 +227,11 @@ const OrderHistory = () => {
                           <p className="font-semibold text-purple-600 text-lg">
                             ฿{order.total_selling_price?.toLocaleString() || "0"}
                           </p>
-{order.shipping_cost !== undefined && (
-  <p className="text-sm text-gray-500">
-    รวมค่าจัดส่ง: ฿{order.shipping_cost.toLocaleString()}
-  </p>
-)}
+                          {order.shipping_cost !== undefined && (
+                            <p className="text-sm text-gray-500">
+                              รวมค่าจัดส่ง: ฿{order.shipping_cost.toLocaleString()}
+                            </p>
+                          )}
                           {order.tracking_number && (
                             <p className="text-sm text-gray-600 mt-1">
                               หมายเลขติดตาม: <span className="font-mono">{order.tracking_number}</span>
@@ -223,7 +246,7 @@ const OrderHistory = () => {
                             <h4 className="font-medium text-gray-900 mb-2">รายการสินค้า:</h4>
                             <div className="space-y-2">
                               {order.items && order.items.length > 0 ? (
-                                order.items.map((item: any, index: number) => (
+                                order.items.map((item, index) => (
                                   <div key={index} className="flex justify-between items-center bg-gray-50 p-3 rounded">
                                     <div className="flex items-center space-x-4">
                                       {item.image && (
