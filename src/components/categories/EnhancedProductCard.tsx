@@ -5,17 +5,37 @@ import { Button } from "@/components/ui/button";
 import { ShoppingCart } from "lucide-react";
 import { ProductPublic } from "@/types/product";
 
+interface VariantImage {
+  variant_name: string;
+  image_url: string;
+}
+
 interface EnhancedProductCardProps {
   product: ProductPublic;
+  productImages?: VariantImage[];  // ✅ เพิ่มเพื่อรับรูป variant / additional
   onProductClick: (productId: number) => void;
   onAddToCart?: (product: ProductPublic) => void;
 }
 
-const EnhancedProductCard = ({ product, onProductClick, onAddToCart }: EnhancedProductCardProps) => {
+const EnhancedProductCard = ({
+  product,
+  productImages = [],
+  onProductClick,
+  onAddToCart
+}: EnhancedProductCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
 
   const primaryImage = product.image || '/placeholder.svg';
-  const hoverImage = product.extra_images?.[0] || primaryImage;
+
+  // ✅ หา hover image จาก productImages ถ้ามี
+  const hoverImage = (() => {
+    if (productImages.length === 0) return product.extra_images?.[0] || primaryImage;
+
+    const match = productImages.find(img =>
+      img.variant_name?.toLowerCase() === product.name.toLowerCase()
+    );
+    return match?.image_url || product.extra_images?.[0] || primaryImage;
+  })();
 
   return (
     <Card 
@@ -52,38 +72,3 @@ const EnhancedProductCard = ({ product, onProductClick, onAddToCart }: EnhancedP
             className="font-semibold text-gray-800 mb-2 line-clamp-2 h-12 hover:text-purple-600 transition-colors"
             onClick={() => onProductClick(product.id)}
           >
-            {product.name}
-          </h3>
-          <p className="text-sm text-gray-500 mb-2">SKU: {product.sku}</p>
-          <p className="text-xl font-bold mb-3" style={{ color: '#956ec3' }}>
-            ฿{product.selling_price.toLocaleString()}
-          </p>
-          <p className="text-sm text-gray-600 mb-3">{product.category}</p>
-
-          <div className="space-y-2">
-            <Button 
-              size="sm" 
-              className="w-full bg-purple-600 hover:bg-purple-700"
-              onClick={() => onProductClick(product.id)}
-            >
-              ซื้อเดี๋ยวนี้
-            </Button>
-            {onAddToCart && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="w-full"
-                onClick={() => onAddToCart(product)}
-              >
-                <ShoppingCart className="h-4 w-4 mr-2" />
-                เพิ่มลงตะกร้า
-              </Button>
-            )}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
-
-export default EnhancedProductCard;
