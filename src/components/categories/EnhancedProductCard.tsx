@@ -12,11 +12,7 @@ interface EnhancedProductCardProps {
 }
 
 const EnhancedProductCard = ({ product, onProductClick, onAddToCart }: EnhancedProductCardProps) => {
-  const [isHovered, setIsHovered] = useState(false);
-
-  // รูปหลัก
   const primaryImage = product.image || '/placeholder.svg';
-  // รูป hover เอารูปแรกใน product_images ถ้ามี
   const hoverImage = product.product_images && product.product_images.length > 1
     ? product.product_images[1].image_url
     : primaryImage;
@@ -24,14 +20,20 @@ const EnhancedProductCard = ({ product, onProductClick, onAddToCart }: EnhancedP
   return (
     <Card 
       className="hover:shadow-lg transition-all duration-300 cursor-pointer"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="relative w-full h-48 overflow-hidden rounded-t-lg">
+      <div 
+        className="relative w-full h-48 overflow-hidden rounded-t-lg"
+        onClick={() => onProductClick(product.id)}
+      >
         <img
-          src={isHovered ? hoverImage : primaryImage}
+          src={primaryImage}
           alt={product.name}
-          className="w-full h-full object-cover transition-all duration-500 ease-in-out"
+          className="w-full h-full object-cover absolute top-0 left-0 transition-opacity duration-500 ease-in-out opacity-100 group-hover:opacity-0"
+        />
+        <img
+          src={hoverImage}
+          alt={product.name}
+          className="w-full h-full object-cover absolute top-0 left-0 transition-opacity duration-500 ease-in-out opacity-0 group-hover:opacity-100"
         />
         {product.product_status && (
           <Badge 
