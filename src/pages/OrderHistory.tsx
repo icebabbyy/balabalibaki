@@ -182,28 +182,42 @@ const OrderHistory = () => {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                        <div>
-                          <p className="font-medium text-gray-900">
-                            จำนวนสินค้า: {order.items?.length || 0} รายการ
-                          </p>
-                          <div className="flex items-center space-x-2 text-sm text-gray-500 mt-1">
-                            <Calendar className="h-4 w-4" />
-                            <span>
-                              {order.created_at
-                                ? new Date(order.created_at).toLocaleDateString("th-TH", {
-                                    year: "numeric",
-                                    month: "long",
-                                    day: "numeric",
-                                  })
-                                : "ไม่ระบุวันที่"}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-purple-600 text-lg">
-                            ฿{order.total_selling_price?.toLocaleString() || "0"}
-                          </p>
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+  <div>
+    <p className="font-medium text-gray-900">
+      จำนวนสินค้า: {order.items?.length || 0} รายการ
+    </p>
+
+    {/* วันที่สั่งซื้อ */}
+    <div className="flex items-center space-x-2 text-sm text-gray-500 mt-1">
+      <Calendar className="h-4 w-4" />
+      <span>
+        {order.order_date
+          ? new Date(order.created_at).toLocaleDateString("th-TH", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })
+          : "ไม่ระบุวันที่สั่งซื้อ"}
+      </span>
+    </div>
+
+    {/* กำหนดส่งสินค้า */}
+    {order.items?.[0]?.shipment_date && (
+      <div className="flex items-center space-x-2 text-sm text-indigo-600 mt-1">
+        <Calendar className="h-4 w-4" />
+        <span>
+          กำหนดส่ง:{" "}
+          {new Date(order.items[0].shipment_date).toLocaleDateString("th-TH", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })}
+        </span>
+      </div>
+    )}
+  </div>
+
 {order.shipping_cost !== undefined && (
   <p className="text-sm text-gray-500">
     รวมค่าจัดส่ง: ฿{order.shipping_cost.toLocaleString()}
