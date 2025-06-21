@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import Header from "@/components/Header";
@@ -188,7 +187,6 @@ const OrderHistory = () => {
                           <p className="font-medium text-gray-900">
                             จำนวนสินค้า: {order.items?.length || 0} รายการ
                           </p>
-
                           <div className="flex items-center space-x-2 text-sm text-gray-500 mt-1">
                             <Calendar className="h-4 w-4" />
                             <span>
@@ -198,31 +196,19 @@ const OrderHistory = () => {
                                     month: "long",
                                     day: "numeric",
                                   })
-                                : "ไม่ระบุวันที่สั่งซื้อ"}
+                                : "ไม่ระบุวันที่"}
                             </span>
                           </div>
-
-                          {order.items?.[0]?.shipment_date && (
-                            <div className="flex items-center space-x-2 text-sm text-indigo-600 mt-1">
-                              <Calendar className="h-4 w-4" />
-                              <span>
-                                กำหนดส่ง:{" "}
-                                {new Date(order.items[0].shipment_date).toLocaleDateString("th-TH", {
-                                  year: "numeric",
-                                  month: "long",
-                                  day: "numeric",
-                                })}
-                              </span>
-                            </div>
-                          )}
                         </div>
-
-                        <div>
-                          {order.shipping_cost !== undefined && (
-                            <p className="text-sm text-gray-500">
-                              รวมค่าจัดส่ง: ฿{order.shipping_cost.toLocaleString()}
-                            </p>
-                          )}
+                        <div className="text-right">
+                          <p className="font-semibold text-purple-600 text-lg">
+                            ฿{order.total_selling_price?.toLocaleString() || "0"}
+                          </p>
+{order.shipping_cost !== undefined && (
+  <p className="text-sm text-gray-500">
+    รวมค่าจัดส่ง: ฿{order.shipping_cost.toLocaleString()}
+  </p>
+)}
                           {order.tracking_number && (
                             <p className="text-sm text-gray-600 mt-1">
                               หมายเลขติดตาม: <span className="font-mono">{order.tracking_number}</span>
