@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import Header from "@/components/Header";
@@ -17,57 +16,64 @@ const OrderHistory = () => {
   const [expandedOrders, setExpandedOrders] = useState(new Set());
 
   useEffect(() => {
-    if (user) {
-      fetchUserProfile();
-    }
+    if (user) fetchUserProfile();
   }, [user]);
 
   useEffect(() => {
-    if (profile?.username) {
-      fetchOrderHistory();
-    }
+    if (profile?.username) fetchOrderHistory();
   }, [profile]);
 
   const fetchUserProfile = async () => {
     if (!user) return;
-    
-    try {
-      const { data } = await supabase
-        .from('profiles')
-        .select('username')
-        .eq('id', user.id)
-        .maybeSingle();
-      
-      if (data) {
-        setProfile(data);
-      }
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
-    }
+    const { data } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (data) setProfile(data);
   };
 
   const fetchOrderHistory = async () => {
     if (!profile?.username) return;
-    
     try {
-      console.log('Fetching orders for username:', profile.username);
-      
-      // Fetch orders for this user
-      const { data: ordersData, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('username', profile.username)
-        .order('id', { ascending: false });
+      const { data: ordersData } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("username", profile.username)
+        .order("id", { ascending: false });
 
-      if (error) {
-        console.error('Error fetching orders:', error);
+      if (!ordersData || ordersData.length === 0) {
         setOrders([]);
-      } else {
-        console.log('Found orders:', ordersData);
-        setOrders(ordersData || []);
+        return;
       }
+
+      // Get all unique SKUs
+      const allSkus = ordersData.flatMap(order =>
+        (order.items || []).map((item: any) => item.sku)
+      );
+      const uniqueSkus = [...new Set(allSkus)];
+
+      const { data: productImages } = await supabase
+        .from("public_products")
+        .select("product_sku, image")
+        .in("product_sku", uniqueSkus);
+
+      const imageMap = new Map(
+        (productImages || []).map(p => [p.product_sku, p.image])
+      );
+
+      const enrichedOrders = ordersData.map(order => ({
+        ...order,
+        items: (order.items || []).map((item: any) => ({
+          ...item,
+          image: imageMap.get(item.sku) || null,
+        })),
+      }));
+
+      setOrders(enrichedOrders);
     } catch (error) {
-      console.error('Error fetching order history:', error);
+      console.error("Error fetching order history:", error);
+      setOrders([]);
     } finally {
       setLoading(false);
     }
@@ -75,41 +81,37 @@ const OrderHistory = () => {
 
   const toggleOrderDetails = (orderId: number) => {
     const newExpanded = new Set(expandedOrders);
-    if (newExpanded.has(orderId)) {
-      newExpanded.delete(orderId);
-    } else {
-      newExpanded.add(orderId);
-    }
+    newExpanded.has(orderId)
+      ? newExpanded.delete(orderId)
+      : newExpanded.add(orderId);
     setExpandedOrders(newExpanded);
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'รอชำระเงิน':
-      case 'รอตรวจสอบการชำระเงิน':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'ชำระเงินแล้ว':
-        return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'กำลังจัดส่ง':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'จัดส่งแล้ว':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'ยกเลิก':
-        return 'bg-red-100 text-red-800 border-red-200';
+      case "รอชำระเงิน":
+      case "รอตรวจสอบการชำระเงิน":
+        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "ชำระเงินแล้ว":
+        return "bg-purple-100 text-purple-800 border-purple-200";
+      case "กำลังจัดส่ง":
+        return "bg-blue-100 text-blue-800 border-blue-200";
+      case "จัดส่งแล้ว":
+        return "bg-green-100 text-green-800 border-green-200";
+      case "ยกเลิก":
+        return "bg-red-100 text-red-800 border-red-200";
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return "bg-gray-100 text-gray-800 border-gray-200";
     }
   };
 
   const formatItemName = (item: any) => {
-    let name = item.name || 'ไม่ระบุชื่อสินค้า';
-    if (item.variant) {
-      name += ` (${item.variant})`;
-    }
+    let name = item.name || "ไม่ระบุชื่อสินค้า";
+    if (item.variant) name += ` (${item.variant})`;
     return name;
   };
 
-  if (authLoading) {
+  if (authLoading)
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -118,13 +120,10 @@ const OrderHistory = () => {
         </div>
       </div>
     );
-  }
 
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
+  if (!user) return <Navigate to="/auth" replace />;
 
-  if (loading) {
+  if (loading)
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
@@ -136,7 +135,6 @@ const OrderHistory = () => {
         </div>
       </div>
     );
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -157,8 +155,12 @@ const OrderHistory = () => {
               {orders.length === 0 ? (
                 <div className="text-center py-8">
                   <Package className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-700 mb-2">ไม่มีประวัติการสั่งซื้อ</h3>
-                  <p className="text-gray-500">คุณยังไม่มีการสั่งซื้อสินค้า เริ่มช้อปปิ้งกันเถอะ!</p>
+                  <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                    ไม่มีประวัติการสั่งซื้อ
+                  </h3>
+                  <p className="text-gray-500">
+                    คุณยังไม่มีการสั่งซื้อสินค้า เริ่มช้อปปิ้งกันเถอะ!
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -171,19 +173,15 @@ const OrderHistory = () => {
                         </div>
                         <div className="flex items-center space-x-2">
                           <Badge className={`${getStatusColor(order.status)} border`}>
-                            {order.status || 'รอชำระเงิน'}
+                            {order.status || "รอชำระเงิน"}
                           </Badge>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => toggleOrderDetails(order.id)}
-                          >
+                          <Button variant="outline" size="sm" onClick={() => toggleOrderDetails(order.id)}>
                             <Eye className="h-4 w-4 mr-1" />
-                            {expandedOrders.has(order.id) ? 'ซ่อน' : 'ดู'}รายละเอียด
+                            {expandedOrders.has(order.id) ? "ซ่อน" : "ดู"}รายละเอียด
                           </Button>
                         </div>
                       </div>
-                      
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
                         <div>
                           <p className="font-medium text-gray-900">
@@ -192,20 +190,19 @@ const OrderHistory = () => {
                           <div className="flex items-center space-x-2 text-sm text-gray-500 mt-1">
                             <Calendar className="h-4 w-4" />
                             <span>
-                              {order.created_at || order.order_date
-                                ? new Date(order.created_at || order.order_date).toLocaleDateString('th-TH', {
-                                    year: 'numeric',
-                                    month: 'long',
-                                    day: 'numeric'
+                              {order.created_at
+                                ? new Date(order.created_at).toLocaleDateString("th-TH", {
+                                    year: "numeric",
+                                    month: "long",
+                                    day: "numeric",
                                   })
-                                : 'ไม่ระบุวันที่'
-                              }
+                                : "ไม่ระบุวันที่"}
                             </span>
                           </div>
                         </div>
                         <div className="text-right">
                           <p className="font-semibold text-purple-600 text-lg">
-                            ฿{order.total_selling_price?.toLocaleString() || '0'}
+                            ฿{order.total_selling_price?.toLocaleString() || "0"}
                           </p>
                           {order.tracking_number && (
                             <p className="text-sm text-gray-600 mt-1">
@@ -215,21 +212,28 @@ const OrderHistory = () => {
                         </div>
                       </div>
 
-                      {/* Expanded Details */}
                       {expandedOrders.has(order.id) && (
                         <div className="border-t pt-4 mt-4 space-y-4">
-                          {/* Items List */}
                           <div>
                             <h4 className="font-medium text-gray-900 mb-2">รายการสินค้า:</h4>
                             <div className="space-y-2">
                               {order.items && order.items.length > 0 ? (
                                 order.items.map((item: any, index: number) => (
                                   <div key={index} className="flex justify-between items-center bg-gray-50 p-3 rounded">
-                                    <div>
-                                      <p className="font-medium">{formatItemName(item)}</p>
-                                      <p className="text-sm text-gray-600">
-                                        SKU: {item.sku || 'ไม่ระบุ'}
-                                      </p>
+                                    <div className="flex items-center space-x-4">
+                                      {item.image && (
+                                        <img
+                                          src={item.image}
+                                          alt={item.name}
+                                          className="w-16 h-16 object-cover rounded border"
+                                        />
+                                      )}
+                                      <div>
+                                        <p className="font-medium">{formatItemName(item)}</p>
+                                        <p className="text-sm text-gray-600">
+                                          SKU: {item.sku || "ไม่ระบุ"}
+                                        </p>
+                                      </div>
                                     </div>
                                     <div className="text-right">
                                       <p className="font-medium">
@@ -247,17 +251,13 @@ const OrderHistory = () => {
                             </div>
                           </div>
 
-                          {/* Address */}
                           {order.address && (
                             <div>
                               <h4 className="font-medium text-gray-900 mb-2">ที่อยู่จัดส่ง:</h4>
-                              <p className="text-gray-700 bg-gray-50 p-3 rounded">
-                                {order.address}
-                              </p>
+                              <p className="text-gray-700 bg-gray-50 p-3 rounded">{order.address}</p>
                             </div>
                           )}
 
-                          {/* Admin Notes */}
                           {order.admin_notes && (
                             <div>
                               <h4 className="font-medium text-gray-900 mb-2">หมายเหตุจากร้าน:</h4>
