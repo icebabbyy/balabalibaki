@@ -36,7 +36,6 @@ const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
           <h3 className="font-semibold text-gray-800 mb-2 line-clamp-2 h-12">
             {product.name}
           </h3>
-          <p className="text-sm text-gray-500 mb-2">SKU: {product.sku}</p>
           <p className="text-xl font-bold" style={{ color: '#956ec3' }}>
             ฿{product.selling_price.toLocaleString()}
           </p>
