@@ -29,12 +29,12 @@ const EnhancedProductCard = ({
 
   // ✅ หา hover image จาก productImages ถ้ามี
   const hoverImage = (() => {
-    if (productImages.length === 0) return product.extra_images?.[0] || primaryImage;
+    if (productImages.length === 0) return product.productImages?.[0] || primaryImage;
 
     const match = productImages.find(img =>
       img.variant_name?.toLowerCase() === product.name.toLowerCase()
     );
-    return match?.image_url || product.extra_images?.[0] || primaryImage;
+    return match?.image_url || product.productImages?.[0] || primaryImage;
   })();
 
   return (
