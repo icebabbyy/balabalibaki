@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import CategoryFilters from "@/components/categories/CategoryFilters";
@@ -19,6 +18,7 @@ interface Category {
 
 const Categories = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [products, setProducts] = useState<ProductPublic[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,6 +36,20 @@ const Categories = () => {
     fetchCategories();
     fetchProducts();
   }, []);
+
+  useEffect(() => {
+    // Handle category filtering from URL parameters
+    const categoryParam = searchParams.get('category');
+    const searchParam = searchParams.get('search');
+
+    if (categoryParam) {
+      handleCategoryChange(categoryParam, true);
+    }
+
+    if (searchParam) {
+      setSearchTerm(searchParam);
+    }
+  }, [searchParams, handleCategoryChange, setSearchTerm]);
 
   const fetchCategories = async () => {
     try {

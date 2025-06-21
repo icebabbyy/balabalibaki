@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,28 +26,34 @@ const Cart = () => {
   const [customerInfo, setCustomerInfo] = useState({ name: "", phone: "", address: "", note: "" });
   const [updateProfile, setUpdateProfile] = useState(false);
   const [profileId, setProfileId] = useState<string | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
     const loadUserProfile = async () => {
-      const user = supabase.auth.user();
-      if (user) {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
+        setIsLoggedIn(true);
         const { data, error } = await supabase
           .from("profiles")
-          .select("id,name,phone,address")
-          .eq("id", user.id)
+          .select("id,username,phone,address")
+          .eq("id", session.user.id)
           .single();
 
         if (!error && data) {
           setProfileId(data.id);
           setCustomerInfo({
-            name: data.name || "",
+            name: data.username || "",
             phone: data.phone || "",
             address: data.address || "",
             note: ""
           });
         }
+      } else {
+        setIsLoggedIn(false);
       }
     };
+    
     loadUserProfile();
     loadCartFromStorage();
   }, []);
@@ -96,11 +103,13 @@ const Cart = () => {
       await supabase
         .from("profiles")
         .update({
-          name: customerInfo.name,
+          username: customerInfo.name,
           phone: customerInfo.phone,
           address: customerInfo.address
         })
         .eq("id", profileId);
+      
+      toast.success("อัปเดตข้อมูลโปรไฟล์แล้ว");
     }
 
     const orderData = {
@@ -194,15 +203,22 @@ const Cart = () => {
                   onChange={(e) => setCustomerInfo({ ...customerInfo, note: e.target.value })}
                 />
 
-                {profileId && (
-                  <div className="flex items-center space-x-2">
-                    <input 
-                      id="updateProfile" 
-                      type="checkbox" 
-                      checked={updateProfile} 
-                      onChange={() => setUpdateProfile(!updateProfile)} 
-                    />
-                    <label htmlFor="updateProfile">อัปเดตที่อยู่ในโปรไฟล์</label>
+                {isLoggedIn && profileId && (
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <input 
+                        id="updateProfile" 
+                        type="checkbox" 
+                        checked={updateProfile} 
+                        onChange={() => setUpdateProfile(!updateProfile)} 
+                      />
+                      <label htmlFor="updateProfile" className="text-sm font-medium">
+                        อัปเดตข้อมูลในโปรไฟล์ถาวร
+                      </label>
+                    </div>
+                    <p className="text-xs text-gray-600">
+                      {updateProfile ? "ข้อมูลจะถูกบันทึกในโปรไฟล์สำหรับการสั่งซื้อครั้งต่อไป" : "ใช้ข้อมูลเฉพาะครั้งนี้"}
+                    </p>
                   </div>
                 )}
 

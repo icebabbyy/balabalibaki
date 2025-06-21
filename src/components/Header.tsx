@@ -1,11 +1,10 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { ShoppingCart, User, Heart, Package, LogOut, Search } from "lucide-react";
+import { ShoppingCart, User, Heart, Package, LogOut, Search, Menu } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -16,6 +15,7 @@ const Header = () => {
   const [cartCount, setCartCount] = useState(0);
   const [profile, setProfile] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -106,6 +106,7 @@ const Header = () => {
             LuckyShop
           </div>
           
+          {/* Desktop Navigation */}
           <nav className="hidden md:flex space-x-6">
             <button
               onClick={() => navigate('/')}
@@ -139,6 +140,7 @@ const Header = () => {
             </button>
           </nav>
 
+          {/* Desktop Search */}
           <form onSubmit={handleSearch} className="hidden md:flex items-center space-x-2">
             <div className="relative">
               <Input
@@ -159,71 +161,131 @@ const Header = () => {
             </div>
           </form>
 
-          <div className="flex items-center space-x-4">
+          {/* User Actions - Always visible including cart */}
+          <div className="flex items-center space-x-2">
+            {/* Cart Icon - Always visible on mobile */}
             {user && (
-              <>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => navigate('/cart')}
-                  className="text-white hover:bg-purple-700 hover:text-white relative"
-                >
-                  <ShoppingCart className="h-4 w-4" />
-                  {cartCount > 0 && (
-                    <Badge 
-                      variant="destructive" 
-                      className="absolute -top-2 -right-2 px-1 min-w-[1.2rem] h-5 flex items-center justify-center text-xs"
-                    >
-                      {cartCount}
-                    </Badge>
-                  )}
-                </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/cart')}
+                className="text-white hover:bg-purple-700 hover:text-white relative"
+              >
+                <ShoppingCart className="h-4 w-4" />
+                {cartCount > 0 && (
+                  <Badge 
+                    variant="destructive" 
+                    className="absolute -top-2 -right-2 px-1 min-w-[1.2rem] h-5 flex items-center justify-center text-xs"
+                  >
+                    {cartCount}
+                  </Badge>
+                )}
+              </Button>
+            )}
 
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm">สวัสดี, {getDisplayName()}</span>
-                  
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-white hover:bg-purple-700 hover:text-white"
-                      >
-                        <User className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56 bg-white z-50">
-                      <DropdownMenuItem onClick={() => navigate('/profile')}>
-                        <User className="mr-2 h-4 w-4" />
-                        <span>จัดการโปรไฟล์</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => navigate('/wishlist')}>
-                        <Heart className="mr-2 h-4 w-4" />
-                        <span>รายการโปรด</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => navigate('/order-history')}>
-                        <Package className="mr-2 h-4 w-4" />
-                        <span>ประวัติการสั่งซื้อ</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={handleSignOut}>
-                        <LogOut className="mr-2 h-4 w-4" />
-                        <span>ออกจากระบบ</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-
-                  {profile?.role === 'admin' && (
+            {/* Desktop User Menu */}
+            {user && (
+              <div className="hidden md:flex items-center space-x-2">
+                <span className="text-sm">สวัสดี, {getDisplayName()}</span>
+                
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
                     <Button
-                      onClick={() => navigate('/admin')}
-                      variant="secondary"
+                      variant="ghost"
                       size="sm"
-                      className="ml-2"
+                      className="text-white hover:bg-purple-700 hover:text-white"
                     >
-                      Admin
+                      <User className="h-4 w-4" />
                     </Button>
-                  )}
-                </div>
-              </>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56 bg-white z-50">
+                    <DropdownMenuItem onClick={() => navigate('/profile')}>
+                      <User className="mr-2 h-4 w-4" />
+                      <span>จัดการโปรไฟล์</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/wishlist')}>
+                      <Heart className="mr-2 h-4 w-4" />
+                      <span>รายการโปรด</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/order-history')}>
+                      <Package className="mr-2 h-4 w-4" />
+                      <span>ประวัติการสั่งซื้อ</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleSignOut}>
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>ออกจากระบบ</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {profile?.role === 'admin' && (
+                  <Button
+                    onClick={() => navigate('/admin')}
+                    variant="secondary"
+                    size="sm"
+                    className="ml-2"
+                  >
+                    Admin
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {/* Mobile User Menu */}
+            {user && (
+              <div className="md:hidden">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-white hover:bg-purple-700 hover:text-white"
+                    >
+                      <User className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56 bg-white z-50">
+                    <DropdownMenuItem onClick={() => navigate('/profile')}>
+                      <User className="mr-2 h-4 w-4" />
+                      <span>จัดการโปรไฟล์</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/wishlist')}>
+                      <Heart className="mr-2 h-4 w-4" />
+                      <span>รายการโปรด</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/order-history')}>
+                      <Package className="mr-2 h-4 w-4" />
+                      <span>ประวัติการสั่งซื้อ</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/categories')}>
+                      <Package className="mr-2 h-4 w-4" />
+                      <span>หมวดหมู่สินค้า</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/qa')}>
+                      <Package className="mr-2 h-4 w-4" />
+                      <span>Q&A</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/order-status')}>
+                      <Package className="mr-2 h-4 w-4" />
+                      <span>เช็คสถานะ</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/reviews')}>
+                      <Package className="mr-2 h-4 w-4" />
+                      <span>รีวิว</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleSignOut}>
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>ออกจากระบบ</span>
+                    </DropdownMenuItem>
+                    {profile?.role === 'admin' && (
+                      <DropdownMenuItem onClick={() => navigate('/admin')}>
+                        <User className="mr-2 h-4 w-4" />
+                        <span>Admin</span>
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             )}
             
             {!user && (

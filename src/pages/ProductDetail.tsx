@@ -135,19 +135,25 @@ const ProductDetail = () => {
       product_type: product.product_type || 'ETC'
     };
 
-    // Store order data for direct purchase
-    const orderData = {
-      items: [cartItem],
-      totalPrice: cartItem.price * cartItem.quantity,
-      customerInfo: {
-        name: '',
-        address: '',
-        note: ''
-      }
-    };
+    // Add item to existing cart instead of creating a separate order
+    const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
+    
+    // Check if item with same variant already exists
+    const existingItemIndex = existingCart.findIndex((item: any) => 
+      item.id === cartItem.id && item.variant === cartItem.variant
+    );
 
-    // Store in localStorage for payment page
-    localStorage.setItem('pendingOrder', JSON.stringify(orderData));
+    if (existingItemIndex >= 0) {
+      // Update quantity
+      existingCart[existingItemIndex].quantity += quantity;
+    } else {
+      // Add new item
+      existingCart.push(cartItem);
+    }
+
+    localStorage.setItem('cart', JSON.stringify(existingCart));
+    
+    // Navigate directly to cart page for immediate checkout
     navigate('/cart');
   };
 
