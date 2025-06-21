@@ -18,9 +18,7 @@ const EnhancedProductCard = ({ product, onProductClick, onAddToCart }: EnhancedP
     : primaryImage;
 
   return (
-    <Card 
-      className="hover:shadow-lg transition-all duration-300 cursor-pointer"
-    >
+    <Card className="group hover:shadow-lg transition-all duration-300 cursor-pointer">
       <div 
         className="relative w-full h-48 overflow-hidden rounded-t-lg"
         onClick={() => onProductClick(product.id)}
