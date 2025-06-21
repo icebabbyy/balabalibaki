@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import Autoplay from "embla-carousel-autoplay";
 import { ProductPublic } from "@/types/product";
+import FeaturedProductsCarousel from "@/components/FeaturedProductsCarousel";
 
 interface Banner {
   id: string;
@@ -425,7 +426,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* สินค้ามาใหม่ */}
+      {/* สินค้ามาใหม่ - Updated to use Carousel */}
       <section className="py-12 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4">
           <h2 className="text-2xl font-bold mb-8 text-center">สินค้ามาใหม่</h2>
@@ -443,11 +444,11 @@ const Index = () => {
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {featuredProducts.slice(0, 4).map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
+            <FeaturedProductsCarousel 
+              products={featuredProducts}
+              onProductClick={handleProductClick}
+              onAddToCart={addToCart}
+            />
           )}
         </div>
       </section>

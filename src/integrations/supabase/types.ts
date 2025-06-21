@@ -63,6 +63,97 @@ export type Database = {
         }
         Relationships: []
       }
+      "email tracking": {
+        Row: {
+          created_at: string
+          id: number
+          message: string
+          product_sku: string | null
+          recipient_email: string
+          send_at: string | null
+          subject: string | null
+          type: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          message: string
+          product_sku?: string | null
+          recipient_email: string
+          send_at?: string | null
+          subject?: string | null
+          type?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          message?: string
+          product_sku?: string | null
+          recipient_email?: string
+          send_at?: string | null
+          subject?: string | null
+          type?: string | null
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          created_at: string | null
+          id: number
+          message: string
+          order_id: number | null
+          product_sku: string | null
+          recipient_email: string
+          sent_at: string | null
+          subject: string
+          type: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: number
+          message: string
+          order_id?: number | null
+          product_sku?: string | null
+          recipient_email: string
+          sent_at?: string | null
+          subject: string
+          type: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: number
+          message?: string
+          order_id?: number | null
+          product_sku?: string | null
+          recipient_email?: string
+          sent_at?: string | null
+          subject?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "publice_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "publine_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           address: string | null
