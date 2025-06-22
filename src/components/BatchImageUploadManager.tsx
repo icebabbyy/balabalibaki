@@ -23,7 +23,7 @@ const BatchImageUploadManager = ({ onImagesUploaded, productId }: BatchImageUplo
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadResults, setUploadResults] = useState<UploadResult[]>([]);
   const [uploading, setUploading] = useState(false);
-  const { uploadImages, images, loading, refetch } = useProductImages(productId);
+  const { uploadImages, images, loading, refreshImages } = useProductImages(productId);
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
@@ -63,7 +63,7 @@ const BatchImageUploadManager = ({ onImagesUploaded, productId }: BatchImageUplo
         }));
         if (uploadedUrls.length > 0) {
           onImagesUploaded?.(uploadedUrls);
-          refetch();
+          refreshImages();
         }
       } else {
         const uploadedUrls: string[] = [];
@@ -112,7 +112,7 @@ const BatchImageUploadManager = ({ onImagesUploaded, productId }: BatchImageUplo
       toast.error(`ลบไม่สำเร็จ: ${error.message}`);
     } else {
       toast.success('ลบรูปสำเร็จ');
-      refetch();
+      refreshImages();
     }
   };
 

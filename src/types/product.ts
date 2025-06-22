@@ -37,4 +37,9 @@ export interface ProductPublic {
   product_type: string;
   created_at: string;
   updated_at: string;
+  product_images?: Array<{
+    id: number;
+    image_url: string;
+    order: number;
+  }>;
 }
