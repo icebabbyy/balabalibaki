@@ -1,3 +1,4 @@
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,53 +16,59 @@ const EnhancedProductCard = ({ product, onProductClick, onAddToCart }: EnhancedP
   const primaryImage = product.image || '/placeholder.svg';
   const productImages = product.product_images && product.product_images.length > 0 
     ? product.product_images.map(img => img.image_url)
-    : [primaryImage];
-
-  const [showOptions, setShowOptions] = useState(false);
+    : [];
+  
+  // Use second image for hover, or fallback to primary image
+  const hoverImage = productImages.length > 0 ? productImages[0] : primaryImage;
 
   return (
-    <Card 
-      className="hover:shadow-lg transition-all duration-300 cursor-pointer group"
-      onMouseEnter={() => setShowOptions(true)}
-      onMouseLeave={() => setShowOptions(false)}
-    >
+    <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer group">
       <div 
-        className="relative w-full h-48 overflow-hidden rounded-t-lg"
+        className="relative w-full h-48 overflow-hidden rounded-t-lg figure"
         onClick={() => onProductClick(product.id)}
+        style={{ position: 'relative', maxWidth: '100%' }}
       >
+        {/* Primary Image */}
         <img
           src={primaryImage}
           alt={product.name}
           className="w-full h-full object-cover"
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            left: 0,
+            bottom: 0,
+            objectFit: 'cover'
+          }}
         />
+        
+        {/* Hover Image - Only show if there's a different image to show */}
+        {hoverImage !== primaryImage && (
+          <img
+            src={hoverImage}
+            alt={`${product.name} - alternate view`}
+            className="w-full h-full object-cover image-hover"
+            style={{
+              position: 'absolute',
+              top: 0,
+              right: 0,
+              left: 0,
+              bottom: 0,
+              objectFit: 'cover',
+              opacity: 0,
+              transition: 'opacity 0.2s ease-in-out'
+            }}
+          />
+        )}
+
         {product.product_status && (
-          <Badge className="absolute top-2 left-2 bg-purple-600 text-white">
+          <Badge className="absolute top-2 left-2 bg-purple-600 text-white z-10">
             {product.product_status}
           </Badge>
         )}
-
-        {showOptions && (
-          <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center p-2">
-            <div className="grid grid-cols-3 gap-1">
-              {productImages.slice(0, 3).map((img, idx) => (
-                <img 
-                  key={idx}
-                  src={img}
-                  alt={`Option ${idx + 1}`}
-                  className="w-12 h-12 object-cover rounded border border-white"
-                />
-              ))}
-              {productImages.length === 1 && (
-                // ถ้ามีแค่รูปเดียว ลอง duplicate random ขึ้นมา
-                <>
-                  <img src={primaryImage} className="w-12 h-12 object-cover rounded border border-white" />
-                  <img src={primaryImage} className="w-12 h-12 object-cover rounded border border-white" />
-                </>
-              )}
-            </div>
-          </div>
-        )}
       </div>
+      
       <CardContent className="p-4">
         <h3 className="font-semibold mb-2 line-clamp-2 hover:text-purple-600 transition-colors" onClick={() => onProductClick(product.id)}>
           {product.name}

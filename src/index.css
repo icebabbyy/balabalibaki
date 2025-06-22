@@ -106,4 +106,14 @@
   .btn-gradient:hover {
     background: linear-gradient(to right, #8a63b8, #9a6bbe);
   }
+
+  /* Rollover image styles */
+  .figure {
+    position: relative;
+    max-width: 100%;
+  }
+  
+  .figure:hover .image-hover {
+    opacity: 1 !important;
+  }
 }
