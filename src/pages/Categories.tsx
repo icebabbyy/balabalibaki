@@ -75,9 +75,9 @@ const Categories = () => {
       setLoading(true);
       
       const { data, error } = await supabase
-        .from('public_products')
-        .select('*')
-        .order('id', { ascending: false });
+  .from('public_products_with_main_image')
+  .select('*')
+  .order('id', { ascending: false });
 
       if (error) {
         console.error('Error fetching products:', error);
