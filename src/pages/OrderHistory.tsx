@@ -1,115 +1,101 @@
-// ✅ 1. Wishlist.tsx - "use is not defined"
+
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { Navigate } from "react-router-dom";
 import Header from "@/components/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Calendar, Package, Eye } from "lucide-react";
-import { toast } from "sonner";
-import OrderTrackingDialog from "@/components/OrderTrackingDialog";
-
-interface OrderItem {
-  id: number;
-  name: string;
-  price: number;
-  quantity: number;
-  image?: string;
-  sku?: string;
-  variant?: string;
-}
-
-interface Order {
-  id: number;
-  order_date: string;
-  status: string;
-  total_selling_price: number;
-  items: OrderItem[];
-  tracking_number?: string;
-  admin_notes?: string;
-  payment_slip_url?: string;
-}
+import { Package, Calendar, Hash } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 const OrderHistory = () => {
-  const [orders, setOrders] = useState<Order[]>([]);
+  const { user, loading: authLoading } = useAuth();
+  const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [showTrackingDialog, setShowTrackingDialog] = useState(false);
+  const [profile, setProfile] = useState(null);
 
   useEffect(() => {
-    fetchOrders();
-  }, []);
+    if (user) {
+      fetchUserProfile();
+      fetchOrderHistory();
+    }
+  }, [user]);
 
-  const fetchOrders = async () => {
+  const fetchUserProfile = async () => {
+    if (!user) return;
+    
     try {
-      setLoading(true);
-      const username = localStorage.getItem("username");
-      if (!username) {
-        toast.error("กรุณาเข้าสู่ระบบเพื่อดูประวัติการสั่งซื้อ");
-        return;
+      const { data } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('id', user.id)
+        .maybeSingle();
+      
+      if (data) {
+        setProfile(data);
       }
-
-      const { data, error } = await supabase
-        .from("orders")
-        .select("*")
-        .eq("username", username)
-        .order("order_date", { ascending: false });
-
-      if (error) {
-        console.error("Error fetching orders:", error);
-        toast.error("เกิดข้อผิดพลาดในการโหลดประวัติการสั่งซื้อ");
-        return;
-      }
-
-      const processedOrders: Order[] = (data || []).map((order) => ({
-        id: order.id,
-        order_date: order.order_date || order.created_at,
-        status: order.status || "รอชำระเงิน",
-        total_selling_price: order.total_selling_price || 0,
-        items: Array.isArray(order.items) ? (order.items as OrderItem[]) : [],
-        tracking_number: order.tracking_number,
-        admin_notes: order.admin_notes,
-        payment_slip_url: order.payment_slip_url,
-      }));
-
-      setOrders(processedOrders);
     } catch (error) {
-      console.error("Error fetching orders:", error);
-      toast.error("เกิดข้อผิดพลาดในการโหลดประวัติการสั่งซื้อ");
+      console.error('Error fetching user profile:', error);
+    }
+  };
+
+  const fetchOrderHistory = async () => {
+    if (!user) return;
+    
+    try {
+      // ใช้ orders table สำหรับ user ที่ login แล้ว - ไม่แสดงข้อมูลต้นทุน
+      const { data: ordersData } = await supabase
+        .from('orders')
+        .select('id, username, items, total_selling_price, status, order_date, address, tracking_number')
+        .eq('username', profile?.username || user.email?.split('@')[0])
+        .order('id', { ascending: false });
+
+      setOrders(ordersData || []);
+    } catch (error) {
+      console.error('Error fetching order history:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status) => {
     switch (status) {
-      case "รอชำระเงิน":
-        return "bg-yellow-100 text-yellow-800";
-      case "รอยืนยันการชำระเงิน":
-        return "bg-blue-100 text-blue-800";
-      case "กำลังจัดเตรียมสินค้า":
-        return "bg-orange-100 text-orange-800";
-      case "จัดส่งแล้ว":
-      case "สำเร็จ":
-        return "bg-green-100 text-green-800";
-      case "ยกเลิก":
-        return "bg-red-100 text-red-800";
+      case 'รอชำระเงิน':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'ชำระเงินแล้ว':
+        return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'กำลังจัดส่ง':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'จัดส่งแล้ว':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'ยกเลิก':
+        return 'bg-red-100 text-red-800 border-red-200';
       default:
-        return "bg-gray-100 text-gray-800";
+        return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
-  const handleViewTracking = (order: Order) => {
-    setSelectedOrder(order);
-    setShowTrackingDialog(true);
-  };
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+          <p className="text-purple-600 font-medium">กำลังโหลด...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
         <div className="container mx-auto px-4 py-8">
-          <div className="text-center">
+          <div className="max-w-4xl mx-auto text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
             <p className="text-purple-600 font-medium">กำลังโหลดประวัติการสั่งซื้อ...</p>
           </div>
@@ -122,100 +108,82 @@ const OrderHistory = () => {
     <div className="min-h-screen bg-gray-50">
       <Header />
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-8">ประวัติการสั่งซื้อ</h1>
-        {orders.length === 0 ? (
-          <div className="text-center py-12">
-            <Package className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500 text-lg">ยังไม่มีประวัติการสั่งซื้อ</p>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {orders.map((order) => (
-              <Card key={order.id}>
-                <CardHeader className="pb-3">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="text-lg">ออเดอร์ #{order.id}</CardTitle>
-                      <div className="flex items-center text-sm text-gray-500 mt-1">
-                        <Calendar className="h-4 w-4 mr-1" />
-                        {new Date(order.order_date).toLocaleDateString("th-TH", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}
+        <div className="max-w-4xl mx-auto">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Package className="h-6 w-6" />
+                <span>ประวัติการสั่งซื้อ</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {orders.length === 0 ? (
+                <div className="text-center py-8">
+                  <Package className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-700 mb-2">ไม่มีประวัติการสั่งซื้อ</h3>
+                  <p className="text-gray-500">คุณยังไม่มีการสั่งซื้อสินค้า เริ่มช้อปปิ้งกันเถอะ!</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {orders.map((order) => (
+                    <div key={order.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-2">
+                          <Hash className="h-4 w-4 text-gray-500" />
+                          <span className="font-semibold">#{order.id}</span>
+                        </div>
+                        <Badge className={`${getStatusColor(order.status)} border`}>
+                          {order.status || 'รอชำระเงิน'}
+                        </Badge>
                       </div>
-                    </div>
-                    <div className="text-right">
-                      <Badge className={getStatusColor(order.status)}>
-                        {order.status}
-                      </Badge>
-                      <p className="text-lg font-bold text-purple-600 mt-1">
-                        ฿{order.total_selling_price.toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {order.items.map((item, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg"
-                      >
-                        <img
-                          src={item.image || "/placeholder.svg"}
-                          alt={item.name}
-                          className="w-16 h-16 object-cover rounded"
-                        />
-                        <div className="flex-1">
-                          <h4 className="font-medium">{item.name}</h4>
-                          {item.variant && (
-                            <p className="text-sm text-gray-500">
-                              ตัวเลือก: {item.variant}
-                            </p>
+                      
+                      <div className="mb-2">
+                        <p className="font-medium text-gray-900">
+                          {order.items && order.items.length > 0 
+                            ? `${order.items.length} รายการ`
+                            : 'ไม่มีข้อมูลสินค้า'
+                          }
+                        </p>
+                        {order.items && order.items.length > 0 && (
+                          <div className="text-sm text-gray-600 mt-1">
+                            {order.items.map((item, index) => (
+                              <div key={index}>
+                                {item.name} x {item.quantity}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm text-gray-500">
+                          <div className="flex items-center space-x-2">
+                            <Calendar className="h-4 w-4" />
+                            <span>
+                              {order.order_date 
+                                ? new Date(order.order_date).toLocaleDateString('th-TH')
+                                : 'ไม่ระบุวันที่'
+                              }
+                            </span>
+                          </div>
+                          {order.tracking_number && (
+                            <p className="mt-1">หมายเลขติดตาม: {order.tracking_number}</p>
                           )}
-                          <p className="text-sm text-gray-500">
-                            จำนวน: {item.quantity} | ราคา: ฿{item.price.toLocaleString()}
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-purple-600">
+                            ฿{order.total_selling_price?.toLocaleString() || '0'}
                           </p>
                         </div>
                       </div>
-                    ))}
-                  </div>
-
-                  <div className="mt-4 pt-4 border-t flex justify-between items-center">
-                    <div>
-                      {order.tracking_number && (
-                        <p className="text-sm text-gray-600">
-                          เลขติดตาม: <span className="font-mono">{order.tracking_number}</span>
-                        </p>
-                      )}
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleViewTracking(order)}
-                    >
-                      <Eye className="h-4 w-4 mr-2" />
-                      ดูรายละเอียด
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
-
-      {selectedOrder && (
-        <OrderTrackingDialog
-          isOpen={showTrackingDialog}
-          onClose={() => {
-            setShowTrackingDialog(false);
-            setSelectedOrder(null);
-          }}
-          order={selectedOrder}
-        />
-      )}
     </div>
   );
 };
