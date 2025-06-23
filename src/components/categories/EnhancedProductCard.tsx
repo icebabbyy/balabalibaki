@@ -3,7 +3,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart } from "lucide-react";
 import { ProductPublic } from "@/types/product";
-import { useState } from "react";
 
 interface EnhancedProductCardProps {
   product: ProductPublic;
@@ -13,11 +12,14 @@ interface EnhancedProductCardProps {
 
 const EnhancedProductCard = ({ product, onProductClick, onAddToCart }: EnhancedProductCardProps) => {
   const primaryImage = product.image || '/placeholder.svg';
-  const productImages = product.product_images && product.product_images.length > 0 
-    ? product.product_images.map(img => img.image_url)
-    : [];
 
-  const hoverImage = productImages.find(img => img !== primaryImage) || primaryImage;
+  // เตรียม productImages และตัดรูปที่ซ้ำกับ primaryImage ออก
+  const productImages = (product.product_images || [])
+    .map(img => img.image_url)
+    .filter(url => url !== primaryImage);
+
+  // เลือกรูป hover ถ้ามี
+  const hoverImage = productImages.length > 0 ? productImages[0] : null;
 
   return (
     <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer group">
@@ -29,14 +31,16 @@ const EnhancedProductCard = ({ product, onProductClick, onAddToCart }: EnhancedP
         <img
           src={primaryImage}
           alt={product.name}
-          className="w-full h-full object-cover absolute inset-0 transition-opacity duration-300 group-hover:opacity-0"
+          className={`w-full h-full object-cover absolute inset-0 transition-opacity duration-300 ${
+            hoverImage ? 'group-hover:opacity-0' : ''
+          }`}
         />
 
         {/* Hover Image */}
-        {hoverImage !== primaryImage && (
+        {hoverImage && (
           <img
             src={hoverImage}
-            alt={`${product.name} - alternate`}
+            alt={`${product.name} - alternate view`}
             className="w-full h-full object-cover absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
           />
         )}
