@@ -234,29 +234,32 @@ export type Database = {
       }
       product_images: {
         Row: {
-          created_at: string
-          id: number
-          image_url: string | null
+          created_at: string | null
+          image_url: string
+          index: number | null
           order: number | null
-          product_id: number | null
+          product_id: number
+          type: string
           variant_id: string | null
           variant_name: string | null
         }
         Insert: {
-          created_at?: string
-          id?: number
-          image_url?: string | null
+          created_at?: string | null
+          image_url: string
+          index?: number | null
           order?: number | null
-          product_id?: number | null
+          product_id: number
+          type?: string
           variant_id?: string | null
           variant_name?: string | null
         }
         Update: {
-          created_at?: string
-          id?: number
-          image_url?: string | null
+          created_at?: string | null
+          image_url?: string
+          index?: number | null
           order?: number | null
-          product_id?: number | null
+          product_id?: number
+          type?: string
           variant_id?: string | null
           variant_name?: string | null
         }
@@ -416,49 +419,18 @@ export type Database = {
     Views: {
       public_products: {
         Row: {
+          all_images: Json | null
           category: string | null
-          created_at: string | null
           description: string | null
           id: number | null
-          image: string | null
+          main_image_url: string | null
+          name: string | null
           options: Json | null
-          product_name: string | null
-          product_sku: string | null
           product_status: string | null
-          product_type: string | null
+          quantity: number | null
           selling_price: number | null
           shipment_date: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          category?: string | null
-          created_at?: string | null
-          description?: string | null
-          id?: number | null
-          image?: string | null
-          options?: Json | null
-          product_name?: string | null
-          product_sku?: string | null
-          product_status?: string | null
-          product_type?: string | null
-          selling_price?: number | null
-          shipment_date?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          category?: string | null
-          created_at?: string | null
-          description?: string | null
-          id?: number | null
-          image?: string | null
-          options?: Json | null
-          product_name?: string | null
-          product_sku?: string | null
-          product_status?: string | null
-          product_type?: string | null
-          selling_price?: number | null
-          shipment_date?: string | null
-          updated_at?: string | null
+          sku: string | null
         }
         Relationships: []
       }

@@ -6,46 +6,36 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Pencil, Trash2, Plus, Package } from "lucide-react";
+import { Pencil, Trash2, Plus, Package, Edit } from "lucide-react";
 import ProductEditDialog from "@/components/ProductEditDialog";
+import RichTextEditor from "@/components/RichTextEditor";
 import OrderManagement from "@/components/OrderManagement";
 import BannerManager from "@/components/BannerManager";
 import CategoryManager from "@/components/CategoryManager";
 import HomepageCategoryManager from "@/components/HomepageCategoryManager";
-import BatchImageUploadManager from "@/components/BatchImageUploadManager";
 import AdminRouteGuard from "@/components/AdminRouteGuard";
-import { ProductAdmin } from "@/types/product";
+import { ProductPublic } from "@/types/product";
 
 const Admin = () => {
   const [activeTab, setActiveTab] = useState('products');
-  const [products, setProducts] = useState<ProductAdmin[]>([]);
-  const [newProduct, setNewProduct] = useState<Omit<ProductAdmin, 'id' | 'created_at' | 'updated_at'>>({
+  const [products, setProducts] = useState<ProductPublic[]>([]);
+  const [newProduct, setNewProduct] = useState({
     name: '',
     category: '',
     selling_price: 0,
-    cost_thb: 0,
-    import_cost: 0,
-    exchange_rate: 0,
-    price_yuan: 0,
-    image: '',
-    description: '',
     sku: '',
     quantity: 0,
     product_status: 'พร้อมส่ง',
     product_type: 'ETC',
-    link: '',
-    shipment_date: new Date().toISOString().split('T')[0],
-    shipping_fee: '',
-    options: null,
+    description: '',
   });
   const [loading, setLoading] = useState(true);
   const [showEditDialog, setShowEditDialog] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<ProductAdmin | null>(null);
-  const [selectedProductForImages, setSelectedProductForImages] = useState<ProductAdmin | null>(null);
+  const [editingProduct, setEditingProduct] = useState<ProductPublic | null>(null);
+  const [editingDescription, setEditingDescription] = useState<{productId: number, description: string} | null>(null);
 
   useEffect(() => {
     fetchProducts();
@@ -55,7 +45,7 @@ const Admin = () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('products')
+        .from('public_products')
         .select('*')
         .order('id', { ascending: false });
 
@@ -66,27 +56,21 @@ const Admin = () => {
       }
 
       // Map the data to ensure all required fields are present
-      const mappedProducts: ProductAdmin[] = (data || []).map(item => ({
-        id: item.id,
+      const mappedProducts: ProductPublic[] = (data || []).map(item => ({
+        id: item.id || 0,
         name: item.name || '',
         category: item.category || '',
         selling_price: item.selling_price || 0,
-        cost_thb: item.cost_thb || 0,
-        import_cost: item.import_cost || 0,
-        exchange_rate: item.exchange_rate || 0,
-        price_yuan: item.price_yuan || 0,
-        image: item.image || '',
+        image: item.main_image_url || '',
         description: item.description || '',
         sku: item.sku || '',
         quantity: item.quantity || 0,
         product_status: item.product_status || 'พรีออเดอร์',
         product_type: item.product_type || 'ETC',
-        link: item.link || '',
         shipment_date: item.shipment_date || '',
-        shipping_fee: item.shipping_fee || '',
         options: item.options || null,
-        created_at: item.created_at || new Date().toISOString(),
-        updated_at: item.updated_at || new Date().toISOString()
+        created_at: '',
+        updated_at: ''
       }));
 
       setProducts(mappedProducts);
@@ -98,49 +82,44 @@ const Admin = () => {
     }
   };
 
-  const createProduct = async () => {
+  const updateProductDescription = async (productId: number, description: string) => {
     try {
       const { error } = await supabase
-        .from('products')
-        .insert([newProduct]);
+        .from('public_products')
+        .update({ description })
+        .eq('id', productId);
 
       if (error) {
-        console.error('Error creating product:', error);
-        toast.error('เกิดข้อผิดพลาดในการสร้างสินค้าใหม่');
-        return;
+        console.error('Error updating product description:', error);
+        toast.error('เกิดข้อผิดพลาดในการบันทึกคำอธิบาย');
+        return false;
       }
 
-      toast.success('สร้างสินค้าใหม่สำเร็จ!');
-      fetchProducts();
-      setNewProduct({
-        name: '',
-        category: '',
-        selling_price: 0,
-        cost_thb: 0,
-        import_cost: 0,
-        exchange_rate: 0,
-        price_yuan: 0,
-        image: '',
-        description: '',
-        sku: '',
-        quantity: 0,
-        product_status: 'พร้อมส่ง',
-        product_type: 'ETC',
-        link: '',
-        shipment_date: new Date().toISOString().split('T')[0],
-        shipping_fee: '',
-        options: null,
-      });
+      toast.success('บันทึกคำอธิบายสำเร็จ');
+      await fetchProducts(); // Refresh data
+      return true;
     } catch (error) {
       console.error('Error:', error);
-      toast.error('เกิดข้อผิดพลาดในการสร้างสินค้าใหม่');
+      toast.error('เกิดข้อผิดพลาดในการบันทึกคำอธิบาย');
+      return false;
+    }
+  };
+
+  const handleDescriptionSave = async () => {
+    if (!editingDescription) return;
+    
+    const success = await updateProductDescription(editingDescription.productId, editingDescription.description);
+    if (success) {
+      setEditingDescription(null);
     }
   };
 
   const deleteProduct = async (id: number) => {
+    if (!confirm('ยืนยันการลบสินค้านี้?')) return;
+    
     try {
       const { error } = await supabase
-        .from('products')
+        .from('public_products')
         .delete()
         .eq('id', id);
 
@@ -195,7 +174,7 @@ const Admin = () => {
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-800">แผงควบคุม</h1>
-            <p className="text-gray-500">จัดการสินค้า, คำสั่งซื้อ และอื่นๆ</p>
+            <p className="text-gray-500">จัดการสินค้าจากฐานข้อมูล public_products</p>
           </div>
 
           {/* Tabs */}
@@ -241,106 +220,6 @@ const Admin = () => {
 
           {activeTab === 'products' && (
             <div className="space-y-6">
-              {/* Product Form */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Plus className="h-5 w-5 mr-2" />
-                    เพิ่มสินค้าใหม่
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="grid gap-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="name">ชื่อสินค้า</Label>
-                      <Input
-                        id="name"
-                        value={newProduct.name}
-                        onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="sku">SKU</Label>
-                      <Input
-                        id="sku"
-                        value={newProduct.sku}
-                        onChange={(e) => setNewProduct({ ...newProduct, sku: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="category">หมวดหมู่</Label>
-                      <Input
-                        id="category"
-                        value={newProduct.category}
-                        onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="image">รูปภาพ (URL)</Label>
-                      <Input
-                        id="image"
-                        value={newProduct.image}
-                        onChange={(e) => setNewProduct({ ...newProduct, image: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="selling_price">ราคาขาย</Label>
-                      <Input
-                        type="number"
-                        id="selling_price"
-                        value={newProduct.selling_price}
-                        onChange={(e) => setNewProduct({ ...newProduct, selling_price: parseFloat(e.target.value) })}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="quantity">จำนวน</Label>
-                      <Input
-                        type="number"
-                        id="quantity"
-                        value={newProduct.quantity}
-                        onChange={(e) => setNewProduct({ ...newProduct, quantity: parseInt(e.target.value) })}
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="product_status">สถานะ</Label>
-                      <Select onValueChange={(value) => setNewProduct({ ...newProduct, product_status: value })}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select" defaultValue={newProduct.product_status}>{newProduct.product_status}</SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="พร้อมส่ง">พร้อมส่ง</SelectItem>
-                          <SelectItem value="พรีออเดอร์">พรีออเดอร์</SelectItem>
-                          <SelectItem value="สินค้าหมด">สินค้าหมด</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="product_type">ประเภทสินค้า</Label>
-                      <Input
-                        id="product_type"
-                        value={newProduct.product_type}
-                        onChange={(e) => setNewProduct({ ...newProduct, product_type: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="description">รายละเอียด</Label>
-                    <Textarea
-                      id="description"
-                      value={newProduct.description}
-                      onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
-                    />
-                  </div>
-                  <Button onClick={createProduct}>สร้างสินค้า</Button>
-                </CardContent>
-              </Card>
-
               {/* Products List */}
               <Card>
                 <CardHeader>
@@ -348,6 +227,7 @@ const Admin = () => {
                     <Package className="h-5 w-5 mr-2" />
                     รายการสินค้า ({products.length} รายการ)
                   </CardTitle>
+                  <p className="text-sm text-gray-600">ข้อมูลจากตาราง public_products</p>
                 </CardHeader>
                 <CardContent>
                   <div className="overflow-x-auto">
@@ -360,6 +240,7 @@ const Admin = () => {
                           <th className="text-left p-2">หมวดหมู่</th>
                           <th className="text-left p-2">ราคาขาย</th>
                           <th className="text-left p-2">สถานะ</th>
+                          <th className="text-left p-2">คำอธิบาย</th>
                           <th className="text-left p-2">จัดการ</th>
                         </tr>
                       </thead>
@@ -368,7 +249,7 @@ const Admin = () => {
                           <tr key={product.id} className="border-b hover:bg-gray-50">
                             <td className="p-2">
                               <img 
-                                src={product.image} 
+                                src={product.image || '/placeholder.svg'} 
                                 alt={product.name}
                                 className="w-16 h-16 object-cover rounded"
                               />
@@ -387,22 +268,51 @@ const Admin = () => {
                                 {product.product_status}
                               </Badge>
                             </td>
+                            <td className="p-2 max-w-xs">
+                              {editingDescription?.productId === product.id ? (
+                                <div className="w-full">
+                                  <RichTextEditor
+                                    value={editingDescription.description}
+                                    onChange={(value) => setEditingDescription({
+                                      ...editingDescription,
+                                      description: value
+                                    })}
+                                    onSave={handleDescriptionSave}
+                                    onCancel={() => setEditingDescription(null)}
+                                    isEditing={true}
+                                  />
+                                </div>
+                              ) : (
+                                <div className="space-y-2">
+                                  <RichTextEditor
+                                    value={product.description || ''}
+                                    onChange={() => {}}
+                                    onSave={() => {}}
+                                    onCancel={() => {}}
+                                    isEditing={false}
+                                  />
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setEditingDescription({
+                                      productId: product.id,
+                                      description: product.description || ''
+                                    })}
+                                    className="w-full"
+                                  >
+                                    <Edit className="h-4 w-4 mr-1" />
+                                    แก้ไขคำอธิบาย
+                                  </Button>
+                                </div>
+                              )}
+                            </td>
                             <td className="p-2">
                               <div className="flex space-x-2">
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => {
-                                    setEditingProduct(product);
-                                    setShowEditDialog(true);
-                                  }}
-                                >
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
                                   onClick={() => deleteProduct(product.id)}
+                                  title="ลบสินค้า"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -415,41 +325,6 @@ const Admin = () => {
                   </div>
                 </CardContent>
               </Card>
-
-              {/* Button to Select Product for Image Management */}
-              <Select onValueChange={(value) => {
-                const selectedProduct = products.find(p => p.id === parseInt(value));
-                setSelectedProductForImages(selectedProduct || null);
-              }}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="เลือกสินค้าเพื่อจัดการรูปภาพ" />
-                </SelectTrigger>
-                <SelectContent>
-                  {products.map((product) => (
-                    <SelectItem key={product.id} value={product.id.toString()}>
-                      {product.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {/* Image Upload Manager */}
-              {selectedProductForImages && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>จัดการรูปภาพสินค้า: {selectedProductForImages.name}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <BatchImageUploadManager 
-                      productId={selectedProductForImages.id}
-                      onImagesUploaded={(urls) => {
-                        console.log('Images uploaded:', urls);
-                        toast.success(`อัพโหลดรูปภาพสำเร็จ ${urls.length} รูป`);
-                      }}
-                    />
-                  </CardContent>
-                </Card>
-              )}
             </div>
           )}
 
@@ -469,26 +344,6 @@ const Admin = () => {
             <HomepageCategoryManager />
           )}
         </div>
-
-        {/* Edit Dialog */}
-        {showEditDialog && editingProduct && (
-          <ProductEditDialog
-            product={editingProduct}
-            open={showEditDialog}
-            onOpenChange={setShowEditDialog}
-            onSave={(updatedProduct) => {
-              // Ensure the updated product has all required fields
-              const fullUpdatedProduct: ProductAdmin = {
-                ...updatedProduct,
-                created_at: updatedProduct.created_at || new Date().toISOString(),
-                updated_at: new Date().toISOString()
-              };
-              setProducts(products.map(p => p.id === fullUpdatedProduct.id ? fullUpdatedProduct : p));
-              setShowEditDialog(false);
-              setEditingProduct(null);
-            }}
-          />
-        )}
       </div>
     </AdminRouteGuard>
   );
