@@ -5,36 +5,35 @@ import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Pencil, Trash2, Plus, Package, Edit } from "lucide-react";
-import ProductEditDialog from "@/components/ProductEditDialog";
+import { Trash2, Package, Edit } from "lucide-react";
 import RichTextEditor from "@/components/RichTextEditor";
 import OrderManagement from "@/components/OrderManagement";
 import BannerManager from "@/components/BannerManager";
 import CategoryManager from "@/components/CategoryManager";
 import HomepageCategoryManager from "@/components/HomepageCategoryManager";
 import AdminRouteGuard from "@/components/AdminRouteGuard";
-import { ProductPublic } from "@/types/product";
+
+interface PublicProduct {
+  id: number;
+  name: string;
+  category: string;
+  selling_price: number;
+  sku: string;
+  quantity: number;
+  product_status: string;
+  product_type?: string;
+  description: string;
+  main_image_url: string;
+  options: any;
+  shipment_date: string;
+  all_images: any;
+}
 
 const Admin = () => {
   const [activeTab, setActiveTab] = useState('products');
-  const [products, setProducts] = useState<ProductPublic[]>([]);
-  const [newProduct, setNewProduct] = useState({
-    name: '',
-    category: '',
-    selling_price: 0,
-    sku: '',
-    quantity: 0,
-    product_status: 'พร้อมส่ง',
-    product_type: 'ETC',
-    description: '',
-  });
+  const [products, setProducts] = useState<PublicProduct[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showEditDialog, setShowEditDialog] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<ProductPublic | null>(null);
   const [editingDescription, setEditingDescription] = useState<{productId: number, description: string} | null>(null);
 
   useEffect(() => {
@@ -56,21 +55,20 @@ const Admin = () => {
       }
 
       // Map the data to ensure all required fields are present
-      const mappedProducts: ProductPublic[] = (data || []).map(item => ({
+      const mappedProducts: PublicProduct[] = (data || []).map(item => ({
         id: item.id || 0,
         name: item.name || '',
         category: item.category || '',
         selling_price: item.selling_price || 0,
-        image: item.main_image_url || '',
+        main_image_url: item.main_image_url || '',
         description: item.description || '',
         sku: item.sku || '',
         quantity: item.quantity || 0,
         product_status: item.product_status || 'พรีออเดอร์',
-        product_type: item.product_type || 'ETC',
+        product_type: 'ETC', // Default value since it's not in public_products
         shipment_date: item.shipment_date || '',
         options: item.options || null,
-        created_at: '',
-        updated_at: ''
+        all_images: item.all_images || null
       }));
 
       setProducts(mappedProducts);
@@ -84,6 +82,9 @@ const Admin = () => {
 
   const updateProductDescription = async (productId: number, description: string) => {
     try {
+      console.log('Updating product description for ID:', productId);
+      console.log('Description:', description);
+
       const { error } = await supabase
         .from('public_products')
         .update({ description })
@@ -249,7 +250,7 @@ const Admin = () => {
                           <tr key={product.id} className="border-b hover:bg-gray-50">
                             <td className="p-2">
                               <img 
-                                src={product.image || '/placeholder.svg'} 
+                                src={product.main_image_url || '/placeholder.svg'} 
                                 alt={product.name}
                                 className="w-16 h-16 object-cover rounded"
                               />

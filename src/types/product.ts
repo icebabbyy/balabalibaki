@@ -29,6 +29,7 @@ export interface ProductPublic {
   category: string;
   description: string;
   image: string;
+  main_image_url?: string;
   product_status: string;
   sku: string;
   quantity: number;
@@ -42,4 +43,5 @@ export interface ProductPublic {
     image_url: string;
     order: number;
   }>;
+  all_images?: any;
 }

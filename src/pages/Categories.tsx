@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -87,19 +88,20 @@ const Categories = () => {
       // Map the public_products view data to ProductPublic interface
       const mappedProducts: ProductPublic[] = (data || []).map(item => ({
         id: item.id || 0,
-        name: item.product_name || '',
+        name: item.name || '',
         selling_price: item.selling_price || 0,
         category: item.category || '',
         description: item.description || '',
-        image: item.image || '',
+        image: item.main_image_url || '',
+        main_image_url: item.main_image_url || '',
         product_status: item.product_status || 'พรีออเดอร์',
-        sku: item.product_sku || '',
-        quantity: 0, // Not available in public view
+        sku: item.sku || '',
+        quantity: item.quantity || 0,
         shipment_date: item.shipment_date || '',
         options: item.options || null,
-        product_type: item.product_type || 'ETC',
-        created_at: item.created_at || '',
-        updated_at: item.updated_at || ''
+        product_type: 'ETC', // Default since not in public_products
+        created_at: '', // Default since not in public_products
+        updated_at: '' // Default since not in public_products
       }));
 
       setProducts(mappedProducts);

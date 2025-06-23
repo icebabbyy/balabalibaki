@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +11,7 @@ import { toast } from "sonner";
 import ProductImageGallery from "@/components/ProductImageGallery";
 import ProductVariantSelector from "@/components/ProductVariantSelector";
 import ProductBreadcrumb from "@/components/ProductBreadcrumb";
+import RichTextEditor from "@/components/RichTextEditor";
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -376,16 +378,20 @@ const ProductDetail = () => {
                 </Card>
               )}
 
-              {/* Description */}
+              {/* Description with Rich Text Editor for display */}
               {product.description && (
                 <Card>
                   <CardHeader>
                     <CardTitle>รายละเอียดสินค้า</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-gray-700 whitespace-pre-line">
-                      {product.description}
-                    </p>
+                    <RichTextEditor
+                      value={product.description}
+                      onChange={() => {}}
+                      onSave={() => {}}
+                      onCancel={() => {}}
+                      isEditing={false}
+                    />
                   </CardContent>
                 </Card>
               )}

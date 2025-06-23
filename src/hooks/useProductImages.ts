@@ -8,6 +8,11 @@ interface ProductImage {
   product_id: number;
   image_url: string;
   order: number;
+  type: string;
+  variant_id?: string;
+  variant_name?: string;
+  index?: number;
+  created_at?: string;
 }
 
 export const useProductImages = (productId?: number) => {
@@ -44,7 +49,20 @@ export const useProductImages = (productId?: number) => {
       }
 
       console.log('Fetched images:', data);
-      setImages(data || []);
+      // Map the data to match our interface
+      const mappedImages: ProductImage[] = (data || []).map(item => ({
+        id: item.id,
+        product_id: item.product_id,
+        image_url: item.image_url,
+        order: item.order || 0,
+        type: item.type || 'extra',
+        variant_id: item.variant_id,
+        variant_name: item.variant_name,
+        index: item.index,
+        created_at: item.created_at
+      }));
+      
+      setImages(mappedImages);
     } catch (error) {
       console.error('Error:', error);
       toast.error('เกิดข้อผิดพลาดในการโหลดรูปภาพ');

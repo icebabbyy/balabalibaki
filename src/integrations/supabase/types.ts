@@ -235,6 +235,7 @@ export type Database = {
       product_images: {
         Row: {
           created_at: string | null
+          id: number
           image_url: string
           index: number | null
           order: number | null
@@ -245,6 +246,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          id?: number
           image_url: string
           index?: number | null
           order?: number | null
@@ -255,6 +257,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          id?: number
           image_url?: string
           index?: number | null
           order?: number | null

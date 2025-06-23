@@ -1,164 +1,115 @@
+
 import { useState, useEffect } from "react";
-import { Navigate } from "react-router-dom";
-import Header from "@/components/Header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Heart, ShoppingCart, Trash2 } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import Header from "@/components/Header";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Heart, ShoppingCart } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { ProductPublic } from "@/types/product";
 
 const Wishlist = () => {
-  const { user, loading: authLoading } = useAuth();
-  const [wishlistItems, setWishlistItems] = useState<ProductPublic[]>([]);
+  const navigate = use();
+  const [wishlistProducts, setWishlistProducts] = useState<ProductPublic[]>([]);
   const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<any>(null);
 
   useEffect(() => {
-    if (user) {
-      fetchUserProfile();
-    }
-  }, [user]);
+    fetchWishlistProducts();
+  }, []);
 
-  const fetchUserProfile = async () => {
-    if (!user) return;
-    
+  const fetchWishlistProducts = async () => {
     try {
-      const { data } = await supabase
-        .from('profiles')
-        .select('wishlist')
-        .eq('id', user.id)
-        .maybeSingle();
+      setLoading(true);
+      const wishlistItems = JSON.parse(localStorage.getItem('wishlist') || '[]');
       
-      if (data) {
-        setProfile(data);
-        const wishlistIds = data.wishlist ? data.wishlist.split(',').filter((id: string) => id.trim()) : [];
-        await fetchWishlistProducts(wishlistIds);
+      if (wishlistItems.length === 0) {
+        setWishlistProducts([]);
+        setLoading(false);
+        return;
       }
+
+      const { data, error } = await supabase
+        .from('public_products')
+        .select('*')
+        .in('id', wishlistItems);
+
+      if (error) {
+        console.error('Error fetching wishlist products:', error);
+        toast.error('เกิดข้อผิดพลาดในการโหลดรายการสินค้าที่ถูกใจ');
+        return;
+      }
+
+      // Map the data to ProductPublic interface
+      const mappedProducts: ProductPublic[] = (data || []).map(item => ({
+        id: item.id || 0,
+        name: item.name || '',
+        selling_price: item.selling_price || 0,
+        category: item.category || '',
+        description: item.description || '',
+        image: item.main_image_url || '',
+        main_image_url: item.main_image_url || '',
+        product_status: item.product_status || 'พรีออเดอร์',
+        sku: item.sku || '',
+        quantity: item.quantity || 0,
+        shipment_date: item.shipment_date || '',
+        options: item.options || null,
+        product_type: 'ETC', // Default since not in public_products
+        created_at: '', // Default since not in public_products
+        updated_at: '' // Default since not in public_products
+      }));
+
+      setWishlistProducts(mappedProducts);
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      console.error('Error fetching wishlist products:', error);
+      toast.error('เกิดข้อผิดพลาดในการโหลดรายการสินค้าที่ถูกใจ');
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchWishlistProducts = async (productIds: string[]) => {
-    if (productIds.length === 0) {
-      setWishlistItems([]);
-      return;
-    }
-
-    try {
-      const numericIds = productIds.map(id => parseInt(id)).filter(id => !isNaN(id));
-      
-      const { data: products } = await supabase
-        .from('public_products')
-        .select('*')
-        .in('id', numericIds);
-
-      if (products) {
-        // Map the public_products view data to ProductPublic interface
-        const mappedProducts: ProductPublic[] = products.map(item => ({
-          id: item.id || 0,
-          name: item.product_name || '',
-          selling_price: item.selling_price || 0,
-          category: item.category || '',
-          description: item.description || '',
-          image: item.image || '',
-          product_status: item.product_status || 'พรีออเดอร์',
-          sku: item.product_sku || '',
-          quantity: 0,
-          shipment_date: item.shipment_date || '',
-          options: item.options || null,
-          product_type: item.product_type || 'ETC',
-          created_at: item.created_at || '',
-          updated_at: item.updated_at || ''
-        }));
-
-        setWishlistItems(mappedProducts);
-      }
-    } catch (error) {
-      console.error('Error fetching wishlist products:', error);
-      setWishlistItems([]);
-    }
+  const removeFromWishlist = (productId: number) => {
+    const currentWishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+    const updatedWishlist = currentWishlist.filter((id: number) => id !== productId);
+    localStorage.setItem('wishlist', JSON.stringify(updatedWishlist));
+    
+    setWishlistProducts(prev => prev.filter(product => product.id !== productId));
+    toast.success('ลบออกจากรายการสินค้าที่ถูกใจแล้ว');
   };
 
-  const removeFromWishlist = async (itemId: number) => {
-    try {
-      const currentWishlist = profile?.wishlist ? profile.wishlist.split(',').filter((id: string) => id.trim()) : [];
-      const updatedWishlist = currentWishlist.filter((id: string) => id !== itemId.toString());
-      
-      const { error } = await supabase
-        .from('profiles')
-        .update({ wishlist: updatedWishlist.join(',') })
-        .eq('id', user.id);
+  const addToCart = (product: ProductPublic) => {
+    const cartItem = {
+      id: product.id,
+      name: product.name,
+      price: product.selling_price,
+      image: product.image,
+      quantity: 1,
+      sku: product.sku,
+      variant: null,
+      product_type: product.product_type || 'ETC'
+    };
 
-      if (error) throw error;
+    const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
+    const existingItemIndex = existingCart.findIndex((item: any) => item.id === cartItem.id);
 
-      setWishlistItems(items => items.filter(item => item.id !== itemId));
-      setProfile((prev: any) => ({ ...prev, wishlist: updatedWishlist.join(',') }));
-      
-      toast.success('ลบออกจากรายการโปรดแล้ว');
-    } catch (error) {
-      console.error('Error removing from wishlist:', error);
-      toast.error('เกิดข้อผิดพลาดในการลบสินค้า');
+    if (existingItemIndex >= 0) {
+      existingCart[existingItemIndex].quantity += 1;
+    } else {
+      existingCart.push(cartItem);
     }
+
+    localStorage.setItem('cart', JSON.stringify(existingCart));
+    toast.success(`เพิ่ม "${product.name}" ลงในตะกร้าแล้ว`);
   };
-
-  const addToCart = (item: ProductPublic) => {
-    try {
-      const cart = localStorage.getItem('cart');
-      let cartItems = cart ? JSON.parse(cart) : [];
-      
-      const existingItemIndex = cartItems.findIndex((cartItem: any) => cartItem.id === item.id);
-      
-      if (existingItemIndex > -1) {
-        cartItems[existingItemIndex].quantity += 1;
-      } else {
-        cartItems.push({
-          id: item.id,
-          name: item.name,
-          price: item.selling_price,
-          quantity: 1,
-          image: item.image,
-          sku: item.sku
-        });
-      }
-      
-      localStorage.setItem('cart', JSON.stringify(cartItems));
-      window.dispatchEvent(new CustomEvent('cartUpdated'));
-      
-      toast.success(`เพิ่ม ${item.name} ลงในตะกร้าแล้ว`);
-    } catch (error) {
-      console.error('Error adding to cart:', error);
-      toast.error('เกิดข้อผิดพลาดในการเพิ่มสินค้าลงตะกร้า');
-    }
-  };
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p className="text-purple-600 font-medium">กำลังโหลด...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
         <div className="container mx-auto px-4 py-8">
-          <div className="max-w-4xl mx-auto text-center">
+          <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-            <p className="text-purple-600 font-medium">กำลังโหลดรายการโปรด...</p>
+            <p className="text-purple-600 font-medium">กำลังโหลดรายการสินค้าที่ถูกใจ...</p>
           </div>
         </div>
       </div>
@@ -169,60 +120,70 @@ const Wishlist = () => {
     <div className="min-h-screen bg-gray-50">
       <Header />
       <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Heart className="h-6 w-6 text-red-500" />
-                <span>รายการโปรด</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {wishlistItems.length === 0 ? (
-                <div className="text-center py-8">
-                  <Heart className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-700 mb-2">ไม่มีสินค้าในรายการโปรด</h3>
-                  <p className="text-gray-500">เพิ่มสินค้าที่คุณชอบลงในรายการโปรดเพื่อติดตามได้ง่าย</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {wishlistItems.map((item) => (
-                    <div key={item.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                      <img
-                        src={item.image || '/placeholder.svg'}
-                        alt={item.name}
-                        className="w-full h-48 object-cover rounded-lg mb-4"
-                      />
-                      <div className="space-y-2">
-                        <h3 className="font-semibold text-gray-900 line-clamp-2">{item.name}</h3>
-                        <p className="text-sm text-gray-500">{item.category}</p>
-                        <p className="font-bold text-purple-600 text-lg">฿{item.selling_price?.toLocaleString()}</p>
-                        <div className="flex items-center justify-between pt-2">
-                          <Button
-                            onClick={() => addToCart(item)}
-                            className="bg-purple-600 hover:bg-purple-700 flex-1 mr-2"
-                            size="sm"
-                          >
-                            <ShoppingCart className="h-4 w-4 mr-1" />
-                            เพิ่มลงตะกร้า
-                          </Button>
-                          <Button
-                            variant="outline"
-                            onClick={() => removeFromWishlist(item.id)}
-                            className="text-red-600 border-red-600 hover:bg-red-50"
-                            size="sm"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+        <h1 className="text-3xl font-bold text-gray-800 mb-8">รายการสินค้าที่ถูกใจ</h1>
+        
+        {wishlistProducts.length === 0 ? (
+          <div className="text-center py-12">
+            <Heart className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500 text-lg mb-4">ยังไม่มีสินค้าที่ถูกใจ</p>
+            <Button onClick={() => navigate('/categories')}>
+              เลือกซื้อสินค้า
+            </Button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {wishlistProducts.map((product) => (
+              <Card key={product.id} className="hover:shadow-lg transition-shadow">
+                <CardContent className="p-4">
+                  <div className="relative mb-4">
+                    <img
+                      src={product.image || '/placeholder.svg'}
+                      alt={product.name}
+                      className="w-full h-48 object-cover rounded-lg cursor-pointer"
+                      onClick={() => navigate(`/product/${product.id}`)}
+                    />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="absolute top-2 right-2 bg-white/80 hover:bg-white"
+                      onClick={() => removeFromWishlist(product.id)}
+                    >
+                      <Heart className="h-4 w-4 fill-red-500 text-red-500" />
+                    </Button>
+                  </div>
+                  
+                  <h3 
+                    className="font-semibold mb-2 cursor-pointer hover:text-purple-600 line-clamp-2"
+                    onClick={() => navigate(`/product/${product.id}`)}
+                  >
+                    {product.name}
+                  </h3>
+                  
+                  <p className="text-xl font-bold text-purple-600 mb-3">
+                    ฿{product.selling_price.toLocaleString()}
+                  </p>
+                  
+                  <div className="space-y-2">
+                    <Button 
+                      className="w-full bg-purple-600 hover:bg-purple-700"
+                      onClick={() => navigate(`/product/${product.id}`)}
+                    >
+                      ดูรายละเอียด
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={() => addToCart(product)}
+                    >
+                      <ShoppingCart className="h-4 w-4 mr-2" />
+                      เพิ่มลงตะกร้า
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
