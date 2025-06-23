@@ -204,7 +204,9 @@ const ProductDetail = () => {
   }
 
   // Convert images array to proper format for ProductImageGallery
-  const additionalImageUrls = images.map(img => img.image_url);
+  const additionalImageUrls = images
+  .map(img => img.image_url)
+  .filter(url => url !== product.image);
 
   return (
     <div className="min-h-screen bg-gray-50">
