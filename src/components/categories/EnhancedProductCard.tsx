@@ -1,4 +1,3 @@
-
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,60 +16,44 @@ const EnhancedProductCard = ({ product, onProductClick, onAddToCart }: EnhancedP
   const productImages = product.product_images && product.product_images.length > 0 
     ? product.product_images.map(img => img.image_url)
     : [];
-  
-  // Use second image for hover, or fallback to primary image
-  const hoverImage = productImages.length > 0 ? productImages[0] : primaryImage;
+
+  const hoverImage = productImages.find(img => img !== primaryImage) || primaryImage;
 
   return (
     <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer group">
       <div 
-        className="relative w-full h-48 overflow-hidden rounded-t-lg figure"
+        className="relative w-full h-48 overflow-hidden rounded-t-lg"
         onClick={() => onProductClick(product.id)}
-        style={{ position: 'relative', maxWidth: '100%' }}
       >
         {/* Primary Image */}
         <img
           src={primaryImage}
           alt={product.name}
-          className="w-full h-full object-cover"
-          style={{
-            position: 'absolute',
-            top: 0,
-            right: 0,
-            left: 0,
-            bottom: 0,
-            objectFit: 'cover'
-          }}
+          className="w-full h-full object-cover absolute inset-0 transition-opacity duration-300 group-hover:opacity-0"
         />
-        
-        {/* Hover Image - Only show if there's a different image to show */}
+
+        {/* Hover Image */}
         {hoverImage !== primaryImage && (
           <img
             src={hoverImage}
-            alt={`${product.name} - alternate view`}
-            className="w-full h-full object-cover image-hover"
-            style={{
-              position: 'absolute',
-              top: 0,
-              right: 0,
-              left: 0,
-              bottom: 0,
-              objectFit: 'cover',
-              opacity: 0,
-              transition: 'opacity 0.2s ease-in-out'
-            }}
+            alt={`${product.name} - alternate`}
+            className="w-full h-full object-cover absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
           />
         )}
 
+        {/* Badge */}
         {product.product_status && (
           <Badge className="absolute top-2 left-2 bg-purple-600 text-white z-10">
             {product.product_status}
           </Badge>
         )}
       </div>
-      
+
       <CardContent className="p-4">
-        <h3 className="font-semibold mb-2 line-clamp-2 hover:text-purple-600 transition-colors" onClick={() => onProductClick(product.id)}>
+        <h3 
+          className="font-semibold mb-2 line-clamp-2 hover:text-purple-600 transition-colors"
+          onClick={() => onProductClick(product.id)}
+        >
           {product.name}
         </h3>
         <p className="text-sm text-gray-500 mb-2">SKU: {product.sku}</p>
