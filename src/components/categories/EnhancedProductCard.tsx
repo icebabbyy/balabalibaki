@@ -1,4 +1,3 @@
-
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,38 +21,37 @@ const EnhancedProductCard = ({ product, onProductClick, onAddToCart }: EnhancedP
   
   const primaryImage = product.main_image_url || product.image || '/placeholder.svg';
 
-  // Get hover image from product_images array
   const productImages = (product.product_images || [])
     .map(img => img.image_url)
-    .filter(url => url !== primaryImage);
-  
+    .filter(url => url && url !== primaryImage);
+
   const hoverImage = productImages.length > 0 ? productImages[0] : null;
 
-  // Check if product is in wishlist
   useEffect(() => {
     const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
     setIsInWishlist(wishlist.includes(product.id));
   }, [product.id]);
 
-  // Preload hover image
   useEffect(() => {
     if (hoverImage) {
       const img = new Image();
       img.onload = () => setImageLoaded(true);
+      img.onerror = () => setImageLoaded(false);
       img.src = hoverImage;
+    } else {
+      setImageLoaded(true); // ไม่มีภาพ hover ก็ถือว่าโหลดเสร็จ
     }
   }, [hoverImage]);
 
   const toggleWishlist = (e: React.MouseEvent) => {
     e.stopPropagation();
-    
+
     if (!user) {
       toast.error('กรุณาเข้าสู่ระบบเพื่อใช้งานรายการสินค้าที่ถูกใจ');
       return;
     }
 
     const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
-    
     if (isInWishlist) {
       const updatedWishlist = wishlist.filter((id: number) => id !== product.id);
       localStorage.setItem('wishlist', JSON.stringify(updatedWishlist));
@@ -67,39 +65,33 @@ const EnhancedProductCard = ({ product, onProductClick, onAddToCart }: EnhancedP
     }
   };
 
-  // Determine which image to show
-  const currentImage = (isHovered && hoverImage && imageLoaded) ? hoverImage : primaryImage;
-
   return (
     <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer group">
-     <div 
-  className="relative w-full h-48 overflow-hidden rounded-t-lg"
-  onClick={() => onProductClick(product.id)}
-  onMouseEnter={() => setIsHovered(true)}
-  onMouseLeave={() => setIsHovered(false)}
->
-        {/* Product Image */}
-     <>
-  {/* Primary image */}
-  <img
-    src={primaryImage}
-    alt={product.name}
-    className={`w-full h-full object-cover absolute inset-0 transition-opacity duration-300 ${
-      isHovered && hoverImage && imageLoaded ? 'opacity-0' : 'opacity-100'
-    }`}
-  />
+      <div 
+        className="relative w-full h-48 overflow-hidden rounded-t-lg"
+        onClick={() => onProductClick(product.id)}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        {/* Primary image */}
+        <img
+          src={primaryImage}
+          alt={product.name}
+          className={`w-full h-full object-cover absolute inset-0 transition-opacity duration-300 ${
+            isHovered && hoverImage && imageLoaded ? 'opacity-0' : 'opacity-100'
+          }`}
+        />
 
-  {/* Secondary image (only render if exists) */}
-  {hoverImage && (
-    <img
-      src={hoverImage}
-      alt={`${product.name} (preview)`}
-      className={`w-full h-full object-cover absolute inset-0 transition-opacity duration-300 ${
-        isHovered && imageLoaded ? 'opacity-100' : 'opacity-0'
-      }`}
-    />
-  )}
-</>
+        {/* Hover image */}
+        {hoverImage && (
+          <img
+            src={hoverImage}
+            alt={`${product.name} (preview)`}
+            className={`w-full h-full object-cover absolute inset-0 transition-opacity duration-300 ${
+              isHovered && imageLoaded ? 'opacity-100' : 'opacity-0'
+            }`}
+          />
+        )}
 
         {/* Badge */}
         {product.product_status && (
