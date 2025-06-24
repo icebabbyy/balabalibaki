@@ -74,25 +74,25 @@ const EnhancedProductCard = ({ product, onProductClick, onAddToCart }: EnhancedP
         onMouseLeave={() => setIsHovered(false)}
       >
         {/* Primary image */}
+{/* รูปภาพหลัก */}
 <img
   src={primaryImage}
   alt={product.name}
-  className={`w-full h-full object-cover absolute inset-0 z-0 pointer-events-none transition-opacity duration-300 ${
+  className={`w-full h-full object-cover absolute inset-0 z-10 transition-opacity duration-300 pointer-events-none ${
     isHovered && hoverImage && imageLoaded ? 'opacity-0' : 'opacity-100'
   }`}
 />
 
-{/* Hover image */}
+{/* รูปภาพรอง */}
 {hoverImage && (
   <img
     src={hoverImage}
     alt={`${product.name} (preview)`}
-    className={`w-full h-full object-cover absolute inset-0 z-10 pointer-events-none transition-opacity duration-300 ${
+    className={`w-full h-full object-cover absolute inset-0 z-20 transition-opacity duration-300 pointer-events-none ${
       isHovered && imageLoaded ? 'opacity-100' : 'opacity-0'
     }`}
 />
 )}
-
 
         {/* Badge */}
         {product.product_status && (
