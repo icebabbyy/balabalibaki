@@ -1,11 +1,10 @@
 // src/components/EnhancedProductCard.tsx
-
 import { useState } from 'react';
 import { ProductPublic } from '@/types/product';
 import { Heart, ShoppingCart, CreditCard } from 'lucide-react';
 import { useCart } from '@/hooks/useCart';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button'; // <-- 1. เพิ่ม import ปุ่มพิเศษของเราเข้ามา
+import { Button } from '@/components/ui/button'; // <--- Import ที่สำคัญ
 
 interface EnhancedProductCardProps {
   product: ProductPublic;
@@ -26,12 +25,13 @@ const EnhancedProductCard = ({ product, onProductClick }: EnhancedProductCardPro
   
   const handleAddToCartClick = (e: React.MouseEvent) => {
     e.stopPropagation(); 
-    addToCart(product);
+    addToCart(product, 1, null); // เพิ่มสินค้า default 1 ชิ้น
   };
 
   const handleBuyNowClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); 
-    navigate(`/product/${product.id}`);
+    e.stopPropagation();
+    addToCart(product, 1, null); // เพิ่มสินค้าลงตะกร้า
+    navigate('/cart'); // แล้วพาไปหน้าตะกร้า
   };
 
   return (
@@ -52,8 +52,7 @@ const EnhancedProductCard = ({ product, onProductClick }: EnhancedProductCardPro
               </span>
             )}
         </div>
-        {/* 2. แก้ปุ่ม Wishlist ให้เป็น <Button> ด้วย */}
-        <Button variant="ghost" size="icon" className="absolute top-2 right-2 bg-white/70 backdrop-blur-sm p-2 rounded-full text-gray-600 hover:text-red-500 transition-colors">
+        <Button variant="ghost" size="icon" className="absolute top-2 right-2 bg-white/70 backdrop-blur-sm p-2 rounded-full text-gray-600 hover:text-red-500 transition-colors" onClick={(e) => {e.stopPropagation(); alert('Wishlist clicked!')}}>
             <Heart size={18} />
         </Button>
       </div>
@@ -66,10 +65,9 @@ const EnhancedProductCard = ({ product, onProductClick }: EnhancedProductCardPro
         </div>
         
         <div className="mt-auto space-y-2 pt-4">
-            {/* 3. แก้ไข <button> ทั้งหมดเป็น <Button> (B ตัวใหญ่) */}
             <Button
                 onClick={handleBuyNowClick}
-                className="w-full" // ไม่ต้องใส่สีที่นี่แล้ว เพราะ variant 'default' ในโรงงานมีสไตล์อยู่แล้ว
+                className="w-full"
                 disabled={product.product_status === 'สินค้าหมด'}
             >
                 <CreditCard />
@@ -77,7 +75,7 @@ const EnhancedProductCard = ({ product, onProductClick }: EnhancedProductCardPro
             </Button>
             <Button
                 onClick={handleAddToCartClick}
-                variant="outline" // ใช้ variant="outline" จากโรงงานได้เลย
+                variant="outline"
                 className="w-full"
                 disabled={product.product_status === 'สินค้าหมด'}
             >
