@@ -2,12 +2,11 @@
 
 import { useState } from 'react';
 import { ProductPublic } from '@/types/product';
-import { Heart } from 'lucide-react';
-import { Badge } from '@/components/ui/badge'; // Import Badge เข้ามา
-import { Button } from '@/components/ui/button'; // Import Button เข้ามา
+import { Heart, ShoppingCart, CreditCard } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '@/hooks/useCart';
-import { ShoppingCart, CreditCard } from 'lucide-react';
 
 interface EnhancedProductCardProps {
   product: ProductPublic;
@@ -39,7 +38,7 @@ const EnhancedProductCard = ({ product, onProductClick }: EnhancedProductCardPro
 
   return (
     <div
-      className="bg-white rounded-lg shadow-md overflow-hidden cursor-pointer group transform transition-transform duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col"
+      className="bg-white rounded-lg shadow-md overflow-hidden cursor-pointer group transform transition-transform duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col h-full"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onClick={() => onProductClick(product.id)}
@@ -51,56 +50,51 @@ const EnhancedProductCard = ({ product, onProductClick }: EnhancedProductCardPro
           className="w-full h-full object-cover"
         />
         <div className="absolute top-2 left-2">
-          {/* --- แก้ไขที่ 1: แก้ไขสีป้าย Status --- */}
           {product.product_status && (
             <Badge className={
               product.product_status?.trim() === 'พร้อมส่ง' 
-                ? 'bg-green-500 hover:bg-green-600 text-white'  // ถ้า 'พร้อมส่ง' เป็นสีเขียว
-                : 'bg-purple-600 hover:bg-purple-700 text-white' // นอกนั้น (พรีออเดอร์) เป็นสีม่วง
+                ? 'bg-green-500 hover:bg-green-600 text-white border-transparent'
+                : 'bg-purple-600 hover:bg-purple-700 text-white border-transparent'
             }>
               {product.product_status}
             </Badge>
           )}
         </div>
-        <Button variant="ghost" size="icon" className="absolute top-2 right-2 bg-white/70 backdrop-blur-sm rounded-full text-gray-600 hover:text-red-500" onClick={(e) => { e.stopPropagation(); /* Wishlist logic here */ }}>
+        <Button variant="ghost" size="icon" className="absolute top-2 right-2 bg-white/70 backdrop-blur-sm p-2 rounded-full text-gray-600 hover:text-red-500" onClick={(e) => { e.stopPropagation(); /* Wishlist logic here */ }}>
           <Heart size={18} />
         </Button>
       </div>
 
-<div className="p-4 flex flex-col flex-grow">
-  <div>
-    {/* ชื่อสินค้า */}
-    <h3 className="font-semibold mb-2 line-clamp-2 h-12">{product.name}</h3>
-    {/* ราคา */}
-    <div className="flex items-center justify-between">
-       {/* แก้ไขที่ 1: เพิ่ม text-purple-600 เพื่อเปลี่ยนสีราคา และลบ mb-3 เพื่อลดช่องว่าง */}
-      <p className="text-xl font-bold text-purple-600">฿{product.selling_price.toLocaleString()}</p>
-    </div>
-  </div>
-  
-  {/* แก้ไขที่ 2: เพิ่ม mt-auto ที่นี่ เพื่อดัน "กลุ่มของปุ่ม" ไปอยู่ล่างสุดของการ์ด */}
-  <div className="space-y-2 mt-auto pt-4">
-    <Button
-        onClick={handleBuyNowClick}
-        className="w-full"
-        size="sm"
-        disabled={product.product_status === 'สินค้าหมด'}
-    >
-        <CreditCard />
-        ซื้อเดี๋ยวนี้
-    </Button>
-    <Button
-        onClick={handleAddToCartClick}
-        variant="outline"
-        size="sm"
-        className="w-full"
-        disabled={product.product_status === 'สินค้าหมด'}
-    >
-        <ShoppingCart />
-        เพิ่มลงตะกร้า
-    </Button>
-  </div>
-</div>
+      {/* แก้ไขโครงสร้างทั้งหมดที่นี่ */}
+      <div className="p-4 flex flex-col flex-grow">
+        <h3 className="font-semibold mb-2 line-clamp-2 h-12">{product.name}</h3>
+        
+        <p className="text-xl font-bold text-purple-600 mb-3">
+          ฿{product.selling_price.toLocaleString()}
+        </p>
+
+        {/* mt-auto จะดันกลุ่มปุ่มนี้ไปอยู่ล่างสุดของการ์ด */}
+        <div className="space-y-2 mt-auto pt-2">
+          <Button
+              onClick={handleBuyNowClick}
+              className="w-full"
+              size="sm"
+              disabled={product.product_status === 'สินค้าหมด'}
+          >
+              <CreditCard />
+              ซื้อเดี๋ยวนี้
+          </Button>
+          <Button
+              onClick={handleAddToCartClick}
+              variant="outline"
+              size="sm"
+              className="w-full"
+              disabled={product.product_status === 'สินค้าหมด'}
+          >
+              <ShoppingCart />
+              เพิ่มลงตะกร้า
+          </Button>
+        </div>
       </div>
     </div>
   );
