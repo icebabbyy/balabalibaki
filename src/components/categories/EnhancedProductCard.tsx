@@ -67,37 +67,40 @@ const EnhancedProductCard = ({ product, onProductClick }: EnhancedProductCardPro
         </Button>
       </div>
 
-      <div className="p-4 flex flex-col flex-grow">
-        <h3 className="font-semibold mb-2 line-clamp-2 h-12">{product.name}</h3>
-        
-        {/* --- แก้ไขที่ 2: ลบช่องว่างของ SKU ที่หายไป --- */}
-        {/* เราจะรวมราคากับปุ่มไว้ใน div เดียวกัน และเอา flex-grow ออก เพื่อให้มันต่อกันตามปกติ */}
-        <div className="mt-auto pt-2"> 
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xl font-bold text-gray-900">฿{product.selling_price.toLocaleString()}</p>
-          </div>
-          <div className="space-y-2">
-            <Button
-                onClick={handleBuyNowClick}
-                className="w-full"
-                size="sm"
-                disabled={product.product_status === 'สินค้าหมด'}
-            >
-                <CreditCard />
-                ซื้อเดี๋ยวนี้
-            </Button>
-            <Button
-                onClick={handleAddToCartClick}
-                variant="outline"
-                size="sm"
-                className="w-full"
-                disabled={product.product_status === 'สินค้าหมด'}
-            >
-                <ShoppingCart />
-                เพิ่มลงตะกร้า
-            </Button>
-          </div>
-        </div>
+<div className="p-4 flex flex-col flex-grow">
+  <div>
+    {/* ชื่อสินค้า */}
+    <h3 className="font-semibold mb-2 line-clamp-2 h-12">{product.name}</h3>
+    {/* ราคา */}
+    <div className="flex items-center justify-between">
+       {/* แก้ไขที่ 1: เพิ่ม text-purple-600 เพื่อเปลี่ยนสีราคา และลบ mb-3 เพื่อลดช่องว่าง */}
+      <p className="text-xl font-bold text-purple-600">฿{product.selling_price.toLocaleString()}</p>
+    </div>
+  </div>
+  
+  {/* แก้ไขที่ 2: เพิ่ม mt-auto ที่นี่ เพื่อดัน "กลุ่มของปุ่ม" ไปอยู่ล่างสุดของการ์ด */}
+  <div className="space-y-2 mt-auto pt-4">
+    <Button
+        onClick={handleBuyNowClick}
+        className="w-full"
+        size="sm"
+        disabled={product.product_status === 'สินค้าหมด'}
+    >
+        <CreditCard />
+        ซื้อเดี๋ยวนี้
+    </Button>
+    <Button
+        onClick={handleAddToCartClick}
+        variant="outline"
+        size="sm"
+        className="w-full"
+        disabled={product.product_status === 'สินค้าหมด'}
+    >
+        <ShoppingCart />
+        เพิ่มลงตะกร้า
+    </Button>
+  </div>
+</div>
       </div>
     </div>
   );
