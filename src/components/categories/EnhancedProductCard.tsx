@@ -53,7 +53,6 @@ const EnhancedProductCard = ({ product, onProductClick }: EnhancedProductCardPro
         </div>
         <div className="p-4 flex flex-col flex-grow">
           <h3 className="text-lg font-semibold text-gray-800 truncate">{product.name}</h3>
-          <p className="text-sm text-gray-500 mt-1">SKU: {product.sku}</p>
           <div className="mt-2 flex-grow">
             <p className="text-xl font-bold text-gray-900">฿{product.selling_price.toLocaleString()}</p>
           </div>
