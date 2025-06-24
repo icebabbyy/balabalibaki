@@ -1,124 +1,78 @@
+// src/components/ProductCard.tsx หรือ EnhancedProductCard.tsx
 
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Heart } from "lucide-react";
-import { ProductPublic } from "@/types/product";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
-import { useAuth } from "@/hooks/useAuth";
+import { useState } from 'react';
+import { ProductPublic } from '@/types/product';
 
 interface ProductCardProps {
   product: ProductPublic;
-  onProductClick: (productId: number) => void;
+  // แก้ไข onProductClick ให้รับ id เพื่อความแน่นอน
+  onProductClick: (productId: number) => void; 
 }
 
 const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isInWishlist, setIsInWishlist] = useState(false);
-  const { user } = useAuth();
+  // ป้องกันเด็ดขาด: ถ้าไม่มี product ส่งเข้ามา ไม่ต้องแสดงผลอะไรเลย
+  if (!product) {
+    return null;
+  }
 
-  const primaryImage = product.main_image_url || product.image || '/placeholder.svg';
+  // State สำหรับเก็บ URL รูปที่ต้องแสดง
+  const [displayImage, setDisplayImage] = useState(product.image);
 
-  // Get hover image from product_images array
-  const productImages = (product.product_images || [])
-    .map(img => img.image_url)
-    .filter(url => url !== primaryImage);
-  
-  const hoverImage = productImages.length > 0 ? productImages[0] : null;
+  // รูปที่สองสำหรับสลับตอน hover (รูปแรกในอัลบั้ม)
+  const rolloverImage = product.product_images?.[0]?.image_url;
 
-  // Check if product is in wishlist
-  useEffect(() => {
-    const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
-    setIsInWishlist(wishlist.includes(product.id));
-  }, [product.id]);
-
-  // Preload hover image
-  useEffect(() => {
-    if (hoverImage) {
-      const img = new Image();
-      img.onload = () => setImageLoaded(true);
-      img.src = hoverImage;
-    }
-  }, [hoverImage]);
-
-  const toggleWishlist = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    
-    if (!user) {
-      toast.error('กรุณาเข้าสู่ระบบเพื่อใช้งานรายการสินค้าที่ถูกใจ');
-      return;
-    }
-
-    const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
-    
-    if (isInWishlist) {
-      const updatedWishlist = wishlist.filter((id: number) => id !== product.id);
-      localStorage.setItem('wishlist', JSON.stringify(updatedWishlist));
-      setIsInWishlist(false);
-      toast.success('ลบออกจากรายการสินค้าที่ถูกใจแล้ว');
-    } else {
-      const updatedWishlist = [...wishlist, product.id];
-      localStorage.setItem('wishlist', JSON.stringify(updatedWishlist));
-      setIsInWishlist(true);
-      toast.success('เพิ่มในรายการสินค้าที่ถูกใจแล้ว');
+  const handleMouseEnter = () => {
+    // ถ้ามีรูปที่สอง ให้เปลี่ยนไปแสดงรูปนั้น
+    if (rolloverImage) {
+      setDisplayImage(rolloverImage);
     }
   };
 
-  // Determine which image to show
-  const currentImage = (isHovered && hoverImage && imageLoaded) ? hoverImage : primaryImage;
+  const handleMouseLeave = () => {
+    // เมื่อเมาส์ออก ให้กลับไปแสดงรูปหลักเสมอ
+    setDisplayImage(product.image);
+  };
 
   return (
-    <Card 
-      className="hover:shadow-lg transition-shadow duration-300 cursor-pointer"
+    <div
+      // แก้ไข onClick ให้ส่ง product.id กลับไป
       onClick={() => onProductClick(product.id)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      className="bg-white rounded-lg shadow-md overflow-hidden cursor-pointer transform transition-transform duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col group"
     >
-      <CardContent className="p-0">
-        <div 
-          className="aspect-square relative overflow-hidden rounded-t-lg"
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-        >
-          <img
-            src={currentImage}
-            alt={product.name}
-            className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-          />
-          <Badge 
-            className={`absolute top-2 left-2 text-white ${
-              product.product_status === 'พรีออเดอร์' 
-                ? 'bg-orange-500' 
-                : 'bg-green-500'
-            }`}
-          >
+      <div className="relative w-full h-64 bg-gray-200">
+        {/*
+          หัวใจของการแก้ไข:
+          1. ลบ className ที่มี 'opacity-0' และ 'group-hover:opacity-100' ออกไปให้หมด
+          2. ผูก src เข้ากับ state ของเราโดยตรง
+        */}
+        <img
+          src={displayImage || ''}
+          alt={product.name}
+          className="w-full h-full object-cover" // <--- เหลือแค่คลาสที่จำเป็น
+        />
+        {product.product_status && (
+          <span className={`absolute top-2 left-2 text-xs font-semibold text-white px-2 py-1 rounded ${
+            product.product_status === 'พร้อมส่ง' ? 'bg-green-500' : 'bg-orange-500'
+          }`}>
             {product.product_status}
-          </Badge>
+          </span>
+        )}
+      </div>
 
-          {/* Wishlist Button */}
-          <Button
-            variant="outline"
-            size="icon"
-            className="absolute top-2 right-2 bg-white/80 hover:bg-white"
-            onClick={toggleWishlist}
-          >
-            <Heart 
-              className={`h-4 w-4 ${isInWishlist ? 'fill-red-500 text-red-500' : 'text-gray-600 hover:text-red-500'}`} 
-            />
-          </Button>
+      <div className="p-4 flex flex-col flex-grow">
+        <h3 className="text-lg font-semibold text-gray-800 truncate">{product.name}</h3>
+        <p className="text-sm text-gray-500 mt-1">SKU: {product.sku}</p>
+        <p className="text-xl font-bold text-gray-900 mt-2">฿{product.selling_price.toLocaleString()}</p>
+        <p className="text-sm text-gray-600 mt-1 mb-4">{product.category}</p>
+        <div className="mt-auto">
+          <div className="w-full bg-purple-600 text-white font-bold py-2 px-4 rounded-md text-center">
+            ดูรายละเอียด
+          </div>
         </div>
-        
-        <div className="p-4">
-          <h3 className="font-semibold text-gray-800 mb-2 line-clamp-2 h-12">
-            {product.name}
-          </h3>
-          <p className="text-xl font-bold" style={{ color: '#956ec3' }}>
-            ฿{product.selling_price.toLocaleString()}
-          </p>
-          <p className="text-sm text-gray-600 mt-1">{product.category}</p>
-        </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 
