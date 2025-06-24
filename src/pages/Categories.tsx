@@ -159,13 +159,11 @@ const Categories = () => {
           onClearSelection={clearCategorySelection}
         />
 
-       <div className="visible">
-           <ProductGrid
-             products={filteredProducts}
-             onProductClick={handleProductClick}
-           />
-         </div>
+        <ProductGrid
+          products={filteredProducts}
+          onProductClick={handleProductClick}
         />
+      </div>
     </div>
   );
 };
