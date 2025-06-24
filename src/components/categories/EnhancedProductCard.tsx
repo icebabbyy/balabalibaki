@@ -2,9 +2,11 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, Heart } from "lucide-react";
 import { ProductPublic } from "@/types/product";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 
 interface EnhancedProductCardProps {
   product: ProductPublic;
@@ -14,6 +16,10 @@ interface EnhancedProductCardProps {
 
 const EnhancedProductCard = ({ product, onProductClick, onAddToCart }: EnhancedProductCardProps) => {
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isInWishlist, setIsInWishlist] = useState(false);
+  const { user } = useAuth();
+  
   const primaryImage = product.main_image_url || product.image || '/placeholder.svg';
 
   // Get hover image from product_images array
@@ -22,6 +28,12 @@ const EnhancedProductCard = ({ product, onProductClick, onAddToCart }: EnhancedP
     .filter(url => url !== primaryImage);
   
   const hoverImage = productImages.length > 0 ? productImages[0] : null;
+
+  // Check if product is in wishlist
+  useEffect(() => {
+    const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+    setIsInWishlist(wishlist.includes(product.id));
+  }, [product.id]);
 
   // Preload hover image
   useEffect(() => {
@@ -32,29 +44,46 @@ const EnhancedProductCard = ({ product, onProductClick, onAddToCart }: EnhancedP
     }
   }, [hoverImage]);
 
+  const toggleWishlist = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!user) {
+      toast.error('กรุณาเข้าสู่ระบบเพื่อใช้งานรายการสินค้าที่ถูกใจ');
+      return;
+    }
+
+    const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+    
+    if (isInWishlist) {
+      const updatedWishlist = wishlist.filter((id: number) => id !== product.id);
+      localStorage.setItem('wishlist', JSON.stringify(updatedWishlist));
+      setIsInWishlist(false);
+      toast.success('ลบออกจากรายการสินค้าที่ถูกใจแล้ว');
+    } else {
+      const updatedWishlist = [...wishlist, product.id];
+      localStorage.setItem('wishlist', JSON.stringify(updatedWishlist));
+      setIsInWishlist(true);
+      toast.success('เพิ่มในรายการสินค้าที่ถูกใจแล้ว');
+    }
+  };
+
+  // Determine which image to show
+  const currentImage = (isHovered && hoverImage && imageLoaded) ? hoverImage : primaryImage;
+
   return (
     <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer group">
       <div 
         className="relative w-full h-48 overflow-hidden rounded-t-lg"
         onClick={() => onProductClick(product.id)}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
-        {/* Primary Image */}
+        {/* Product Image */}
         <img
-          src={primaryImage}
+          src={currentImage}
           alt={product.name}
-          className={`w-full h-full object-cover absolute inset-0 transition-opacity duration-300 ${
-            hoverImage && imageLoaded ? 'group-hover:opacity-0' : ''
-          }`}
+          className="w-full h-full object-cover transition-all duration-300"
         />
-
-        {/* Hover Image */}
-        {hoverImage && imageLoaded && (
-          <img
-            src={hoverImage}
-            alt={`${product.name} - alternate view`}
-            className="w-full h-full object-cover absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-          />
-        )}
 
         {/* Badge */}
         {product.product_status && (
@@ -62,6 +91,18 @@ const EnhancedProductCard = ({ product, onProductClick, onAddToCart }: EnhancedP
             {product.product_status}
           </Badge>
         )}
+
+        {/* Wishlist Button */}
+        <Button
+          variant="outline"
+          size="icon"
+          className="absolute top-2 right-2 bg-white/80 hover:bg-white z-10"
+          onClick={toggleWishlist}
+        >
+          <Heart 
+            className={`h-4 w-4 ${isInWishlist ? 'fill-red-500 text-red-500' : 'text-gray-600 hover:text-red-500'}`} 
+          />
+        </Button>
       </div>
 
       <CardContent className="p-4">
