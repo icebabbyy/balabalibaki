@@ -31,7 +31,8 @@ const Categories = () => {
     selectedCategories,
     handleCategoryChange,
     clearCategorySelection
-  } = useCategoryFiltering(products);
+    // ตรวจสอบให้แน่ใจว่าคุณนำค่าทั้งหมดที่จำเป็นออกมาจาก hook เหมือนเดิม
+  } = useCategoryFiltering(safeProductsForFiltering); // ส่งอาร์เรย์ที่ปลอดภัยแล้วเข้าไปใน hook
 
   useEffect(() => {
     fetchCategories();
