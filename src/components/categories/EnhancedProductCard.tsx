@@ -67,7 +67,7 @@ const EnhancedProductCard = ({ product, onProductClick }: EnhancedProductCardPro
 
       {/* แก้ไขโครงสร้างทั้งหมดที่นี่ */}
       <div className="p-4 flex flex-col flex-grow">
-        <h3 className="font-semibold mb-2 line-clamp-2 h-12">{product.name}</h3>
+        <h3 className="font-semibold mb-2 line-clamp-2">{product.name}</h3>
         
         <p className="text-xl font-bold text-purple-600 mb-3">
           ฿{product.selling_price.toLocaleString()}
