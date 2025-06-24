@@ -198,49 +198,110 @@ const Index = () => {
     alert('เพิ่มสินค้าลงตะกร้าแล้ว');
   };
 
-  const ProductCard = ({ product }: { product: ProductPublic }) => (
-    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+// ในไฟล์ src/pages/Index.tsx
+// นี่คือ ProductCard เวอร์ชันแก้ไขที่ถูกต้องสมบูรณ์
+
+const ProductCard = ({ product }: { product: ProductPublic }) => {
+  // ฟังก์ชัน buyNow และ addToCart ถูกย้ายมาไว้ตรงนี้
+  // เพื่อให้ ProductCard นี้ทำงานได้ด้วยตัวเองอย่างสมบูรณ์
+
+  const buyNow = (productToBuy: ProductPublic) => {
+    // 1. เพิ่มสินค้าลงตะกร้า
+    const cartItem = {
+      id: productToBuy.id,
+      name: productToBuy.name,
+      price: productToBuy.selling_price,
+      quantity: 1,
+      image: productToBuy.image,
+      variant: null // สินค้าจากการ์ดไม่มีตัวเลือก
+    };
+
+    const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
+    const existingItemIndex = existingCart.findIndex((item: any) => item.id === productToBuy.id && item.variant === null);
+
+    if (existingItemIndex > -1) {
+      existingCart[existingItemIndex].quantity += 1;
+    } else {
+      existingCart.push(cartItem);
+    }
+    localStorage.setItem('cart', JSON.stringify(existingCart));
+
+    // 2. พาไปหน้าตะกร้า
+    navigate('/cart');
+  };
+
+  const addToCart = (productToAdd: ProductPublic) => {
+    const cartItem = {
+      id: productToAdd.id,
+      name: productToAdd.name,
+      price: productToAdd.selling_price,
+      quantity: 1,
+      image: productToAdd.image,
+      variant: null
+    };
+
+    const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
+    const existingItemIndex = existingCart.findIndex((item: any) => item.id === productToAdd.id && item.variant === null);
+
+    if (existingItemIndex > -1) {
+      existingCart[existingItemIndex].quantity += 1;
+    } else {
+      existingCart.push(cartItem);
+    }
+
+    localStorage.setItem('cart', JSON.stringify(existingCart));
+    toast.success(`เพิ่ม "${productToAdd.name}" ลงตะกร้าแล้ว`);
+  };
+
+  return (
+    <Card 
+      className="hover:shadow-lg transition-shadow cursor-pointer flex flex-col"
+      // คลิกที่การ์ดจะยังคงไปหน้ารายละเอียดสินค้า
+      onClick={() => handleProductClick(product.id)}
+    >
       <div className="relative">
         <img
           src={product.image || '/placeholder.svg'}
           alt={product.name}
           className="w-full h-48 object-cover rounded-t-lg"
-          onClick={() => handleProductClick(product.id)}
         />
         {product.product_status && (
-          <Badge className="absolute top-2 left-2 bg-purple-600">
+          <Badge className="absolute top-2 left-2">
             {product.product_status}
           </Badge>
         )}
       </div>
-      <CardContent className="p-4">
-        <h3 className="font-semibold mb-2 line-clamp-2" onClick={() => handleProductClick(product.id)}>{product.name}</h3>
+      <CardContent className="p-4 flex flex-col flex-grow">
+        <h3 className="font-semibold mb-2 line-clamp-2 h-12">{product.name}</h3>
         <div className="flex items-center justify-between mb-3">
           <span className="text-lg font-bold text-purple-600">
             ฿{product.selling_price?.toLocaleString()}
           </span>
         </div>
-        <div className="space-y-2">
-          <Button 
-            size="sm" 
-            className="w-full bg-purple-600 hover:bg-purple-700"
-            onClick={() => handleProductClick(product.id)}
+        {/* === ส่วนของปุ่มที่แก้ไขใหม่ทั้งหมด === */}
+        <div className="space-y-2 mt-auto">
+          <Button
+            size="sm"
+            className="w-full" // ใช้ className "btn-gradient" จาก default variant
+            onClick={(e) => { e.stopPropagation(); buyNow(product); }}
           >
+            <CreditCard className="h-4 w-4" />
             ซื้อเดี๋ยวนี้
           </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             className="w-full"
-            onClick={() => addToCart(product)}
+            onClick={(e) => { e.stopPropagation(); addToCart(product); }}
           >
-            <ShoppingCart className="h-4 w-4 mr-2" />
+            <ShoppingCart className="h-4 w-4" />
             เพิ่มลงตะกร้า
           </Button>
         </div>
       </CardContent>
     </Card>
   );
+};
 
   const CategorySection = ({ title, products, categoryName }: { title: string; products: ProductPublic[]; categoryName: string }) => (
     <section className="py-12 bg-white">
