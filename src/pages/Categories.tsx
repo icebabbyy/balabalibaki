@@ -120,7 +120,7 @@ const Categories = () => {
       <Header />
       <div className="max-w-7xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold text-gray-800 mb-8">สินค้าทั้งหมด</h1>
-        <CategoryFilters searchTerm={searchTerm} onSearchChange={setSearchTerm} categories={categories} selectedCategories={selectedCategories} onCategoryChange={handleCategoryChange} onClearSelection={clearSelection} />
+        <CategoryFilters searchTerm={searchTerm} onSearchChange={setSearchTerm} categories={categories} selectedCategories={selectedCategories} onCategoryChange={handleCategoryChange} onClearSelection={clearCategorySelection} />
         <ProductGrid products={filteredProducts} onProductClick={handleProductClick} />
       </div>
     </div>
