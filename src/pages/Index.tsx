@@ -978,7 +978,7 @@ const ProductCard = ({ product }: { product: ProductPublic }) => {
 
       {/* สินค้ามาใหม่ - Updated to use Carousel */}
 
-      <section className="py-12 bg-gray-50">
+      <section className="py-8 bg-gray-50">
 
         <div className="max-w-7xl mx-auto px-4">
 
