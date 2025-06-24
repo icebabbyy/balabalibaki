@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 // เพิ่ม Heart icon เข้ามาใน import
-import { ArrowLeft, ShoppingCart, Package, Calendar, Truck, CreditCard, Clock, Heart, Barcode } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Package, Calendar, Truck, CreditCard, Clock, Heart } from "lucide-react"; 
 import { toast } from "sonner";
 import ProductImageGallery from "@/components/ProductImageGallery";
 import ProductVariantSelector from "@/components/ProductVariantSelector";
@@ -319,14 +319,11 @@ const ProductDetail = () => {
                       </div>
                     )}
                   </div>
-               {/* SKU - Wrapped in a box */}
-<div className="bg-white rounded-lg border p-4">
-  <div className="flex items-center space-x-2">
-    <Barcode className="h-4 w-4 text-gray-500" /> {/* เพิ่มไอคอนให้สวยงาม */}
-    <span className="text-sm font-medium text-gray-700">SKU:</span>
-    <span className="font-mono text-sm text-gray-900">{product.sku}</span>
-  </div>
-</div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-gray-600">SKU:</span>
+                    <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">{product.sku}</span>
+                  </div>
+                </div>
               </div>
 
               <div className="text-3xl font-bold text-purple-600">
