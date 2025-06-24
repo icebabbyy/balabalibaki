@@ -13,7 +13,7 @@ export const useCart = () => {
       id: product.id,
       name: product.name,
       price: product.selling_price,
-      image: product.image, // ควรมี logic หารูป variant ที่นี่ถ้าต้องการ
+      image: product.image,
       quantity: quantity,
       sku: product.sku,
       variant: variant,
@@ -35,15 +35,5 @@ export const useCart = () => {
     toast.success(`เพิ่ม "${product.name}" ลงในตะกร้าแล้ว`);
   };
 
-  const buyNow = (product: ProductPublic, quantity = 1, variant: string | null = null) => {
-    if (!product) return;
-    
-    // เพิ่มสินค้าลงตะกร้าก่อน
-    addToCart(product, quantity, variant);
-    
-    // แล้วพาไปที่หน้าตะกร้าทันที
-    navigate('/cart');
-  };
-
-  return { addToCart, buyNow };
+  return { addToCart };
 };
