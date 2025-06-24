@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,26 +34,23 @@ const Categories = () => {
   } = useCategoryFiltering(products);
 
   useEffect(() => {
-    fetchData(); // เรียกฟังก์ชันเดียวเพื่อโหลดข้อมูลทั้งหมด
+    fetchCategories();
+    fetchProducts();
   }, []);
 
   useEffect(() => {
+    // Handle category filtering from URL parameters
     const categoryParam = searchParams.get('category');
     const searchParam = searchParams.get('search');
+
     if (categoryParam) {
       handleCategoryChange(categoryParam, true);
     }
+
     if (searchParam) {
       setSearchTerm(searchParam);
     }
   }, [searchParams, handleCategoryChange, setSearchTerm]);
-
-  const fetchData = async () => {
-    setLoading(true);
-    // เรียกโหลดทั้ง categories และ products พร้อมกัน
-    await Promise.all([fetchCategories(), fetchProducts()]);
-    setLoading(false);
-  };
 
   const fetchCategories = async () => {
     try {
@@ -63,58 +61,67 @@ const Categories = () => {
 
       if (error) {
         console.error('Error fetching categories:', error);
-        toast.error('เกิดข้อผิดพลาดในการโหลดหมวดหมู่');
         return;
       }
+
       setCategories(data || []);
     } catch (error) {
-      console.error('Error in fetchCategories:', error);
+      console.error('Error fetching categories:', error);
     }
   };
 
-  // ***** นี่คือฟังก์ชันที่แก้ไขแล้ว *****
   const fetchProducts = async () => {
     try {
-      const { data, error } = await supabase
-        .from('products') // ดึงจากตาราง 'products' โดยตรง
-        .select(`
-          *,
-          categories (name),
-          product_images (id, image_url, order)
-        `) // ดึงข้อมูลจากตารางลูกมาพร้อมกันในครั้งเดียว
+      setLoading(true);
+      
+      // First get the products data
+      const { data: productsData, error: productsError } = await supabase
+        .from('public_products_with_main_image')
+        .select('*')
         .order('id', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching products with images:', error);
+      if (productsError) {
+        console.error('Error fetching products:', productsError);
         toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูลสินค้า');
         return;
       }
 
-      // แปลงข้อมูลให้ตรงกับ Type ที่เราต้องการ
-      const formattedProducts: ProductPublic[] = (data || []).map(product => ({
-        id: product.id,
-        name: product.name,
-        selling_price: product.selling_price,
-        category: product.categories?.name || 'ไม่มีหมวดหมู่',
-        description: product.description,
-        main_image_url: product.image, // สมมติว่า field 'image' ในตาราง products คือรูปหลัก
-        image: product.image,
-        product_status: product.product_status,
-        sku: product.sku,
-        quantity: product.quantity,
-        shipment_date: product.shipment_date,
-        options: null, // หรือใส่ข้อมูลที่ถูกต้องถ้ามี
-        product_type: product.product_type,
-        created_at: product.created_at,
-        updated_at: product.updated_at,
-        product_images: product.product_images || [] // ข้อมูลอัลบั้มรูปจะมาโดยอัตโนมัติ
-      }));
+      // Get additional images for each product
+      const productsWithImages = await Promise.all(
+        (productsData || []).map(async (product) => {
+          const { data: imageData } = await supabase
+            .from('product_images')
+            .select('id, image_url, order')
+            .eq('product_id', product.id)
+            .order('order', { ascending: true });
 
-      setProducts(formattedProducts);
+          return {
+            id: product.id || 0,
+            name: product.product_name || '',
+            selling_price: product.selling_price || 0,
+            category: product.category || '',
+            description: product.description || '',
+            image: product.main_image_url || product.image || '',
+            main_image_url: product.main_image_url || product.image || '',
+            product_status: product.product_status || 'พรีออเดอร์',
+            sku: product.product_sku || '',
+            quantity: product.quantity || 0,
+            shipment_date: product.shipment_date || '',
+            options: product.all_images || null,
+            product_type: product.product_type || 'ETC',
+            created_at: product.created_at || '',
+            updated_at: product.updated_at || '',
+            product_images: imageData || []
+          };
+        })
+      );
 
+      setProducts(productsWithImages);
     } catch (error) {
-      console.error('Critical error in fetchProducts:', error);
-      toast.error('เกิดข้อผิดพลาดร้ายแรงในการโหลดข้อมูล');
+      console.error('Error fetching products:', error);
+      toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูลสินค้า');
+    } finally {
+      setLoading(false);
     }
   };
 
