@@ -1,8 +1,10 @@
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart } from "lucide-react";
 import { ProductPublic } from "@/types/product";
+import { useEffect, useState } from "react";
 
 interface EnhancedProductCardProps {
   product: ProductPublic;
@@ -11,15 +13,24 @@ interface EnhancedProductCardProps {
 }
 
 const EnhancedProductCard = ({ product, onProductClick, onAddToCart }: EnhancedProductCardProps) => {
-  const primaryImage = product.image || '/placeholder.svg';
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const primaryImage = product.main_image_url || product.image || '/placeholder.svg';
 
-  // เตรียม productImages และตัดรูปที่ซ้ำกับ primaryImage ออก
+  // Get hover image from product_images array
   const productImages = (product.product_images || [])
     .map(img => img.image_url)
     .filter(url => url !== primaryImage);
-
-  // เลือกรูป hover ถ้ามี
+  
   const hoverImage = productImages.length > 0 ? productImages[0] : null;
+
+  // Preload hover image
+  useEffect(() => {
+    if (hoverImage) {
+      const img = new Image();
+      img.onload = () => setImageLoaded(true);
+      img.src = hoverImage;
+    }
+  }, [hoverImage]);
 
   return (
     <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer group">
@@ -32,12 +43,12 @@ const EnhancedProductCard = ({ product, onProductClick, onAddToCart }: EnhancedP
           src={primaryImage}
           alt={product.name}
           className={`w-full h-full object-cover absolute inset-0 transition-opacity duration-300 ${
-            hoverImage ? 'group-hover:opacity-0' : ''
+            hoverImage && imageLoaded ? 'group-hover:opacity-0' : ''
           }`}
         />
 
         {/* Hover Image */}
-        {hoverImage && (
+        {hoverImage && imageLoaded && (
           <img
             src={hoverImage}
             alt={`${product.name} - alternate view`}
