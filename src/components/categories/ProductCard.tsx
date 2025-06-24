@@ -1,26 +1,27 @@
-// src/components/categories/ProductCard.tsx (เวอร์ชัน Minimalist)
+// src/components/categories/ProductCard.tsx (The Final Fix)
 import { useState } from 'react';
 import { ProductPublic } from '@/types/product';
 
 interface ProductCardProps {
-  product: ProductPublic; // เรากลับมาใช้แบบ required เพราะ Grid จะส่งมาให้เสมอ
+  product: ProductPublic;
   onProductClick: () => void;
 }
 
 const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
 
-  // ถ้าไม่มี product (ป้องกันไว้ก่อน)
+  // ==================================================================
+  // บรรทัดนี้คือพระเอก: ป้องกัน Error ที่เราเจอโดยตรง
+  // ถ้า product prop ยังไม่มีข้อมูลเข้ามา, ให้หยุดการทำงานของ component นี้ไปเลย
   if (!product) {
     return null; 
   }
+  // ==================================================================
 
-  // 1. สร้าง state แบบเรียบง่ายที่สุด
+  // โค้ดส่วนที่เหลือจะทำงานก็ต่อเมื่อ 'product' มีข้อมูลแล้วเท่านั้น
   const [displayImage, setDisplayImage] = useState(product.image);
 
-  // 2. ดึงรูปที่สองมาเก็บไว้ตรงๆ
   const rolloverImage = product.product_images?.[0]?.image_url;
 
-  // 3. สร้างฟังก์ชันที่จำเป็น
   const handleMouseEnter = () => {
     if (rolloverImage) {
       setDisplayImage(rolloverImage);
@@ -31,7 +32,6 @@ const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
     setDisplayImage(product.image);
   };
 
-  // 4. ส่วน JSX ที่ไม่มีการป้องกันที่ซับซ้อนเกินไป
   return (
     <div
       className="bg-white rounded-lg shadow-md overflow-hidden cursor-pointer transform transition-transform duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col"
