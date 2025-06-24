@@ -1,68 +1,89 @@
 // src/components/EnhancedProductCard.tsx
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useCart } from '@/hooks/useCart';
 import { ProductPublic } from '@/types/product';
-import { Heart } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Heart, ShoppingCart, CreditCard } from 'lucide-react';
 
 interface EnhancedProductCardProps {
   product: ProductPublic;
-  onProductClick: (productId: number) => void;
 }
 
-const EnhancedProductCard = ({ product, onProductClick }: EnhancedProductCardProps) => {
-  if (!product) { return null; }
+const EnhancedProductCard = ({ product }: EnhancedProductCardProps) => {
+  if (!product) return null;
 
-  const [displayImage, setDisplayImage] = useState(product.image);
+  const navigate = useNavigate();
+  const { addToCart } = useCart(); // <-- เรียกใช้ useCart ที่เรียบง่ายของเรา
 
-  // เมื่อข้อมูล product เปลี่ยน ให้มั่นใจว่า displayImage ถูกอัปเดตเป็นรูปที่ถูกต้องเสมอ
-  useEffect(() => {
-    setDisplayImage(product.image);
-  }, [product.image]);
-
+  // Logic การสลับรูปภาพ (ทำงานได้ดีอยู่แล้ว)
+  const [displayImage, setDisplayImage] = useState(product.image || product.product_images?.[0]?.image_url);
   const rolloverImage = product.product_images?.find(img => img.image_url !== product.image)?.image_url;
-
   const handleMouseEnter = () => { if (rolloverImage) setDisplayImage(rolloverImage); };
-  const handleMouseLeave = () => { setDisplayImage(product.image); };
+  const handleMouseLeave = () => { setDisplayImage(product.image || product.product_images?.[0]?.image_url); };
+  
+  // Logic การคลิกต่างๆ จะถูกจัดการที่นี่
+  const handleCardClick = () => {
+    navigate(`/product/${product.id}`);
+  };
+
+  const handleAddToCartClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    addToCart(product, 1, null);
+  };
+
+  const handleBuyNowClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    addToCart(product, 1, null); // เพิ่มของลงตะกร้าก่อน
+    navigate('/cart'); // แล้วค่อยพาไปหน้าตะกร้า
+  };
 
   return (
-    // ใช้ไม้แข็ง: เพิ่ม inline style `visibility: 'visible'` เพื่อบังคับให้แสดงผล
     <div
-      style={{ visibility: 'visible' }}
-      className="bg-white rounded-lg shadow-md overflow-hidden cursor-pointer group transform transition-transform duration-300 hover:shadow-xl hover:-translate-y-1"
+      className="bg-white rounded-lg shadow-md overflow-hidden cursor-pointer group transform transition-transform duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onClick={handleCardClick}
     >
-      <div onClick={() => onProductClick(product.id)} className="flex flex-col h-full">
-        <div className="relative w-full h-64 bg-gray-100">
-          <img
-            src={displayImage || ''}
-            alt={product.name}
-            className="w-full h-full object-cover transition-opacity duration-300 ease-in-out"
-          />
-          <div className="absolute top-2 left-2">
-            {product.product_status && (
-              <span className={`text-xs font-semibold text-white px-2 py-1 rounded ${
-                product.product_status === 'พร้อมส่ง' ? 'bg-green-500' : 'bg-orange-500'
-              }`}>
-                {product.product_status}
-              </span>
-            )}
-          </div>
-          <button className="absolute top-2 right-2 bg-white/70 backdrop-blur-sm p-2 rounded-full text-gray-600 hover:text-red-500 transition-colors">
-            <Heart size={18} />
-          </button>
+      <div className="relative w-full h-64 bg-gray-100">
+        <img src={displayImage || '/placeholder.svg'} alt={product.name || 'Product Image'} className="w-full h-full object-cover"/>
+        <div className="absolute top-2 left-2">
+          {product.product_status && <Badge>{product.product_status}</Badge>}
         </div>
-        <div className="p-4 flex flex-col flex-grow">
-          <h3 className="text-lg font-semibold text-gray-800 truncate">{product.name}</h3>
-          <div className="mt-2 flex-grow">
-            <p className="text-xl font-bold text-gray-900">฿{product.selling_price.toLocaleString()}</p>
-          </div>
-          <div className="mt-4">
-            <button className="w-full bg-purple-600 text-white font-bold py-2 px-4 rounded-md hover:bg-purple-700 transition-colors">
-              ซื้อเดี๋ยวนี้
-            </button>
-          </div>
-        </div>
+        <Button variant="ghost" size="icon" className="absolute top-2 right-2 bg-white/70 backdrop-blur-sm rounded-full text-gray-600 hover:text-red-500" onClick={(e) => {e.stopPropagation(); alert('Wishlist clicked!')}}>
+          <Heart size={18} />
+        </Button>
       </div>
+
+      <CardContent className="p-4 flex flex-col flex-grow">
+        <h3 className="font-semibold mb-2 line-clamp-2 h-12">{product.name}</h3>
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-lg font-bold text-purple-600">฿{product.selling_price?.toLocaleString()}</span>
+        </div>
+        <div className="space-y-2 mt-auto">
+          <Button
+            size="sm"
+            className="w-full"
+            onClick={handleBuyNowClick}
+            disabled={product.product_status === 'สินค้าหมด'}
+          >
+            <CreditCard />
+            ซื้อเดี๋ยวนี้
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={handleAddToCartClick}
+            disabled={product.product_status === 'สินค้าหมด'}
+          >
+            <ShoppingCart />
+            เพิ่มลงตะกร้า
+          </Button>
+        </div>
+      </CardContent>
     </div>
   );
 };
