@@ -202,8 +202,14 @@ const Index = () => {
 // นี่คือ ProductCard เวอร์ชันแก้ไขที่ถูกต้องสมบูรณ์
 
 const ProductCard = ({ product }: { product: ProductPublic }) => {
-  // ฟังก์ชัน buyNow และ addToCart ถูกย้ายมาไว้ตรงนี้
-  // เพื่อให้ ProductCard นี้ทำงานได้ด้วยตัวเองอย่างสมบูรณ์
+  // ลบโค้ดทั้งหมดใน return ของเดิมทิ้ง แล้วใส่แค่นี้เพื่อทดลอง:
+  return (
+    <div className="border-4 border-red-500 p-4 bg-yellow-100">
+      <p className="font-bold">Test Card from Index.tsx</p>
+      <p>{product.name}</p>
+    </div>
+  );
+};
 
   const buyNow = (productToBuy: ProductPublic) => {
     // 1. เพิ่มสินค้าลงตะกร้า
