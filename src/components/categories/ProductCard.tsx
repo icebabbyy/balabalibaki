@@ -1,42 +1,124 @@
-// src/components/categories/ProductCard.tsx
-import { useState } from 'react';
-import { ProductPublic } from '@/types/product';
+
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Heart } from "lucide-react";
+import { ProductPublic } from "@/types/product";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 
 interface ProductCardProps {
   product: ProductPublic;
-  onProductClick: () => void;
+  onProductClick: (productId: number) => void;
 }
 
 const ProductCard = ({ product, onProductClick }: ProductCardProps) => {
-  if (!product) { return null; }
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isInWishlist, setIsInWishlist] = useState(false);
+  const { user } = useAuth();
 
-  const [displayImage, setDisplayImage] = useState(product.image);
-  const rolloverImage = product.product_images?.[0]?.image_url;
+  const primaryImage = product.main_image_url || product.image || '/placeholder.svg';
 
-  const handleMouseEnter = () => { if (rolloverImage) setDisplayImage(rolloverImage); };
-  const handleMouseLeave = () => { setDisplayImage(product.image); };
+  // Get hover image from product_images array
+  const productImages = (product.product_images || [])
+    .map(img => img.image_url)
+    .filter(url => url !== primaryImage);
+  
+  const hoverImage = productImages.length > 0 ? productImages[0] : null;
+
+  // Check if product is in wishlist
+  useEffect(() => {
+    const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+    setIsInWishlist(wishlist.includes(product.id));
+  }, [product.id]);
+
+  // Preload hover image
+  useEffect(() => {
+    if (hoverImage) {
+      const img = new Image();
+      img.onload = () => setImageLoaded(true);
+      img.src = hoverImage;
+    }
+  }, [hoverImage]);
+
+  const toggleWishlist = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!user) {
+      toast.error('กรุณาเข้าสู่ระบบเพื่อใช้งานรายการสินค้าที่ถูกใจ');
+      return;
+    }
+
+    const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+    
+    if (isInWishlist) {
+      const updatedWishlist = wishlist.filter((id: number) => id !== product.id);
+      localStorage.setItem('wishlist', JSON.stringify(updatedWishlist));
+      setIsInWishlist(false);
+      toast.success('ลบออกจากรายการสินค้าที่ถูกใจแล้ว');
+    } else {
+      const updatedWishlist = [...wishlist, product.id];
+      localStorage.setItem('wishlist', JSON.stringify(updatedWishlist));
+      setIsInWishlist(true);
+      toast.success('เพิ่มในรายการสินค้าที่ถูกใจแล้ว');
+    }
+  };
+
+  // Determine which image to show
+  const currentImage = (isHovered && hoverImage && imageLoaded) ? hoverImage : primaryImage;
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden cursor-pointer transform transition-transform duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col"
-      onClick={onProductClick} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
-      <div className="relative w-full h-64 bg-gray-200">
-        <img src={displayImage || ''} alt={product.name} className="w-full h-full object-cover transition-opacity duration-300" />
-        {product.product_status && (
-           <span className={`absolute top-2 left-2 text-xs font-semibold text-white px-2 py-1 rounded ${
-               product.product_status === 'พร้อมส่ง' ? 'bg-green-500' : 'bg-orange-500'
-           }`}>{product.product_status}</span>
-        )}
-      </div>
-      <div className="p-4 flex flex-col flex-grow">
-        <h3 className="text-lg font-semibold text-gray-800 truncate">{product.name}</h3>
-        <p className="text-sm text-gray-500 mt-1">SKU: {product.sku}</p>
-        <p className="text-xl font-bold text-gray-900 mt-2">฿{product.selling_price.toLocaleString()}</p>
-        <p className="text-sm text-gray-600 mt-1 mb-4">{product.category}</p>
-        <div className="mt-auto">
-            <div className="w-full bg-purple-600 text-white font-bold py-2 px-4 rounded-md text-center">ดูรายละเอียด</div>
+    <Card 
+      className="hover:shadow-lg transition-shadow duration-300 cursor-pointer"
+      onClick={() => onProductClick(product.id)}
+    >
+      <CardContent className="p-0">
+        <div 
+          className="aspect-square relative overflow-hidden rounded-t-lg"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
+          <img
+            src={currentImage}
+            alt={product.name}
+            className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+          />
+          <Badge 
+            className={`absolute top-2 left-2 text-white ${
+              product.product_status === 'พรีออเดอร์' 
+                ? 'bg-orange-500' 
+                : 'bg-green-500'
+            }`}
+          >
+            {product.product_status}
+          </Badge>
+
+          {/* Wishlist Button */}
+          <Button
+            variant="outline"
+            size="icon"
+            className="absolute top-2 right-2 bg-white/80 hover:bg-white"
+            onClick={toggleWishlist}
+          >
+            <Heart 
+              className={`h-4 w-4 ${isInWishlist ? 'fill-red-500 text-red-500' : 'text-gray-600 hover:text-red-500'}`} 
+            />
+          </Button>
         </div>
-      </div>
-    </div>
+        
+        <div className="p-4">
+          <h3 className="font-semibold text-gray-800 mb-2 line-clamp-2 h-12">
+            {product.name}
+          </h3>
+          <p className="text-xl font-bold" style={{ color: '#956ec3' }}>
+            ฿{product.selling_price.toLocaleString()}
+          </p>
+          <p className="text-sm text-gray-600 mt-1">{product.category}</p>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
