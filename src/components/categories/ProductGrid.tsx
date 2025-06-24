@@ -1,7 +1,8 @@
 // src/components/categories/ProductGrid.js
-import ProductCard from './ProductCard'; // <-- Import คอมโพเนนต์ใหม่
+import ProductCard from './ProductCard';
 import { ProductPublic } from '@/types/product';
 
+// *** ตรวจสอบให้แน่ใจว่า Interface รับ onProductClick มาถูกต้อง ***
 interface ProductGridProps {
   products: ProductPublic[];
   onProductClick: (productId: number) => void;
@@ -22,7 +23,8 @@ const ProductGrid = ({ products, onProductClick }: ProductGridProps) => {
         <ProductCard
           key={product.id}
           product={product}
-          onClick={() => onProductClick(product.id)}
+          // *** ส่ง onProductClick ไปให้ ProductCard ***
+          onProductClick={() => onProductClick(product.id)}
         />
       ))}
     </div>
