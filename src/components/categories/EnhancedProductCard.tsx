@@ -72,12 +72,12 @@ const EnhancedProductCard = ({ product, onProductClick, onAddToCart }: EnhancedP
 
   return (
     <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer group">
-      <div 
-        className="relative w-full h-48 overflow-hidden rounded-t-lg"
-        onClick={() => onProductClick(product.id)}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
+     <div 
+  className="relative w-full h-48 overflow-hidden rounded-t-lg"
+  onClick={() => onProductClick(product.id)}
+  onMouseEnter={() => setIsHovered(true)}
+  onMouseLeave={() => setIsHovered(false)}
+>
         {/* Product Image */}
      <>
   {/* Primary image */}
