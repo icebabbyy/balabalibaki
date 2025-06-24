@@ -1,4 +1,4 @@
-
+// src/pages/Categories.tsx (The Complete Fix)
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,6 +24,12 @@ const Categories = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // ==================================================================
+  // *** เพิ่มบรรทัดนี้ที่ขาดไป ***
+  // กรอง products ที่อาจจะมีค่า null/undefined ออกไปก่อนส่งให้ hook
+  const safeProductsForFiltering = products.filter(p => p); 
+  // ==================================================================
+
   const {
     filteredProducts,
     searchTerm,
@@ -31,27 +37,33 @@ const Categories = () => {
     selectedCategories,
     handleCategoryChange,
     clearCategorySelection
-    // ตรวจสอบให้แน่ใจว่าคุณนำค่าทั้งหมดที่จำเป็นออกมาจาก hook เหมือนเดิม
-  } = useCategoryFiltering(safeProductsForFiltering); // ส่งอาร์เรย์ที่ปลอดภัยแล้วเข้าไปใน hook
+  } = useCategoryFiltering(safeProductsForFiltering); // ตอนนี้ตัวแปรถูกต้องแล้ว
 
+  // ... โค้ดส่วน useEffect และ functions อื่นๆ เหมือนเดิมทั้งหมด ...
   useEffect(() => {
-    fetchCategories();
-    fetchProducts();
+    fetchData(); // แก้ไข: เรียก fetchData เพียงครั้งเดียว
   }, []);
 
   useEffect(() => {
-    // Handle category filtering from URL parameters
     const categoryParam = searchParams.get('category');
     const searchParam = searchParams.get('search');
-
     if (categoryParam) {
       handleCategoryChange(categoryParam, true);
     }
-
     if (searchParam) {
       setSearchTerm(searchParam);
     }
   }, [searchParams, handleCategoryChange, setSearchTerm]);
+  
+  const fetchData = async () => {
+    setLoading(true);
+    // เรียกทั้งสองอย่างพร้อมกันเพื่อความรวดเร็ว
+    await Promise.all([
+        fetchCategories(),
+        fetchProducts()
+    ]);
+    setLoading(false);
+  };
 
   const fetchCategories = async () => {
     try {
@@ -59,12 +71,7 @@ const Categories = () => {
         .from('categories')
         .select('*')
         .order('homepage_order', { ascending: true });
-
-      if (error) {
-        console.error('Error fetching categories:', error);
-        return;
-      }
-
+      if (error) throw error;
       setCategories(data || []);
     } catch (error) {
       console.error('Error fetching categories:', error);
@@ -73,29 +80,21 @@ const Categories = () => {
 
   const fetchProducts = async () => {
     try {
-      setLoading(true);
-      
-      // First get the products data
       const { data: productsData, error: productsError } = await supabase
         .from('public_products_with_main_image')
         .select('*')
         .order('id', { ascending: false });
 
-      if (productsError) {
-        console.error('Error fetching products:', productsError);
-        toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูลสินค้า');
-        return;
-      }
+      if (productsError) throw productsError;
 
-      // Get additional images for each product
       const productsWithImages = await Promise.all(
         (productsData || []).map(async (product) => {
+          if (!product) return null; // ป้องกันเพิ่มเติม
           const { data: imageData } = await supabase
             .from('product_images')
             .select('id, image_url, order')
             .eq('product_id', product.id)
             .order('order', { ascending: true });
-
           return {
             id: product.id || 0,
             name: product.product_name || '',
@@ -103,7 +102,6 @@ const Categories = () => {
             category: product.category || '',
             description: product.description || '',
             image: product.main_image_url || product.image || '',
-            main_image_url: product.main_image_url || product.image || '',
             product_status: product.product_status || 'พรีออเดอร์',
             sku: product.product_sku || '',
             quantity: product.quantity || 0,
@@ -116,13 +114,11 @@ const Categories = () => {
           };
         })
       );
-
-      setProducts(productsWithImages);
+      // กรองค่า null ที่อาจจะเกิดขึ้นจาก map ด้านบน
+      setProducts(productsWithImages.filter(p => p) as ProductPublic[]);
     } catch (error) {
       console.error('Error fetching products:', error);
       toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูลสินค้า');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -130,43 +126,41 @@ const Categories = () => {
     navigate(`/product/${productId}`);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Header />
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-            <p className="text-purple-600 font-medium">กำลังโหลดสินค้า...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // ... โค้ดส่วน JSX สำหรับ loading และ return เหมือนเดิมทั้งหมด ...
+   if (loading) {
+     return (
+       <div className="min-h-screen bg-gray-50">
+         <Header />
+         <div className="max-w-7xl mx-auto px-4 py-8">
+           <div className="text-center py-12">
+             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+             <p className="text-purple-600 font-medium">กำลังโหลดสินค้า...</p>
+           </div>
+         </div>
+       </div>
+     );
+   }
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
-      
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-8">สินค้าทั้งหมด</h1>
-        
-        <CategoryFilters
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
-          categories={categories}
-          selectedCategories={selectedCategories}
-          onCategoryChange={handleCategoryChange}
-          onClearSelection={clearCategorySelection}
-        />
-
-        <ProductGrid
-          products={filteredProducts}
-          onProductClick={handleProductClick}
-        />
-      </div>
-    </div>
-  );
+   return (
+     <div className="min-h-screen bg-gray-50">
+       <Header />
+       <div className="max-w-7xl mx-auto px-4 py-8">
+         <h1 className="text-3xl font-bold text-gray-800 mb-8">สินค้าทั้งหมด</h1>
+         <CategoryFilters
+           searchTerm={searchTerm}
+           onSearchChange={setSearchTerm}
+           categories={categories}
+           selectedCategories={selectedCategories}
+           onCategoryChange={handleCategoryChange}
+           onClearSelection={clearCategorySelection}
+         />
+         <ProductGrid
+           products={filteredProducts}
+           onProductClick={handleProductClick}
+         />
+       </div>
+     </div>
+   );
 };
 
 export default Categories;
