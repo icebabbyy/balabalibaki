@@ -79,11 +79,27 @@ const EnhancedProductCard = ({ product, onProductClick, onAddToCart }: EnhancedP
         onMouseLeave={() => setIsHovered(false)}
       >
         {/* Product Image */}
-        <img
-          src={currentImage}
-          alt={product.name}
-          className="w-full h-full object-cover transition-all duration-300"
-        />
+     <>
+  {/* Primary image */}
+  <img
+    src={primaryImage}
+    alt={product.name}
+    className={`w-full h-full object-cover absolute inset-0 transition-opacity duration-300 ${
+      isHovered && hoverImage && imageLoaded ? 'opacity-0' : 'opacity-100'
+    }`}
+  />
+
+  {/* Secondary image (only render if exists) */}
+  {hoverImage && (
+    <img
+      src={hoverImage}
+      alt={`${product.name} (preview)`}
+      className={`w-full h-full object-cover absolute inset-0 transition-opacity duration-300 ${
+        isHovered && imageLoaded ? 'opacity-100' : 'opacity-0'
+      }`}
+    />
+  )}
+</>
 
         {/* Badge */}
         {product.product_status && (
