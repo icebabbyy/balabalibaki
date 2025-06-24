@@ -1,4 +1,3 @@
-import { use } from "react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
@@ -10,7 +9,7 @@ import { toast } from "sonner";
 import { ProductPublic } from "@/types/product";
 
 const Wishlist = () => {
-  const navigate = use();
+  const navigate = useNavigate();
   const [wishlistProducts, setWishlistProducts] = useState<ProductPublic[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -36,24 +35,24 @@ const Wishlist = () => {
 
       if (error) {
         console.error('Error fetching wishlist products:', error);
-        toast.error('เกิดข้อผิดพลาดในการโหลดรายการสินค้าที่ถูกใจ');
+        toast.error('เกิดข้อผิด/พลาดในการโหลดรายการสินค้าที่ถูกใจ');
         return;
       }
 
       // Map the data to ProductPublic interface
       const mappedProducts: ProductPublic[] = (data || []).map(item => ({
         id: item.id || 0,
-        name: item.name || '',
+        name: item.product_name || '',
         selling_price: item.selling_price || 0,
         category: item.category || '',
         description: item.description || '',
         image: item.main_image_url || '',
         main_image_url: item.main_image_url || '',
         product_status: item.product_status || 'พรีออเดอร์',
-        sku: item.sku || '',
+        sku: item.product_sku || '',
         quantity: item.quantity || 0,
         shipment_date: item.shipment_date || '',
-        options: item.options || null,
+        options: item.all_images || null,
         product_type: 'ETC', // Default since not in public_products
         created_at: '', // Default since not in public_products
         updated_at: '' // Default since not in public_products

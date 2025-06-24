@@ -92,7 +92,7 @@ const Index = () => {
         sku: item.product_sku || '',
         quantity: 0,
         shipment_date: item.shipment_date || '',
-        options: item.options || null,
+        options: item.all_images || null,
         product_type: item.product_type || 'ETC',
         created_at: item.created_at || '',
         updated_at: item.updated_at || ''
@@ -155,7 +155,7 @@ const Index = () => {
             sku: item.product_sku || '',
             quantity: 0,
             shipment_date: item.shipment_date || '',
-            options: item.options || null,
+            options: item.all_images || null,
             product_type: item.product_type || 'ETC',
             created_at: item.created_at || '',
             updated_at: item.updated_at || ''

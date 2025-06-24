@@ -16,18 +16,17 @@ import AdminRouteGuard from "@/components/AdminRouteGuard";
 
 interface PublicProduct {
   id: number;
-  name: string;
+  product_name: string;
   category: string;
   selling_price: number;
-  sku: string;
+  product_sku: string;
   quantity: number;
   product_status: string;
   product_type?: string;
   description: string;
   main_image_url: string;
-  options: any;
-  shipment_date: string;
   all_images: any;
+  shipment_date: string;
 }
 
 const Admin = () => {
@@ -57,17 +56,16 @@ const Admin = () => {
       // Map the data to ensure all required fields are present
       const mappedProducts: PublicProduct[] = (data || []).map(item => ({
         id: item.id || 0,
-        name: item.name || '',
+        product_name: item.product_name || '',
         category: item.category || '',
         selling_price: item.selling_price || 0,
         main_image_url: item.main_image_url || '',
         description: item.description || '',
-        sku: item.sku || '',
+        product_sku: item.product_sku || '',
         quantity: item.quantity || 0,
         product_status: item.product_status || 'พรีออเดอร์',
         product_type: 'ETC', // Default value since it's not in public_products
         shipment_date: item.shipment_date || '',
-        options: item.options || null,
         all_images: item.all_images || null
       }));
 
@@ -251,17 +249,18 @@ const Admin = () => {
                             <td className="p-2">
                               <img 
                                 src={product.main_image_url || '/placeholder.svg'} 
-                                alt={product.name}
-                                className="w-16 h-16 object-cover rounded"
+                                alt={product.product_name}
+                                className="w-16 h-16 object-cover rounded cursor-pointer hover:w-32 hover:h-32 transition-all duration-300"
+                                title="คลิกเพื่อดูขนาดใหญ่"
                               />
                             </td>
                             <td className="p-2">
                               <div>
-                                <p className="font-medium">{product.name}</p>
+                                <p className="font-medium">{product.product_name}</p>
                                 <p className="text-sm text-gray-500">จำนวน: {product.quantity}</p>
                               </div>
                             </td>
-                            <td className="p-2 font-mono text-sm">{product.sku}</td>
+                            <td className="p-2 font-mono text-sm">{product.product_sku}</td>
                             <td className="p-2">{product.category}</td>
                             <td className="p-2 font-medium">฿{product.selling_price?.toLocaleString()}</td>
                             <td className="p-2">
@@ -271,7 +270,7 @@ const Admin = () => {
                             </td>
                             <td className="p-2 max-w-xs">
                               {editingDescription?.productId === product.id ? (
-                                <div className="w-full">
+                                <div className="w-full max-w-sm">
                                   <RichTextEditor
                                     value={editingDescription.description}
                                     onChange={(value) => setEditingDescription({
@@ -284,14 +283,16 @@ const Admin = () => {
                                   />
                                 </div>
                               ) : (
-                                <div className="space-y-2">
-                                  <RichTextEditor
-                                    value={product.description || ''}
-                                    onChange={() => {}}
-                                    onSave={() => {}}
-                                    onCancel={() => {}}
-                                    isEditing={false}
-                                  />
+                                <div className="space-y-2 max-w-sm">
+                                  <div className="max-h-20 overflow-y-auto">
+                                    <RichTextEditor
+                                      value={product.description || ''}
+                                      onChange={() => {}}
+                                      onSave={() => {}}
+                                      onCancel={() => {}}
+                                      isEditing={false}
+                                    />
+                                  </div>
                                   <Button
                                     variant="outline"
                                     size="sm"
