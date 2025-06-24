@@ -1,6 +1,6 @@
-
-import EnhancedProductCard from "./EnhancedProductCard";
-import { ProductPublic } from "@/types/product";
+// src/components/categories/ProductGrid.js
+import ProductCard from './ProductCard'; // <-- Import คอมโพเนนต์ใหม่
+import { ProductPublic } from '@/types/product';
 
 interface ProductGridProps {
   products: ProductPublic[];
@@ -10,8 +10,8 @@ interface ProductGridProps {
 const ProductGrid = ({ products, onProductClick }: ProductGridProps) => {
   if (products.length === 0) {
     return (
-      <div className="text-center py-12">
-        <p className="text-gray-500 text-lg">ไม่พบสินค้าที่ตรงกับเงื่อนไขการค้นหา</p>
+      <div className="text-center py-10">
+        <p className="text-gray-500">ไม่พบสินค้าที่ตรงกับเงื่อนไขการค้นหา</p>
       </div>
     );
   }
@@ -19,10 +19,10 @@ const ProductGrid = ({ products, onProductClick }: ProductGridProps) => {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
       {products.map((product) => (
-        <EnhancedProductCard 
+        <ProductCard
           key={product.id}
           product={product}
-          onProductClick={onProductClick}
+          onClick={() => onProductClick(product.id)}
         />
       ))}
     </div>
