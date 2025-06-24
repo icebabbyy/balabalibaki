@@ -81,38 +81,19 @@ const Index = () => {
   const [loading, setLoading] = useState(true);
 
 
-useEffect(() => {
-  const initPage = async () => {
-    setLoading(true);
-    
-    await Promise.all([
-      fetchBanners(),
-      fetchFeaturedProducts(),
-    ]);
 
-    const allCategories = await fetchCategories();
+  useEffect(() => {
 
-    if (allCategories && allCategories.length > 0) {
-      await fetchRandomHomepageProducts(allCategories);
-    }
-    
-    setLoading(false);
-  };
+    fetchBanners();
 
-  initPage();
-}, []);
+    fetchFeaturedProducts();
 
-    const allCategories = await fetchCategories();
+    fetchCategories();
 
-    if (allCategories && allCategories.length > 0) {
-      await fetchRandomHomepageProducts(allCategories);
-    }
-    
-    setLoading(false);
-  };
+    fetchHomepageCategories();
 
-  initPage();
-}, []);
+  }, []);
+
 
 
   const fetchBanners = async () => {
@@ -232,70 +213,43 @@ useEffect(() => {
   };
 
 
-const fetchCategories = async (): Promise<Category[]> => {
-  try {
-    const { data, error } = await supabase.from('categories').select('*');
-    if (error) throw error;
-    const allCategories = data || [];
-    setCategories(allCategories);
-    return allCategories; // <--- เพิ่มตรงนี้
-  } catch (error) {
-    console.error('Error fetching categories:', error);
-    return []; // <--- เพิ่มตรงนี้
-  }
-};
 
-  const fetchRandomHomepageProducts = async (allCategories: Category[]) => {
-  try {
-    // ฟังก์ชันสำหรับสุ่มลำดับอาร์เรย์
-    const shuffleArray = (array: Category[]) => {
-      for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-      }
-      return array;
-    };
+  const fetchCategories = async () => {
 
-    // สุ่มเลือกหมวดหมู่มา 3 อัน
-    const randomCategories = shuffleArray([...allCategories]).slice(0, 3);
-    setHomepageCategories(randomCategories);
+    try {
 
-    const productsData: {[key: string]: ProductPublic[]} = {};
-    
-    for (const category of randomCategories) {
-      const { data: products, error } = await supabase
-        .from('public_products_with_main_image')
-        .select('*')
-        .eq('category', category.name)
-        .limit(5);
+      const { data } = await supabase
 
-      if (error) throw error;
-      
-      // จัดรูปแบบข้อมูลสินค้าให้ถูกต้อง
-      const mappedProducts = (products || []).map(item => ({
-        id: item.id || 0,
-        name: item.product_name || item.name || '',
-        selling_price: item.selling_price || 0,
-        category: item.category || '',
-        description: item.description || '',
-        image: item.main_image_url || item.image || '',
-        product_status: item.product_status || 'พรีออเดอร์',
-        sku: item.product_sku || item.sku || '',
-        quantity: item.quantity || 0,
-        shipment_date: item.shipment_date || '',
-        options: item.options || null,
-        product_type: item.product_type || 'ETC',
-        created_at: item.created_at || '',
-        updated_at: item.updated_at || '',
-        product_images: item.product_images || [],
-      }));
-      productsData[category.name] = mappedProducts;
-    }
-    setCategoryProducts(productsData);
-  } catch (error) {
-    console.error('Error fetching homepage products:', error);
-  }
-};
+        .from('categories')
+
+        .select('*');
+
+      
+
+      setCategories(data || []);
+
+    } catch (error) {
+
+      console.error('Error fetching categories:', error);
+
+    }
+
+  };
+
+
+
+  const fetchHomepageCategories = async () => {
+
+    try {
+
+      // ดึงหมวดหมู่ที่ต้องการแสดงในหน้าแรก (สำหรับตอนนี้ใช้ hardcode ก่อน)
+
+      const displayCategories = ['Nikke', 'Honkai : Star Rail', 'League of Legends'];
+
+      const categoriesData = [];
+
+      const productsData: {[key: string]: ProductPublic[]} = {};
+
 
 
       for (const categoryName of displayCategories) {
