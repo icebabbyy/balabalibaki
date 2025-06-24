@@ -1,9 +1,12 @@
-import { useState, useEffect } from "react";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, Heart } from "lucide-react";
 import { ProductPublic } from "@/types/product";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 
 interface EnhancedProductCardProps {
   product: ProductPublic;
@@ -12,112 +15,126 @@ interface EnhancedProductCardProps {
 }
 
 const EnhancedProductCard = ({ product, onProductClick, onAddToCart }: EnhancedProductCardProps) => {
-  const [isHovered, setIsHovered] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
-
-  // --- Logic การหารูปภาพ ---
-  // รูปหลัก: ดึงจาก main_image_url ก่อน ถ้าไม่มีก็เอา image ถ้าไม่มีอีกก็ใช้รูป placeholder
-  const primaryImage = product.main_image_url || product.image || '/placeholder.svg';
+  const [isHovered, setIsHovered] = useState(false);
+  const [isInWishlist, setIsInWishlist] = useState(false);
+  const { user } = useAuth();
   
-  // รูปตอน Hover: หารูปแรกในอัลบั้ม product_images ที่ URL ไม่ซ้ำกับรูปหลัก
-  // ถ้าหาไม่เจอ hoverImage จะเป็น null
-  const hoverImage = (product.product_images || [])
-    .find(img => img.image_url && img.image_url !== primaryImage)?.image_url || null;
+  const primaryImage = product.main_image_url || product.image || '/placeholder.svg';
 
-  // --- Preloading ---
-  // ใช้ useEffect เพื่อโหลดรูป hover เตรียมไว้ล่วงหน้า
-  // เพื่อให้ตอน hover รูปแสดงผลได้ทันที ไม่ต้องรอโหลด
+  // Get hover image from product_images array
+  const productImages = (product.product_images || [])
+    .map(img => img.image_url)
+    .filter(url => url !== primaryImage);
+  
+  const hoverImage = productImages.length > 0 ? productImages[0] : null;
+
+  // Check if product is in wishlist
   useEffect(() => {
-    // ถ้ามีรูป hover
-    if (hoverImage) {
-      const img = new Image(); // สร้าง object รูปภาพในหน่วยความจำ
-      img.onload = () => setImageLoaded(true); // เมื่อโหลดเสร็จ ให้ตั้งค่าว่าโหลดแล้ว
-      img.src = hoverImage; // สั่งให้เริ่มโหลดรูป
-    }
-  }, [hoverImage]); // ทำงานใหม่ทุกครั้งที่ hoverImage เปลี่ยนไป
+    const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+    setIsInWishlist(wishlist.includes(product.id));
+  }, [product.id]);
 
-  // ตัวแปรเช็กว่าพร้อมจะแสดงผลการ hover หรือยัง
-  // ต้อง hover อยู่, มีรูป hover, และรูปนั้นโหลดเสร็จแล้ว
-  const isHoverEffectReady = isHovered && hoverImage && imageLoaded;
+  // Preload hover image
+  useEffect(() => {
+    if (hoverImage) {
+      const img = new Image();
+      img.onload = () => setImageLoaded(true);
+      img.src = hoverImage;
+    }
+  }, [hoverImage]);
+
+  const toggleWishlist = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!user) {
+      toast.error('กรุณาเข้าสู่ระบบเพื่อใช้งานรายการสินค้าที่ถูกใจ');
+      return;
+    }
+
+    const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+    
+    if (isInWishlist) {
+      const updatedWishlist = wishlist.filter((id: number) => id !== product.id);
+      localStorage.setItem('wishlist', JSON.stringify(updatedWishlist));
+      setIsInWishlist(false);
+      toast.success('ลบออกจากรายการสินค้าที่ถูกใจแล้ว');
+    } else {
+      const updatedWishlist = [...wishlist, product.id];
+      localStorage.setItem('wishlist', JSON.stringify(updatedWishlist));
+      setIsInWishlist(true);
+      toast.success('เพิ่มในรายการสินค้าที่ถูกใจแล้ว');
+    }
+  };
+
+  // Determine which image to show
+  const currentImage = (isHovered && hoverImage && imageLoaded) ? hoverImage : primaryImage;
 
   return (
-    <Card
-      className="hover:shadow-lg transition-all duration-300 cursor-pointer"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      <CardContent className="p-0">
-        <div className="aspect-square relative overflow-hidden rounded-t-lg bg-gray-50">
-          {/* --- ส่วนแสดงรูปภาพ --- */}
-          
-          {/* รูปหลัก */}
-          <img
-            src={primaryImage}
-            alt={product.name}
-            className={`
-              w-full h-full object-cover absolute inset-0 transition-opacity duration-300 z-10 pointer-events-none 
-              ${isHoverEffectReady ? 'opacity-0' : 'opacity-100'}
-            `}
-          />
-          
-          {/* รูปตอน Hover (จะถูก render ก็ต่อเมื่อมี hoverImage) */}
-          {hoverImage && (
-            <img
-              src={hoverImage}
-              alt={`${product.name} (preview)`}
-              className={`
-                w-full h-full object-cover absolute inset-0 transition-opacity duration-300 z-20 pointer-events-none 
-                ${isHoverEffectReady ? 'opacity-100' : 'opacity-0'}
-              `}
-            />
-          )}
+    <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer group">
+      <div 
+        className="relative w-full h-48 overflow-hidden rounded-t-lg"
+        onClick={() => onProductClick(product.id)}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        {/* Product Image */}
+        <img
+          src={currentImage}
+          alt={product.name}
+          className="w-full h-full object-cover transition-all duration-300"
+        />
 
-          {/* ป้ายสถานะสินค้า */}
-          <Badge
-            className={`absolute top-2 left-2 text-white z-30 ${
-              product.product_status === 'พรีออเดอร์' 
-                ? 'bg-orange-500' 
-                : 'bg-green-500'
-            }`}
-          >
+        {/* Badge */}
+        {product.product_status && (
+          <Badge className="absolute top-2 left-2 bg-purple-600 text-white z-10">
             {product.product_status}
           </Badge>
-        </div>
-        
-        {/* --- ส่วนแสดงรายละเอียดสินค้า --- */}
-        <div className="p-4">
-          <h3
-            className="font-semibold text-gray-800 mb-2 line-clamp-2 h-12 hover:text-purple-600 transition-colors"
+        )}
+
+        {/* Wishlist Button */}
+        <Button
+          variant="outline"
+          size="icon"
+          className="absolute top-2 right-2 bg-white/80 hover:bg-white z-10"
+          onClick={toggleWishlist}
+        >
+          <Heart 
+            className={`h-4 w-4 ${isInWishlist ? 'fill-red-500 text-red-500' : 'text-gray-600 hover:text-red-500'}`} 
+          />
+        </Button>
+      </div>
+
+      <CardContent className="p-4">
+        <h3 
+          className="font-semibold mb-2 line-clamp-2 hover:text-purple-600 transition-colors"
+          onClick={() => onProductClick(product.id)}
+        >
+          {product.name}
+        </h3>
+        <p className="text-sm text-gray-500 mb-2">SKU: {product.sku}</p>
+        <p className="text-xl font-bold mb-3 text-purple-600">
+          ฿{product.selling_price.toLocaleString()}
+        </p>
+        <div className="space-y-2">
+          <Button 
+            size="sm" 
+            className="w-full bg-purple-600 hover:bg-purple-700"
             onClick={() => onProductClick(product.id)}
           >
-            {product.name}
-          </h3>
-          <p className="text-sm text-gray-500 mb-2">SKU: {product.sku}</p>
-          <p className="text-xl font-bold mb-3" style={{ color: '#956ec3' }}>
-            ฿{product.selling_price.toLocaleString()}
-          </p>
-          <p className="text-sm text-gray-600 mb-3">{product.category}</p>
-          
-          <div className="space-y-2">
-            <Button
-              size="sm"
-              className="w-full bg-purple-600 hover:bg-purple-700"
-              onClick={() => onProductClick(product.id)}
+            ซื้อเดี๋ยวนี้
+          </Button>
+          {onAddToCart && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full"
+              onClick={() => onAddToCart(product)}
             >
-              ซื้อเดี๋ยวนี้
+              <ShoppingCart className="h-4 w-4 mr-2" />
+              เพิ่มลงตะกร้า
             </Button>
-            {onAddToCart && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full"
-                onClick={() => onAddToCart(product)}
-              >
-                <ShoppingCart className="h-4 w-4 mr-2" />
-                เพิ่มลงตะกร้า
-              </Button>
-            )}
-          </div>
+          )}
         </div>
       </CardContent>
     </Card>
