@@ -178,7 +178,6 @@ export type Database = {
           total_selling_price: number | null
           tracking_number: string | null
           updated_at: string | null
-          user_id: string | null
           username: string | null
         }
         Insert: {
@@ -204,7 +203,6 @@ export type Database = {
           total_selling_price?: number | null
           tracking_number?: string | null
           updated_at?: string | null
-          user_id?: string | null
           username?: string | null
         }
         Update: {
@@ -230,18 +228,9 @@ export type Database = {
           total_selling_price?: number | null
           tracking_number?: string | null
           updated_at?: string | null
-          user_id?: string | null
           username?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "orders_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       product_images: {
         Row: {
@@ -251,7 +240,6 @@ export type Database = {
           index: number | null
           order: number | null
           product_id: number
-          product_images: Json | null
           type: string
           variant_id: string | null
           variant_name: string | null
@@ -263,7 +251,6 @@ export type Database = {
           index?: number | null
           order?: number | null
           product_id: number
-          product_images?: Json | null
           type?: string
           variant_id?: string | null
           variant_name?: string | null
@@ -275,7 +262,6 @@ export type Database = {
           index?: number | null
           order?: number | null
           product_id?: number
-          product_images?: Json | null
           type?: string
           variant_id?: string | null
           variant_name?: string | null
@@ -293,13 +279,6 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "public_products"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "product_images_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "public_products_with_main_image"
             referencedColumns: ["id"]
           },
         ]
@@ -332,7 +311,6 @@ export type Database = {
           created_at: string | null
           description: string | null
           exchange_rate: number
-          extra: string | null
           id: number
           image: string
           import_cost: number
@@ -348,7 +326,6 @@ export type Database = {
           shipping_fee: string | null
           sku: string
           updated_at: string | null
-          variant: string | null
         }
         Insert: {
           category: string
@@ -356,7 +333,6 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           exchange_rate?: number
-          extra?: string | null
           id?: number
           image: string
           import_cost?: number
@@ -372,7 +348,6 @@ export type Database = {
           shipping_fee?: string | null
           sku: string
           updated_at?: string | null
-          variant?: string | null
         }
         Update: {
           category?: string
@@ -380,7 +355,6 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           exchange_rate?: number
-          extra?: string | null
           id?: number
           image?: string
           import_cost?: number
@@ -396,7 +370,6 @@ export type Database = {
           shipping_fee?: string | null
           sku?: string
           updated_at?: string | null
-          variant?: string | null
         }
         Relationships: []
       }
@@ -413,7 +386,7 @@ export type Database = {
           role: string
           updated_at: string | null
           username: string | null
-          wishlist: Json | null
+          wishlist: string | null
         }
         Insert: {
           address?: string | null
@@ -427,7 +400,7 @@ export type Database = {
           role?: string
           updated_at?: string | null
           username?: string | null
-          wishlist?: Json | null
+          wishlist?: string | null
         }
         Update: {
           address?: string | null
@@ -441,7 +414,7 @@ export type Database = {
           role?: string
           updated_at?: string | null
           username?: string | null
-          wishlist?: Json | null
+          wishlist?: string | null
         }
         Relationships: []
       }
@@ -451,74 +424,16 @@ export type Database = {
         Row: {
           all_images: Json | null
           category: string | null
-          created_at: string | null
           description: string | null
           id: number | null
-          image: string | null
           main_image_url: string | null
-          product_name: string | null
-          product_sku: string | null
+          name: string | null
+          options: Json | null
           product_status: string | null
-          product_type: string | null
           quantity: number | null
           selling_price: number | null
           shipment_date: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          all_images?: Json | null
-          category?: string | null
-          created_at?: string | null
-          description?: string | null
-          id?: number | null
-          image?: string | null
-          main_image_url?: string | null
-          product_name?: string | null
-          product_sku?: string | null
-          product_status?: string | null
-          product_type?: string | null
-          quantity?: number | null
-          selling_price?: number | null
-          shipment_date?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          all_images?: Json | null
-          category?: string | null
-          created_at?: string | null
-          description?: string | null
-          id?: number | null
-          image?: string | null
-          main_image_url?: string | null
-          product_name?: string | null
-          product_sku?: string | null
-          product_status?: string | null
-          product_type?: string | null
-          quantity?: number | null
-          selling_price?: number | null
-          shipment_date?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      public_products_with_main_image: {
-        Row: {
-          all_images: Json | null
-          category: string | null
-          created_at: string | null
-          description: string | null
-          id: number | null
-          image: string | null
-          main_image_url: string | null
-          new_main_image_url: string | null
-          product_name: string | null
-          product_sku: string | null
-          product_status: string | null
-          product_type: string | null
-          quantity: number | null
-          selling_price: number | null
-          shipment_date: string | null
-          updated_at: string | null
+          sku: string | null
         }
         Relationships: []
       }

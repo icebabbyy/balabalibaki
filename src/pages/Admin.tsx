@@ -22,6 +22,7 @@ interface PublicProduct {
   sku: string;
   quantity: number;
   product_status: string;
+  product_type?: string;
   description: string;
   main_image_url: string;
   options: any;
@@ -59,11 +60,12 @@ const Admin = () => {
         name: item.name || '',
         category: item.category || '',
         selling_price: item.selling_price || 0,
-        main_image_url: item.main_image_url || '/placeholder.svg',
+        main_image_url: item.main_image_url || '',
         description: item.description || '',
         sku: item.sku || '',
         quantity: item.quantity || 0,
         product_status: item.product_status || 'พรีออเดอร์',
+        product_type: 'ETC', // Default value since it's not in public_products
         shipment_date: item.shipment_date || '',
         options: item.options || null,
         all_images: item.all_images || null
@@ -239,7 +241,7 @@ const Admin = () => {
                           <th className="text-left p-2">หมวดหมู่</th>
                           <th className="text-left p-2">ราคาขาย</th>
                           <th className="text-left p-2">สถานะ</th>
-                          <th className="text-left p-2 w-80">คำอธิบาย</th>
+                          <th className="text-left p-2">คำอธิบาย</th>
                           <th className="text-left p-2">จัดการ</th>
                         </tr>
                       </thead>
@@ -250,9 +252,7 @@ const Admin = () => {
                               <img 
                                 src={product.main_image_url || '/placeholder.svg'} 
                                 alt={product.name}
-                                className="w-16 h-16 object-cover rounded cursor-pointer hover:scale-150 transition-transform duration-200"
-                                onClick={() => window.open(product.main_image_url, '_blank')}
-                                title="คลิกเพื่อดูรูปขนาดเต็ม"
+                                className="w-16 h-16 object-cover rounded"
                               />
                             </td>
                             <td className="p-2">
@@ -269,33 +269,29 @@ const Admin = () => {
                                 {product.product_status}
                               </Badge>
                             </td>
-                            <td className="p-2">
+                            <td className="p-2 max-w-xs">
                               {editingDescription?.productId === product.id ? (
-                                <div className="w-full max-w-sm">
-                                  <div className="max-h-40 overflow-y-auto border rounded">
-                                    <RichTextEditor
-                                      value={editingDescription.description}
-                                      onChange={(value) => setEditingDescription({
-                                        ...editingDescription,
-                                        description: value
-                                      })}
-                                      onSave={handleDescriptionSave}
-                                      onCancel={() => setEditingDescription(null)}
-                                      isEditing={true}
-                                    />
-                                  </div>
+                                <div className="w-full">
+                                  <RichTextEditor
+                                    value={editingDescription.description}
+                                    onChange={(value) => setEditingDescription({
+                                      ...editingDescription,
+                                      description: value
+                                    })}
+                                    onSave={handleDescriptionSave}
+                                    onCancel={() => setEditingDescription(null)}
+                                    isEditing={true}
+                                  />
                                 </div>
                               ) : (
-                                <div className="space-y-2 max-w-sm">
-                                  <div className="max-h-24 overflow-y-auto border rounded p-2 bg-gray-50">
-                                    <RichTextEditor
-                                      value={product.description || ''}
-                                      onChange={() => {}}
-                                      onSave={() => {}}
-                                      onCancel={() => {}}
-                                      isEditing={false}
-                                    />
-                                  </div>
+                                <div className="space-y-2">
+                                  <RichTextEditor
+                                    value={product.description || ''}
+                                    onChange={() => {}}
+                                    onSave={() => {}}
+                                    onCancel={() => {}}
+                                    isEditing={false}
+                                  />
                                   <Button
                                     variant="outline"
                                     size="sm"
