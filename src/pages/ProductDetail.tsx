@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,7 +5,8 @@ import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, ShoppingCart, Package, Calendar, Truck, CreditCard, Clock } from "lucide-react";
+// เพิ่ม Heart icon เข้ามาใน import
+import { ArrowLeft, ShoppingCart, Package, Calendar, Truck, CreditCard, Clock, Heart } from "lucide-react"; 
 import { toast } from "sonner";
 import ProductImageGallery from "@/components/ProductImageGallery";
 import ProductVariantSelector from "@/components/ProductVariantSelector";
@@ -23,31 +23,107 @@ const ProductDetail = () => {
   const [variantImage, setVariantImage] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
 
+  // --- State ใหม่สำหรับ Wishlist ---
+  const [user, setUser] = useState<any>(null);
+  const [isInWishlist, setIsInWishlist] = useState(false);
+  const [isWishlistLoading, setIsWishlistLoading] = useState(true);
+
+
   useEffect(() => {
-    if (id) {
-      const productId = parseInt(id, 10);
-      if (!isNaN(productId)) {
-        fetchProduct(productId);
-        fetchProductImages(productId);
+    // เปลี่ยนชื่อฟังก์ชันเพื่อให้สื่อความหมายมากขึ้น
+    const checkUserAndFetchData = async () => {
+      // ดึงข้อมูล User ที่ login อยู่
+      const { data: { session } } = await supabase.auth.getSession();
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+
+      if (id) {
+        const productId = parseInt(id, 10);
+        if (!isNaN(productId)) {
+          // ใช้ await เพื่อให้แน่ใจว่าโหลดข้อมูลสินค้าเสร็จก่อน
+          await fetchProduct(productId);
+          await fetchProductImages(productId);
+          
+          // หลังจากดึงข้อมูลสินค้าแล้ว ให้เช็คสถานะ Wishlist ถ้ามี user login อยู่
+          if (currentUser) {
+            await checkWishlistStatus(currentUser.id, productId);
+          }
+        }
       }
-    }
+      // เมื่อทุกอย่างเสร็จสิ้น ให้หยุดการ loading ของปุ่ม wishlist
+      setIsWishlistLoading(false);
+    };
+
+    checkUserAndFetchData();
   }, [id]);
 
+  // --- ฟังก์ชันสำหรับเช็คสถานะ Wishlist ---
+  const checkWishlistStatus = async (userId: string, productId: number) => {
+    try {
+      const { data, error } = await supabase
+        .from('wishlist_items')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('product_id', productId)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') { // PGRST116 = a row was not found
+        throw error;
+      }
+      
+      setIsInWishlist(!!data); // ถ้ามี data (ไม่เป็น null) แปลว่าอยู่ใน Wishlist แล้ว
+    } catch (error) {
+      console.error('Error checking wishlist status:', error);
+    }
+  };
+
+  // --- ฟังก์ชันสำหรับ เพิ่ม/ลบ Wishlist ---
+  const toggleWishlist = async () => {
+    if (!user) {
+      toast.error("กรุณาเข้าสู่ระบบเพื่อใช้งาน Wishlist");
+      navigate('/login');
+      return;
+    }
+    if (!product) return;
+
+    setIsWishlistLoading(true);
+
+    try {
+      if (isInWishlist) {
+        // ถ้ามีอยู่แล้ว ให้ลบออก
+        const { error } = await supabase.from('wishlist_items').delete().match({ user_id: user.id, product_id: product.id });
+        if (error) throw error;
+        setIsInWishlist(false);
+        toast.success("ลบออกจากรายการโปรดแล้ว");
+      } else {
+        // ถ้ายังไม่มี ให้เพิ่มเข้าไป
+        const { error } = await supabase.from('wishlist_items').insert({ user_id: user.id, product_id: product.id });
+        if (error) throw error;
+        setIsInWishlist(true);
+        toast.success("เพิ่มในรายการโปรดแล้ว");
+      }
+    } catch (error) {
+      console.error('Error toggling wishlist:', error);
+      toast.error("เกิดข้อผิดพลาด");
+    } finally {
+      setIsWishlistLoading(false);
+    }
+  };
+
   const fetchProduct = async (productId: number) => {
+    // ไม่มีการแก้ไขฟังก์ชันนี้
     try {
       const { data, error } = await supabase
         .from('products')
         .select('*')
         .eq('id', productId)
         .single();
-
       if (error) {
         console.error('Error fetching product:', error);
         toast.error('ไม่พบสินค้าที่ต้องการ');
         navigate('/');
         return;
       }
-
       setProduct(data);
     } catch (error) {
       console.error('Error:', error);
@@ -58,18 +134,17 @@ const ProductDetail = () => {
   };
 
   const fetchProductImages = async (productId: number) => {
+    // ไม่มีการแก้ไขฟังก์ชันนี้
     try {
       const { data, error } = await supabase
         .from('product_images')
         .select('*')
         .eq('product_id', productId)
         .order('order', { ascending: true });
-
       if (error) {
         console.error('Error fetching product images:', error);
         return;
       }
-
       setImages(data || []);
     } catch (error) {
       console.error('Error fetching images:', error);
@@ -77,102 +152,67 @@ const ProductDetail = () => {
   };
 
   const addToCart = () => {
+    // ไม่มีการแก้ไขฟังก์ชันนี้
     if (!product) return;
-
-    // Validate variant selection if options exist
     if (product.options && !selectedVariant) {
       toast.error('กรุณาเลือกตัวเลือกสินค้า');
       return;
     }
-
     const cartItem = {
-      id: product.id,
-      name: product.name,
-      price: product.selling_price,
-      image: variantImage || product.image,
-      quantity: quantity,
-      sku: product.sku,
-      variant: selectedVariant || null,
-      product_type: product.product_type || 'ETC'
+      id: product.id, name: product.name, price: product.selling_price,
+      image: variantImage || product.image, quantity: quantity, sku: product.sku,
+      variant: selectedVariant || null, product_type: product.product_type || 'ETC'
     };
-
-    // Get existing cart
     const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
-    
-    // Check if item with same variant already exists
     const existingItemIndex = existingCart.findIndex((item: any) => 
       item.id === cartItem.id && item.variant === cartItem.variant
     );
-
     if (existingItemIndex >= 0) {
-      // Update quantity
       existingCart[existingItemIndex].quantity += quantity;
     } else {
-      // Add new item
       existingCart.push(cartItem);
     }
-
     localStorage.setItem('cart', JSON.stringify(existingCart));
-    
     toast.success(`เพิ่ม "${product.name}" ลงในตะกร้าแล้ว`);
   };
 
   const buyNow = () => {
+    // ไม่มีการแก้ไขฟังก์ชันนี้
     if (!product) return;
-
-    // Validate variant selection if options exist
     if (product.options && !selectedVariant) {
       toast.error('กรุณาเลือกตัวเลือกสินค้า');
       return;
     }
-
     const cartItem = {
-      id: product.id,
-      name: product.name,
-      price: product.selling_price,
-      image: variantImage || product.image,
-      quantity: quantity,
-      sku: product.sku,
-      variant: selectedVariant || null,
-      product_type: product.product_type || 'ETC'
+      id: product.id, name: product.name, price: product.selling_price,
+      image: variantImage || product.image, quantity: quantity, sku: product.sku,
+      variant: selectedVariant || null, product_type: product.product_type || 'ETC'
     };
-
-    // Add item to existing cart instead of creating a separate order
     const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
-    
-    // Check if item with same variant already exists
     const existingItemIndex = existingCart.findIndex((item: any) => 
       item.id === cartItem.id && item.variant === cartItem.variant
     );
-
     if (existingItemIndex >= 0) {
-      // Update quantity
       existingCart[existingItemIndex].quantity += quantity;
     } else {
-      // Add new item
       existingCart.push(cartItem);
     }
-
     localStorage.setItem('cart', JSON.stringify(existingCart));
-    
-    // Navigate directly to cart page for immediate checkout
     navigate('/cart');
   };
 
   const getStatusColor = (status: string) => {
+    // ไม่มีการแก้ไขฟังก์ชันนี้
     switch (status) {
-      case 'พรีออเดอร์':
-        return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'พร้อมส่ง':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'สินค้าหมด':
-        return 'bg-red-100 text-red-800 border-red-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'พรีออเดอร์': return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'พร้อมส่ง': return 'bg-green-100 text-green-800 border-green-200';
+      case 'สินค้าหมด': return 'bg-red-100 text-red-800 border-red-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
   if (loading) {
+    // ไม่มีการแก้ไขส่วนนี้
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
@@ -187,6 +227,7 @@ const ProductDetail = () => {
   }
 
   if (!product) {
+    // ไม่มีการแก้ไขส่วนนี้
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
@@ -203,7 +244,6 @@ const ProductDetail = () => {
     );
   }
 
-  // Convert images array to proper format for ProductImageGallery
   const additionalImageUrls = images
   .map(img => img.image_url)
   .filter(url => url !== product.image);
@@ -213,51 +253,44 @@ const ProductDetail = () => {
       <Header />
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
-          {/* Breadcrumb */}
-          <ProductBreadcrumb 
-            category={product.category} 
-            productName={product.name} 
-          />
-
-          {/* Back Button */}
-          <Button 
-            variant="outline" 
-            onClick={() => navigate(-1)}
-            className="mb-6"
-          >
+          <ProductBreadcrumb category={product.category} productName={product.name} />
+          <Button variant="outline" onClick={() => navigate(-1)} className="mb-6">
             <ArrowLeft className="h-4 w-4 mr-2" />
             ย้อนกลับ
           </Button>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Product Images - Updated size constraints */}
             <div className="max-w-[700px]">
-              <ProductImageGallery 
-                mainImage={product.image}
-                additionalImages={additionalImageUrls}
-                productName={product.name}
-                variantImage={variantImage}
-              />
+              <ProductImageGallery mainImage={product.image} additionalImages={additionalImageUrls} productName={product.name} variantImage={variantImage} />
             </div>
 
-            {/* Product Details */}
             <div className="space-y-6">
-              {/* Product Name */}
               <div>
-                <h1 className="text-3xl font-bold text-gray-900 mb-4">
-                  {product.name}
-                </h1>
+                {/* --- ส่วนที่แก้ไข: เพิ่มปุ่มหัวใจ --- */}
+                <div className="flex items-start justify-between">
+                  <h1 className="text-3xl font-bold text-gray-900 mb-4">
+                    {product.name}
+                  </h1>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={toggleWishlist}
+                    disabled={isWishlistLoading}
+                    className="text-gray-400 hover:text-red-500 rounded-full"
+                  >
+                    <Heart 
+                      className={`h-7 w-7 transition-all duration-200 ${isInWishlist ? 'text-red-500 fill-red-500' : 'text-gray-500 fill-transparent'}`} 
+                    />
+                  </Button>
+                </div>
+                {/* --- จบส่วนที่แก้ไข --- */}
                 
-                {/* Product Information - Reorganized */}
                 <div className="space-y-4">
-                  {/* Category */}
                   <div className="flex items-center space-x-2">
                     <Package className="h-4 w-4 text-gray-500" />
                     <span className="text-gray-600">หมวดหมู่:</span>
                     <span className="font-medium text-purple-600">{product.category}</span>
                   </div>
-                  
-                  {/* Status and Shipment Date - Enhanced UI */}
                   <div className="bg-white rounded-lg border p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
@@ -274,23 +307,18 @@ const ProductDetail = () => {
                         </Badge>
                       </div>
                     </div>
-                    
                     {product.shipment_date && (
                       <div className="flex items-center space-x-2 pt-2 border-t">
                         <Calendar className="h-4 w-4 text-blue-500" />
                         <span className="text-sm font-medium text-gray-700">กำหนดส่ง:</span>
                         <span className="text-sm text-blue-600 font-medium">
                           {new Date(product.shipment_date).toLocaleDateString('th-TH', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
+                            year: 'numeric', month: 'long', day: 'numeric'
                           })}
                         </span>
                       </div>
                     )}
                   </div>
-                  
-                  {/* SKU */}
                   <div className="flex items-center space-x-2">
                     <span className="text-gray-600">SKU:</span>
                     <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">{product.sku}</span>
@@ -298,12 +326,10 @@ const ProductDetail = () => {
                 </div>
               </div>
 
-              {/* Price */}
               <div className="text-3xl font-bold text-purple-600">
                 ฿{product.selling_price?.toLocaleString()}
               </div>
 
-              {/* Product Options with Enhanced Variant Selector */}
               {product.options && (
                 <ProductVariantSelector
                   options={product.options}
@@ -314,58 +340,28 @@ const ProductDetail = () => {
                 />
               )}
 
-              {/* Quantity */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">
                   จำนวน
                 </label>
                 <div className="flex items-center space-x-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  >
-                    -
-                  </Button>
-                  <span className="px-4 py-2 border rounded text-center min-w-[60px]">
-                    {quantity}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setQuantity(quantity + 1)}
-                  >
-                    +
-                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setQuantity(Math.max(1, quantity - 1))}> - </Button>
+                  <span className="px-4 py-2 border rounded text-center min-w-[60px]">{quantity}</span>
+                  <Button variant="outline" size="sm" onClick={() => setQuantity(quantity + 1)}> + </Button>
                 </div>
               </div>
 
-              {/* Action Buttons */}
               <div className="space-y-3">
-                {/* Buy Now Button - Fixed */}
-                <Button 
-                  onClick={buyNow}
-                  className="w-full py-3 text-lg"
-                  style={{ backgroundColor: '#956ec3' }}
-                  disabled={product.product_status === 'สินค้าหมด'}
-                >
+                <Button onClick={buyNow} className="w-full py-3 text-lg" style={{ backgroundColor: '#956ec3' }} disabled={product.product_status === 'สินค้าหมด'}>
                   <CreditCard className="h-5 w-5 mr-2" />
                   {product.product_status === 'สินค้าหมด' ? 'สินค้าหมด' : 'ซื้อเดี๋ยวนี้'}
                 </Button>
-
-                {/* Add to Cart Button */}
-                <Button 
-                  onClick={addToCart}
-                  variant="outline"
-                  className="w-full py-3 text-lg border-purple-600 text-purple-600 hover:bg-purple-50"
-                  disabled={product.product_status === 'สินค้าหมด'}
-                >
+                <Button onClick={addToCart} variant="outline" className="w-full py-3 text-lg border-purple-600 text-purple-600 hover:bg-purple-50" disabled={product.product_status === 'สินค้าหมด'}>
                   <ShoppingCart className="h-5 w-5 mr-2" />
                   เพิ่มลงตะกร้า
                 </Button>
               </div>
 
-              {/* Additional Product Info */}
               {product.shipping_fee && (
                 <Card>
                   <CardContent className="p-4">
@@ -380,7 +376,6 @@ const ProductDetail = () => {
                 </Card>
               )}
 
-              {/* Description with Rich Text Editor for display */}
               {product.description && (
                 <Card>
                   <CardHeader>
