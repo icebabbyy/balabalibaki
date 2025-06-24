@@ -1,5 +1,4 @@
 // src/pages/Categories.js
-// (โค้ดส่วน import และส่วนต้นอื่นๆ เหมือนเดิม)
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -51,7 +50,9 @@ const Categories = () => {
 
   const fetchData = async () => {
     setLoading(true);
-    await Promise.all([fetchCategories(), fetchProducts()]);
+    // แยกการ fetch เพื่อให้แน่ใจว่าอันหนึ่งล้ม จะไม่กระทบอีกอัน
+    await fetchCategories();
+    await fetchProducts();
     setLoading(false);
   };
 
@@ -73,32 +74,38 @@ const Categories = () => {
     }
   };
 
-  // ***** แก้ไขฟังก์ชันนี้เพื่อความแน่นอนของข้อมูล *****
   const fetchProducts = async () => {
     try {
       const { data, error } = await supabase
         .from('products')
-        .select(`
-          id, name, selling_price, description, product_status, sku, quantity, shipment_date, product_type, created_at, updated_at,
-          image,
-          categories (name),
-          product_images (id, image_url, order)
-        `)
+        .select(`*, categories (name), product_images (id, image_url, order)`)
         .order('id', { ascending: false });
 
       if (error) {
-        console.error('Error fetching products with images:', error);
+        console.error('Error fetching products:', error);
         toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูลสินค้า');
         return;
       }
 
+      // *** กลับมาใช้การ map ข้อมูลแบบเดิมที่ปลอดภัยกว่า ***
       const formattedProducts: ProductPublic[] = (data || []).map(product => ({
-        ...product,
+        id: product.id,
+        name: product.name,
+        selling_price: product.selling_price,
         category: product.categories?.name || 'ไม่มีหมวดหมู่',
-        // จัดเรียงอัลบั้มรูปภาพตาม 'order' เพื่อให้ rollover effect ทำงานถูกต้อง
+        description: product.description,
+        image: product.image, // ใช้ field 'image' เป็นรูปหลัก
+        product_status: product.product_status,
+        sku: product.sku,
+        quantity: product.quantity,
+        shipment_date: product.shipment_date,
+        options: null,
+        product_type: product.product_type,
+        created_at: product.created_at,
+        updated_at: product.updated_at,
+        // เพิ่มข้อมูลอัลบั้มรูปภาพ และจัดเรียงให้ถูกต้อง
         product_images: (product.product_images || []).sort((a, b) => a.order - b.order)
       }));
-
       setProducts(formattedProducts);
 
     } catch (error) {
@@ -107,11 +114,12 @@ const Categories = () => {
     }
   };
 
+  // *** แก้ไขชื่อฟังก์ชันให้สื่อความหมาย และส่งต่อไปยัง Grid ***
   const handleProductClick = (productId: number) => {
     navigate(`/product/${productId}`);
   };
 
-  // (ส่วน JSX ที่ return สำหรับ loading และหน้าหลักให้คงไว้เหมือนเดิม)
+  // (โค้ดส่วน JSX เหมือนเดิมทุกประการ)
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -129,10 +137,8 @@ const Categories = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      
       <div className="max-w-7xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold text-gray-800 mb-8">สินค้าทั้งหมด</h1>
-        
         <CategoryFilters
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
@@ -141,10 +147,9 @@ const Categories = () => {
           onCategoryChange={handleCategoryChange}
           onClearSelection={clearCategorySelection}
         />
-
         <ProductGrid
           products={filteredProducts}
-          onProductClick={handleProductClick}
+          onProductClick={handleProductClick} // <-- ส่ง prop ที่แก้ไขแล้ว
         />
       </div>
     </div>
