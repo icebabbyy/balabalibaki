@@ -1,6 +1,6 @@
+
 import { useState, useEffect } from "react";
-// --- 1. แก้ไข: import useSearchParams เพิ่มเข้ามา ---
-import { useParams, useSearchParams } from "react-router-dom"; 
+import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import CategoryFilters from "@/components/categories/CategoryFilters";
@@ -9,9 +9,6 @@ import { ProductPublic } from "@/types/product";
 
 const Categories = () => {
   const { tagSlug } = useParams();
-  // --- 2. แก้ไข: สร้างตัวแปรเพื่ออ่านค่าจาก URL ---
-  const [searchParams] = useSearchParams(); 
-
   const [products, setProducts] = useState<ProductPublic[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<ProductPublic[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,10 +17,6 @@ const Categories = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentTag, setCurrentTag] = useState<any>(null);
 
-  // --- 3. แก้ไข: อ่านค่า 'category' จาก URL มาเก็บไว้ ---
-  const initialCategoryFromUrl = searchParams.get('category');
-
-  // useEffect หลักของคุณ สำหรับดึงข้อมูล αρχικά
   useEffect(() => {
     fetchCategories();
     fetchProducts();
@@ -32,25 +25,18 @@ const Categories = () => {
     }
   }, [tagSlug]);
 
-  // --- 4. แก้ไข: เพิ่ม useEffect ใหม่ เพื่อตั้งค่า Filter เริ่มต้นจาก URL ---
-  // useEffect นี้จะทำงานแค่ครั้งเดียวตอนเปิดหน้า หรือเมื่อค่า category ใน URL เปลี่ยนไป
-  useEffect(() => {
-    if (initialCategoryFromUrl) {
-      // ถ้าใน URL มี ?category=... ให้ตั้งค่านั้นเป็นหมวดหมู่ที่ถูกเลือก
-      setSelectedCategories([initialCategoryFromUrl]);
-    }
-  }, [initialCategoryFromUrl]);
-
   const fetchCategories = async () => {
     try {
       const { data, error } = await supabase
         .from('categories')
         .select('*')
         .order('name');
+
       if (error) {
         console.error('Error fetching categories:', error);
         return;
       }
+
       setCategories(data || []);
     } catch (error) {
       console.error('Error fetching categories:', error);
@@ -59,16 +45,19 @@ const Categories = () => {
 
   const fetchTagInfo = async () => {
     if (!tagSlug) return;
+    
     try {
       const { data, error } = await supabase
         .from('tags')
         .select('*')
         .eq('slug', tagSlug)
         .single();
+        
       if (error) {
         console.error('Error fetching tag:', error);
         return;
       }
+      
       setCurrentTag(data);
     } catch (error) {
       console.error('Error fetching tag:', error);
@@ -76,17 +65,33 @@ const Categories = () => {
   };
 
   const fetchProducts = async () => {
-    // โค้ด fetchProducts เดิมของคุณ (ทำงานได้ดีอยู่แล้ว)
     try {
       let query = supabase
         .from('products')
-        .select(`*, product_images (id, image_url, order)`)
+        .select(`
+          *,
+          product_images (
+            id,
+            image_url,
+            order
+          )
+        `)
         .order('created_at', { ascending: false });
 
+      // If filtering by tag, join with product_tags
       if (tagSlug) {
-        const { data: tagData } = await supabase.from('tags').select('id').eq('slug', tagSlug).single();
+        const { data: tagData } = await supabase
+          .from('tags')
+          .select('id')
+          .eq('slug', tagSlug)
+          .single();
+          
         if (tagData) {
-          const { data: productTagData } = await supabase.from('product_tags').select('product_id').eq('tag_id', tagData.id);
+          const { data: productTagData } = await supabase
+            .from('product_tags')
+            .select('product_id')
+            .eq('tag_id', tagData.id);
+            
           if (productTagData) {
             const productIds = productTagData.map(pt => pt.product_id);
             query = query.in('id', productIds);
@@ -95,6 +100,7 @@ const Categories = () => {
       }
 
       const { data, error } = await query;
+
       if (error) {
         console.error('Error fetching products:', error);
         return;
@@ -120,7 +126,7 @@ const Categories = () => {
       })) || [];
 
       setProducts(transformedProducts);
-      setFilteredProducts(transformedProducts); // ตั้งค่าเริ่มต้น
+      setFilteredProducts(transformedProducts);
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -129,10 +135,9 @@ const Categories = () => {
   };
 
   const handleProductClick = (productId: number) => {
+    // Find the product to get its slug
     const product = products.find(p => p.id === productId);
     const slug = product?.slug || productId.toString();
-    // แนะนำให้ใช้ navigate ของ react-router-dom แทน window.location.href เพื่อประสบการณ์ใช้งานที่ดีกว่า
-    // แต่โค้ดเดิมก็ทำงานได้ครับ
     window.location.href = `/product/${slug}`;
   };
 
@@ -148,35 +153,64 @@ const Categories = () => {
     setSelectedCategories([]);
   };
 
-  // useEffect สำหรับกรองสินค้า (โค้ดเดิมของคุณ ทำงานถูกต้องแล้ว)
-  // มันจะทำงานอัตโนมัติเมื่อ selectedCategories ถูกตั้งค่าจาก URL
+  // Filter products based on selected categories and search term
   useEffect(() => {
     let filtered = [...products];
+
+    // Filter by selected categories
     if (selectedCategories.length > 0) {
       filtered = filtered.filter(product => 
         selectedCategories.includes(product.category)
       );
     }
+
+    // Filter by search term
     if (searchTerm) {
       filtered = filtered.filter(product =>
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         product.category.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
+
     setFilteredProducts(filtered);
   }, [products, selectedCategories, searchTerm]);
 
   if (loading) {
-    // ... UI ตอนโหลด ...
-    return <div>Loading...</div>;
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+            <p className="text-purple-600 font-medium">กำลังโหลดสินค้า...</p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
       <div className="container mx-auto px-4 py-8">
-        {/* ... ส่วนหัว Title ... */}
-        
+        <div className="mb-8">
+          {tagSlug && currentTag ? (
+            <div className="text-center">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                สินค้าที่มีแท็ก "#{currentTag.name}"
+              </h1>
+              <p className="text-gray-600">
+                แสดงสินค้าทั้งหมดที่เกี่ยวข้องกับแท็กนี้
+              </p>
+            </div>
+          ) : (
+            <div className="text-center">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">สินค้าทั้งหมด</h1>
+              <p className="text-gray-600">ค้นหาและเลือกซื้อสินค้าที่คุณต้องการ</p>
+            </div>
+          )}
+        </div>
+
         <CategoryFilters
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
@@ -185,7 +219,7 @@ const Categories = () => {
           onCategoryChange={handleCategoryChange}
           onClearSelection={handleClearSelection}
         />
-        
+
         <ProductGrid 
           products={filteredProducts} 
           onProductClick={handleProductClick}
