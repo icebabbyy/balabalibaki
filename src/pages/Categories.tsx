@@ -12,17 +12,36 @@ const Categories = () => {
   const [products, setProducts] = useState<ProductPublic[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<ProductPublic[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [sortBy, setSortBy] = useState<string>("name");
+  const [categories, setCategories] = useState<any[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [currentTag, setCurrentTag] = useState<any>(null);
 
   useEffect(() => {
+    fetchCategories();
     fetchProducts();
     if (tagSlug) {
       fetchTagInfo();
     }
   }, [tagSlug]);
+
+  const fetchCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('name');
+
+      if (error) {
+        console.error('Error fetching categories:', error);
+        return;
+      }
+
+      setCategories(data || []);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
 
   const fetchTagInfo = async () => {
     if (!tagSlug) return;
@@ -115,42 +134,60 @@ const Categories = () => {
     }
   };
 
-  // Filter and sort products
+  const handleProductClick = (productId: number) => {
+    // Find the product to get its slug
+    const product = products.find(p => p.id === productId);
+    const slug = product?.slug || productId.toString();
+    window.location.href = `/product/${slug}`;
+  };
+
+  const handleCategoryChange = (categoryName: string, checked: boolean) => {
+    if (checked) {
+      setSelectedCategories(prev => [...prev, categoryName]);
+    } else {
+      setSelectedCategories(prev => prev.filter(cat => cat !== categoryName));
+    }
+  };
+
+  const handleClearSelection = () => {
+    setSelectedCategories([]);
+  };
+
+  // Filter products based on selected categories and search term
   useEffect(() => {
     let filtered = [...products];
 
-    // Filter by category
-    if (selectedCategory) {
+    // Filter by selected categories
+    if (selectedCategories.length > 0) {
       filtered = filtered.filter(product => 
-        product.category.toLowerCase().includes(selectedCategory.toLowerCase())
+        selectedCategories.includes(product.category)
       );
     }
 
-    // Filter by search query
-    if (searchQuery) {
+    // Filter by search term
+    if (searchTerm) {
       filtered = filtered.filter(product =>
-        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.category.toLowerCase().includes(searchQuery.toLowerCase())
+        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.category.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
-
-    // Sort products
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case "price-low":
-          return a.selling_price - b.selling_price;
-        case "price-high":
-          return b.selling_price - a.selling_price;
-        case "newest":
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-        case "name":
-        default:
-          return a.name.localeCompare(b.name);
-      }
-    });
 
     setFilteredProducts(filtered);
-  }, [products, selectedCategory, searchQuery, sortBy]);
+  }, [products, selectedCategories, searchTerm]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+            <p className="text-purple-600 font-medium">กำลังโหลดสินค้า...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -175,17 +212,17 @@ const Categories = () => {
         </div>
 
         <CategoryFilters
-          selectedCategory={selectedCategory}
-          onCategoryChange={setSelectedCategory}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          sortBy={sortBy}
-          onSortChange={setSortBy}
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          categories={categories}
+          selectedCategories={selectedCategories}
+          onCategoryChange={handleCategoryChange}
+          onClearSelection={handleClearSelection}
         />
 
         <ProductGrid 
           products={filteredProducts} 
-          loading={loading}
+          onProductClick={handleProductClick}
         />
       </div>
     </div>

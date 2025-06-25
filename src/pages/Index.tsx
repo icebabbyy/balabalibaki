@@ -22,6 +22,8 @@ import { ProductPublic } from "@/types/product";
 
 import FeaturedProductsCarousel from "@/components/FeaturedProductsCarousel";
 
+import { toast } from "sonner";
+
 
 
 interface Banner {
@@ -93,6 +95,8 @@ const Index = () => {
     fetchHomepageCategories();
 
   }, []);
+
+
 
 
 

@@ -60,7 +60,6 @@ const FeaturedProductsCarousel = ({ products, onProductClick, onAddToCart }: Fea
                 <EnhancedProductCard 
                   product={product}
                   onProductClick={onProductClick}
-                  onAddToCart={onAddToCart}
                 />
               </div>
             </CarouselItem>
