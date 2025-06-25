@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,24 +12,25 @@ const ProductCard = ({ product }: { product: ProductPublic }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [currentImage, setCurrentImage] = useState(product.image || '/placeholder.svg');
 
-  // Handle image hover effect
+  // เมื่อ hover เปลี่ยนภาพเป็นภาพถัดไป (ถ้ามี)
   useEffect(() => {
     if (isHovered && product.product_images && product.product_images.length > 0) {
-      const firstExtraImage = product.product_images.find(img => img.image_url !== product.image);
-      if (firstExtraImage) {
-        setCurrentImage(firstExtraImage.image_url);
+      const altImage = product.product_images.find(img => img.image_url !== product.image);
+      if (altImage) {
+        setCurrentImage(altImage.image_url);
       }
     } else {
       setCurrentImage(product.image || '/placeholder.svg');
     }
   }, [isHovered, product.image, product.product_images]);
 
+  // ไปยังหน้ารายละเอียดสินค้า
   const handleProductClick = (productId: number) => {
-    // Find the product slug - if not available, fallback to ID
     const slug = product.slug || productId.toString();
     navigate(`/product/${slug}`);
   };
 
+  // เพิ่มสินค้าลงตะกร้า
   const addToCart = (product: ProductPublic) => {
     const cartItem = {
       id: product.id,
@@ -40,11 +40,11 @@ const ProductCard = ({ product }: { product: ProductPublic }) => {
       quantity: 1,
       sku: product.sku,
       variant: null,
-      product_type: product.product_type || 'ETC'
+      product_type: product.product_type || 'ETC',
     };
 
     const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
-    const existingItemIndex = existingCart.findIndex((item: any) => 
+    const existingItemIndex = existingCart.findIndex((item: any) =>
       item.id === cartItem.id && item.variant === cartItem.variant
     );
 
@@ -58,19 +58,21 @@ const ProductCard = ({ product }: { product: ProductPublic }) => {
     toast.success(`เพิ่ม "${product.name}" ลงในตะกร้าแล้ว`);
   };
 
+  // ซื้อเดี๋ยวนี้
   const handleBuyNow = (e: React.MouseEvent) => {
     e.stopPropagation();
     addToCart(product);
     navigate('/cart');
   };
 
+  // เพิ่มตะกร้าอย่างเดียว
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
     addToCart(product);
   };
 
   return (
-    <Card 
+    <Card
       className="hover:shadow-lg transition-shadow cursor-pointer flex flex-col"
       onClick={() => handleProductClick(product.id)}
       onMouseEnter={() => setIsHovered(true)}
@@ -81,6 +83,7 @@ const ProductCard = ({ product }: { product: ProductPublic }) => {
           src={currentImage}
           alt={product.name}
           className="w-full h-48 object-cover rounded-t-lg transition-opacity duration-300"
+          onError={(e) => { e.currentTarget.src = '/placeholder.svg' }}
         />
         {product.product_status && (
           <Badge className="absolute top-2 left-2">
@@ -95,14 +98,13 @@ const ProductCard = ({ product }: { product: ProductPublic }) => {
             ฿{product.selling_price?.toLocaleString()}
           </span>
         </div>
-        
         <div className="space-y-2 mt-auto">
           <Button
             size="sm"
             className="w-full"
             onClick={handleBuyNow}
           >
-            <CreditCard className="h-4 w-4" />
+            <CreditCard className="h-4 w-4 mr-1" />
             ซื้อเดี๋ยวนี้
           </Button>
           <Button
@@ -111,7 +113,7 @@ const ProductCard = ({ product }: { product: ProductPublic }) => {
             className="w-full"
             onClick={handleAddToCart}
           >
-            <ShoppingCart className="h-4 w-4" />
+            <ShoppingCart className="h-4 w-4 mr-1" />
             เพิ่มลงตะกร้า
           </Button>
         </div>
