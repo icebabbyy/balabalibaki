@@ -22,8 +22,6 @@ const ProductDetail = () => {
   const [selectedVariant, setSelectedVariant] = useState("");
   const [variantImage, setVariantImage] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
-
-  // --- State ใหม่สำหรับ Wishlist ---
   const [user, setUser] = useState<any>(null);
   const [isInWishlist, setIsInWishlist] = useState(false);
   const [isWishlistLoading, setIsWishlistLoading] = useState(true);
@@ -56,8 +54,11 @@ const ProductDetail = () => {
     if (product?.id) {
       fetchProductImages(product.id);
       fetchProductTags(product.id);
+      if (user) {
+        checkWishlistStatus(user.id, product.id);
+      }
     }
-  }, [product]);
+  }, [product, user]);
 
   // --- ฟังก์ชันสำหรับเช็คสถานะ Wishlist ---
   const checkWishlistStatus = async (userId: string, productId: number) => {
@@ -153,6 +154,7 @@ const ProductDetail = () => {
 
   const fetchProductTags = async (productId: number) => {
     try {
+      console.log('Fetching tags for product:', productId);
       const { data, error } = await supabase
         .from('product_tags')
         .select(`
@@ -170,8 +172,9 @@ const ProductDetail = () => {
         return;
       }
       
-      // แปลง data ให้เป็น array ของ tags
+      console.log('Raw tags data:', data);
       const productTags = data?.map(item => item.tags).filter(Boolean) || [];
+      console.log('Processed tags:', productTags);
       setTags(productTags);
     } catch (error) {
       console.error('Error fetching tags:', error);
@@ -333,7 +336,6 @@ const ProductDetail = () => {
                       </div>
                     </div>
                     
-                    {/* SKU Badge - ปรับให้ดูเหมือนป้ายสวยงาม */}
                     <div className="flex items-center space-x-2 pt-2 border-t">
                       <Package className="h-4 w-4 text-purple-500" />
                       <span className="text-sm font-medium text-gray-700">SKU:</span>
