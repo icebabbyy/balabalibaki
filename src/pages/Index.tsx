@@ -349,14 +349,9 @@ const Index = () => {
   };
 
 
-
-  const handleProductClick = (productId: number) => {
-
-    navigate(`/product/${productId}`);
-
-  };
-
-
+ const handleProductClick = (slug: string) => {
+  navigate(`/product/${slug}`);
+};
 
   const addToCart = (product: ProductPublic) => {
 
