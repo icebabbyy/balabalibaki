@@ -1,94 +1,94 @@
-// path: src/components/ProductCard.tsx
-
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, CreditCard } from "lucide-react";
-import { ProductPublic } from "@/types/product"; // ตรวจสอบว่า path นี้ถูกต้อง
+import { ProductPublic } from "@/types/product";
+import { toast } from "sonner";
 
-/**
- * นี่คือ Reusable Product Card Component
- * มันไม่จำเป็นต้องรู้ว่า "เพิ่มลงตะกร้า" หรือ "ซื้อเลย" ทำงานยังไง
- * หน้าที่ของมันคือการแสดงผล และส่งอีเวนต์กลับไปให้ Parent Component จัดการ
- */
-
-// 1. กำหนด Props ที่ Component นี้จะรับเข้ามา
-interface ProductCardProps {
-  product: ProductPublic;
-}
-
-// 2. สร้าง Component
-const ProductCard = ({ product }: ProductCardProps) => {
+const ProductCard = ({ product }: { product: ProductPublic }) => {
   const navigate = useNavigate();
+  const [isHovered, setIsHovered] = useState(false);
+  const [currentImage, setCurrentImage] = useState(product.image || '/placeholder.svg');
 
-  // 3. สร้างฟังก์ชันการทำงานต่างๆ ไว้ข้างในนี้
-  // ฟังก์ชันจะถูกเรียกใช้จากปุ่มหรือการ์ดโดยตรง
-  const handleCardClick = () => {
-    const path = product.slug ? `/product/${product.slug}` : `/product/${product.id}`;
-    navigate(path);
+  // เมื่อ hover เปลี่ยนภาพเป็นภาพถัดไป (ถ้ามี)
+  useEffect(() => {
+    if (isHovered && product.product_images && product.product_images.length > 0) {
+      const altImage = product.product_images.find(img => img.image_url !== product.image);
+      if (altImage) {
+        setCurrentImage(altImage.image_url);
+      }
+    } else {
+      setCurrentImage(product.image || '/placeholder.svg');
+    }
+  }, [isHovered, product.image, product.product_images]);
+
+  // ไปยังหน้ารายละเอียดสินค้า
+  const handleProductClick = (productId: number) => {
+    const slug = product.slug || productId.toString();
+    navigate(`/product/${slug}`);
   };
 
-  const handleAddToCart = (e: React.MouseEvent) => {
-    e.stopPropagation(); // <<-- สำคัญมาก! ป้องกันไม่ให้ handleCardClick ทำงานตอนกดปุ่ม
-
+  // เพิ่มสินค้าลงตะกร้า
+  const addToCart = (product: ProductPublic) => {
     const cartItem = {
       id: product.id,
       name: product.name,
       price: product.selling_price,
-      quantity: 1,
       image: product.image,
-      variant: null
+      quantity: 1,
+      sku: product.sku,
+      variant: null,
+      product_type: product.product_type || 'ETC',
     };
 
     const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
-    const existingItemIndex = existingCart.findIndex((item: any) => item.id === product.id && !item.variant);
+    const existingItemIndex = existingCart.findIndex((item: any) =>
+      item.id === cartItem.id && item.variant === cartItem.variant
+    );
 
-    if (existingItemIndex > -1) {
+    if (existingItemIndex >= 0) {
       existingCart[existingItemIndex].quantity += 1;
     } else {
       existingCart.push(cartItem);
     }
+
     localStorage.setItem('cart', JSON.stringify(existingCart));
-    toast.success(`เพิ่ม "${product.name}" ลงตะกร้าแล้ว`);
+    toast.success(`เพิ่ม "${product.name}" ลงในตะกร้าแล้ว`);
   };
 
+  // ซื้อเดี๋ยวนี้
   const handleBuyNow = (e: React.MouseEvent) => {
-    e.stopPropagation(); // <<-- ป้องกันไม่ให้ handleCardClick ทำงาน
-    
-    // โค้ดส่วนนี้จะทำงานคล้ายๆ handleAddToCart แต่จะพาไปหน้า cart ต่อ
-    const cartItem = {
-      id: product.id, name: product.name, price: product.selling_price,
-      quantity: 1, image: product.image, variant: null
-    };
-    const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
-    const existingItemIndex = existingCart.findIndex((item: any) => item.id === product.id && !item.variant);
-    if (existingItemIndex > -1) {
-      existingCart[existingItemIndex].quantity += 1;
-    } else {
-      existingCart.push(cartItem);
-    }
-    localStorage.setItem('cart', JSON.stringify(existingCart));
-    
-    // พาไปหน้าตะกร้า
+    e.stopPropagation();
+    addToCart(product);
     navigate('/cart');
   };
 
+  // เพิ่มตะกร้าอย่างเดียว
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    addToCart(product);
+  };
 
   return (
     <Card
-      className="hover:shadow-lg transition-shadow flex flex-col cursor-pointer h-full"
-      onClick={handleCardClick} // เมื่อคลิกที่การ์ด ให้ไปหน้ารายละเอียด
+      className="hover:shadow-lg transition-shadow cursor-pointer flex flex-col"
+      onClick={() => handleProductClick(product.id)}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       <div className="relative">
         <img
-          src={product.image || '/placeholder.svg'}
+          src={currentImage}
           alt={product.name}
-          className="w-full h-48 object-cover rounded-t-lg"
+          className="w-full h-48 object-cover rounded-t-lg transition-opacity duration-300"
+          onError={(e) => { e.currentTarget.src = '/placeholder.svg' }}
         />
         {product.product_status && (
-          <Badge className="absolute top-2 left-2">{product.product_status}</Badge>
+          <Badge className="absolute top-2 left-2">
+            {product.product_status}
+          </Badge>
         )}
       </div>
       <CardContent className="p-4 flex flex-col flex-grow">
@@ -98,13 +98,22 @@ const ProductCard = ({ product }: ProductCardProps) => {
             ฿{product.selling_price?.toLocaleString()}
           </span>
         </div>
-        <div className="space-y-2 mt-auto pt-3">
-          <Button size="sm" className="w-full" onClick={handleBuyNow}>
-            <CreditCard className="h-4 w-4 mr-2" />
+        <div className="space-y-2 mt-auto">
+          <Button
+            size="sm"
+            className="w-full"
+            onClick={handleBuyNow}
+          >
+            <CreditCard className="h-4 w-4 mr-1" />
             ซื้อเดี๋ยวนี้
           </Button>
-          <Button variant="outline" size="sm" className="w-full" onClick={handleAddToCart}>
-            <ShoppingCart className="h-4 w-4 mr-2" />
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={handleAddToCart}
+          >
+            <ShoppingCart className="h-4 w-4 mr-1" />
             เพิ่มลงตะกร้า
           </Button>
         </div>
