@@ -1,127 +1,192 @@
-// src/pages/Categories.tsx
+
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import CategoryFilters from "@/components/categories/CategoryFilters";
 import ProductGrid from "@/components/categories/ProductGrid";
-import { useCategoryFiltering } from "@/hooks/useCategoryFiltering";
-import { toast } from "sonner";
 import { ProductPublic } from "@/types/product";
 
-interface Category {
-  id: number; name: string; image: string;
-  display_on_homepage: boolean; homepage_order: number;
-}
-
 const Categories = () => {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const { tagSlug } = useParams();
   const [products, setProducts] = useState<ProductPublic[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<ProductPublic[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const safeProductsForFiltering = products.filter(p => p); 
-
-  const {
-    filteredProducts, searchTerm, setSearchTerm, selectedCategories,
-    handleCategoryChange, clearCategorySelection
-  } = useCategoryFiltering(safeProductsForFiltering);
-
-  useEffect(() => { fetchData(); }, []);
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<string>("name");
+  const [currentTag, setCurrentTag] = useState<any>(null);
 
   useEffect(() => {
-    const categoryParam = searchParams.get('category');
-    const searchParam = searchParams.get('search');
-    if (categoryParam) handleCategoryChange(categoryParam, true);
-    if (searchParam) setSearchTerm(searchParam);
-  }, [searchParams, handleCategoryChange, setSearchTerm]);
-  
-  const fetchData = async () => {
-    setLoading(true);
-    await Promise.all([ fetchCategories(), fetchProducts() ]);
-    setLoading(false);
-  };
+    fetchProducts();
+    if (tagSlug) {
+      fetchTagInfo();
+    }
+  }, [tagSlug]);
 
-  const fetchCategories = async () => {
+  const fetchTagInfo = async () => {
+    if (!tagSlug) return;
+    
     try {
-      const { data, error } = await supabase.from('categories').select('*').order('homepage_order', { ascending: true });
-      if (error) throw error;
-      setCategories(data || []);
-    } catch (error) { console.error('Error fetching categories:', error); }
+      const { data, error } = await supabase
+        .from('tags')
+        .select('*')
+        .eq('slug', tagSlug)
+        .single();
+        
+      if (error) {
+        console.error('Error fetching tag:', error);
+        return;
+      }
+      
+      setCurrentTag(data);
+    } catch (error) {
+      console.error('Error fetching tag:', error);
+    }
   };
 
   const fetchProducts = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('products')
-        .select(`*, product_images ( image_url, "order", type )`)
-        .order('id', { ascending: false });
+        .select(`
+          *,
+          product_images (
+            id,
+            image_url,
+            order
+          )
+        `)
+        .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      // If filtering by tag, join with product_tags
+      if (tagSlug) {
+        const { data: tagData } = await supabase
+          .from('tags')
+          .select('id')
+          .eq('slug', tagSlug)
+          .single();
+          
+        if (tagData) {
+          const { data: productTagData } = await supabase
+            .from('product_tags')
+            .select('product_id')
+            .eq('tag_id', tagData.id);
+            
+          if (productTagData) {
+            const productIds = productTagData.map(pt => pt.product_id);
+            query = query.in('id', productIds);
+          }
+        }
+      }
 
-      const formattedProducts = (data || []).map(product => {
-        if (!product) return null;
+      const { data, error } = await query;
 
-        const sortedImages = (product.product_images || []).sort((a, b) => (a.order ?? 99) - (b.order ?? 99));
-        
-        // Logic หารูปภาพหลักที่สมบูรณ์ที่สุด
-        // 1. หาจาก field 'image' ในตาราง products
-        // 2. ถ้าไม่มี ให้หาจาก product_images ที่มี type = 'main'
-        // 3. ถ้าไม่มีอีก ให้เอารูปที่ order = 1
-        // 4. ถ้าไม่มีอีก ให้เอารูปแรกสุดในอัลบั้ม
-        const mainImage = product.image || 
-                          sortedImages.find(img => img.type === 'main')?.image_url ||
-                          sortedImages.find(img => img.order === 1)?.image_url ||
-                          sortedImages[0]?.image_url || '';
+      if (error) {
+        console.error('Error fetching products:', error);
+        return;
+      }
 
-        return {
-          id: product.id,
-          name: product.name || '',
-          selling_price: product.selling_price || 0,
-          category: product.category || '',
-          description: product.description || '',
-          image: mainImage,
-          product_status: product.product_status || 'พรีออเดอร์',
-          sku: product.sku || '',
-          quantity: product.quantity || 0,
-          shipment_date: product.shipment_date || '',
-          options: null,
-          product_type: product.product_type || 'ETC',
-          created_at: product.created_at,
-          updated_at: product.updated_at,
-          product_images: sortedImages,
-        };
-      }).filter(p => p) as ProductPublic[];
-      
-      setProducts(formattedProducts);
+      const transformedProducts: ProductPublic[] = data?.map(product => ({
+        id: product.id,
+        name: product.name,
+        selling_price: product.selling_price,
+        category: product.category,
+        description: product.description,
+        image: product.image,
+        product_status: product.product_status,
+        sku: product.sku,
+        quantity: product.quantity,
+        shipment_date: product.shipment_date,
+        options: product.options,
+        product_type: product.product_type,
+        created_at: product.created_at,
+        updated_at: product.updated_at,
+        slug: product.slug,
+        product_images: product.product_images || []
+      })) || [];
+
+      setProducts(transformedProducts);
+      setFilteredProducts(transformedProducts);
     } catch (error) {
-      console.error('Error fetching products:', error);
-      toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูลสินค้า');
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleProductClick = (productId: number) => { navigate(`/product/${productId}`); };
+  // Filter and sort products
+  useEffect(() => {
+    let filtered = [...products];
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Header />
-        <div className="max-w-7xl mx-auto px-4 py-8 text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-          <p className="text-purple-600 font-medium">กำลังโหลดสินค้า...</p>
-        </div>
-      </div>
-    );
-  }
+    // Filter by category
+    if (selectedCategory) {
+      filtered = filtered.filter(product => 
+        product.category.toLowerCase().includes(selectedCategory.toLowerCase())
+      );
+    }
+
+    // Filter by search query
+    if (searchQuery) {
+      filtered = filtered.filter(product =>
+        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.category.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Sort products
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case "price-low":
+          return a.selling_price - b.selling_price;
+        case "price-high":
+          return b.selling_price - a.selling_price;
+        case "newest":
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case "name":
+        default:
+          return a.name.localeCompare(b.name);
+      }
+    });
+
+    setFilteredProducts(filtered);
+  }, [products, selectedCategory, searchQuery, sortBy]);
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-8">สินค้าทั้งหมด</h1>
-        <CategoryFilters searchTerm={searchTerm} onSearchChange={setSearchTerm} categories={categories} selectedCategories={selectedCategories} onCategoryChange={handleCategoryChange} onClearSelection={clearCategorySelection} />
-        <ProductGrid products={filteredProducts} onProductClick={handleProductClick} />
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          {tagSlug && currentTag ? (
+            <div className="text-center">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                สินค้าที่มีแท็ก "#{currentTag.name}"
+              </h1>
+              <p className="text-gray-600">
+                แสดงสินค้าทั้งหมดที่เกี่ยวข้องกับแท็กนี้
+              </p>
+            </div>
+          ) : (
+            <div className="text-center">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">สินค้าทั้งหมด</h1>
+              <p className="text-gray-600">ค้นหาและเลือกซื้อสินค้าที่คุณต้องการ</p>
+            </div>
+          )}
+        </div>
+
+        <CategoryFilters
+          selectedCategory={selectedCategory}
+          onCategoryChange={setSelectedCategory}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+        />
+
+        <ProductGrid 
+          products={filteredProducts} 
+          loading={loading}
+        />
       </div>
     </div>
   );

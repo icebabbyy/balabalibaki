@@ -5,8 +5,7 @@ import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-// เพิ่ม Heart icon เข้ามาใน import
-import { ArrowLeft, ShoppingCart, Package, Calendar, Truck, CreditCard, Clock, Heart } from "lucide-react"; 
+import { ArrowLeft, ShoppingCart, Package, Calendar, Truck, CreditCard, Clock, Heart, Tag } from "lucide-react"; 
 import { toast } from "sonner";
 import ProductImageGallery from "@/components/ProductImageGallery";
 import ProductVariantSelector from "@/components/ProductVariantSelector";
@@ -14,10 +13,11 @@ import ProductBreadcrumb from "@/components/ProductBreadcrumb";
 import RichTextEditor from "@/components/RichTextEditor";
 
 const ProductDetail = () => {
-  const { id } = useParams();
+  const { slug } = useParams(); // Changed from id to slug
   const navigate = useNavigate();
   const [product, setProduct] = useState<any>(null);
   const [images, setImages] = useState<any[]>([]);
+  const [tags, setTags] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedVariant, setSelectedVariant] = useState("");
   const [variantImage, setVariantImage] = useState<string | null>(null);
@@ -28,26 +28,20 @@ const ProductDetail = () => {
   const [isInWishlist, setIsInWishlist] = useState(false);
   const [isWishlistLoading, setIsWishlistLoading] = useState(true);
 
-
   useEffect(() => {
-    // เปลี่ยนชื่อฟังก์ชันเพื่อให้สื่อความหมายมากขึ้น
     const checkUserAndFetchData = async () => {
       // ดึงข้อมูล User ที่ login อยู่
       const { data: { session } } = await supabase.auth.getSession();
       const currentUser = session?.user ?? null;
       setUser(currentUser);
 
-      if (id) {
-        const productId = parseInt(id, 10);
-        if (!isNaN(productId)) {
-          // ใช้ await เพื่อให้แน่ใจว่าโหลดข้อมูลสินค้าเสร็จก่อน
-          await fetchProduct(productId);
-          await fetchProductImages(productId);
-          
-          // หลังจากดึงข้อมูลสินค้าแล้ว ให้เช็คสถานะ Wishlist ถ้ามี user login อยู่
-          if (currentUser) {
-            await checkWishlistStatus(currentUser.id, productId);
-          }
+      if (slug) {
+        // ใช้ slug แทน id ในการ fetch ข้อมูล
+        await fetchProductBySlug(slug);
+        
+        // หลังจากดึงข้อมูลสินค้าแล้ว ให้เช็คสถานะ Wishlist ถ้ามี user login อยู่
+        if (currentUser && product) {
+          await checkWishlistStatus(currentUser.id, product.id);
         }
       }
       // เมื่อทุกอย่างเสร็จสิ้น ให้หยุดการ loading ของปุ่ม wishlist
@@ -55,7 +49,15 @@ const ProductDetail = () => {
     };
 
     checkUserAndFetchData();
-  }, [id]);
+  }, [slug]);
+
+  // เมื่อ product เปลี่ยน ให้ fetch images และ tags
+  useEffect(() => {
+    if (product?.id) {
+      fetchProductImages(product.id);
+      fetchProductTags(product.id);
+    }
+  }, [product]);
 
   // --- ฟังก์ชันสำหรับเช็คสถานะ Wishlist ---
   const checkWishlistStatus = async (userId: string, productId: number) => {
@@ -110,13 +112,12 @@ const ProductDetail = () => {
     }
   };
 
-  const fetchProduct = async (productId: number) => {
-    // ไม่มีการแก้ไขฟังก์ชันนี้
+  const fetchProductBySlug = async (productSlug: string) => {
     try {
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('id', productId)
+        .eq('slug', productSlug)
         .single();
       if (error) {
         console.error('Error fetching product:', error);
@@ -134,7 +135,6 @@ const ProductDetail = () => {
   };
 
   const fetchProductImages = async (productId: number) => {
-    // ไม่มีการแก้ไขฟังก์ชันนี้
     try {
       const { data, error } = await supabase
         .from('product_images')
@@ -151,8 +151,38 @@ const ProductDetail = () => {
     }
   };
 
+  const fetchProductTags = async (productId: number) => {
+    try {
+      const { data, error } = await supabase
+        .from('product_tags')
+        .select(`
+          tag_id,
+          tags (
+            id,
+            name,
+            slug
+          )
+        `)
+        .eq('product_id', productId);
+      
+      if (error) {
+        console.error('Error fetching product tags:', error);
+        return;
+      }
+      
+      // แปลง data ให้เป็น array ของ tags
+      const productTags = data?.map(item => item.tags).filter(Boolean) || [];
+      setTags(productTags);
+    } catch (error) {
+      console.error('Error fetching tags:', error);
+    }
+  };
+
+  const handleTagClick = (tagSlug: string) => {
+    navigate(`/products/tag/${tagSlug}`);
+  };
+
   const addToCart = () => {
-    // ไม่มีการแก้ไขฟังก์ชันนี้
     if (!product) return;
     if (product.options && !selectedVariant) {
       toast.error('กรุณาเลือกตัวเลือกสินค้า');
@@ -177,7 +207,6 @@ const ProductDetail = () => {
   };
 
   const buyNow = () => {
-    // ไม่มีการแก้ไขฟังก์ชันนี้
     if (!product) return;
     if (product.options && !selectedVariant) {
       toast.error('กรุณาเลือกตัวเลือกสินค้า');
@@ -202,7 +231,6 @@ const ProductDetail = () => {
   };
 
   const getStatusColor = (status: string) => {
-    // ไม่มีการแก้ไขฟังก์ชันนี้
     switch (status) {
       case 'พรีออเดอร์': return 'bg-orange-100 text-orange-800 border-orange-200';
       case 'พร้อมส่ง': return 'bg-green-100 text-green-800 border-green-200';
@@ -212,7 +240,6 @@ const ProductDetail = () => {
   };
 
   if (loading) {
-    // ไม่มีการแก้ไขส่วนนี้
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
@@ -227,7 +254,6 @@ const ProductDetail = () => {
   }
 
   if (!product) {
-    // ไม่มีการแก้ไขส่วนนี้
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
@@ -266,7 +292,6 @@ const ProductDetail = () => {
 
             <div className="space-y-6">
               <div>
-                {/* --- ส่วนที่แก้ไข: เพิ่มปุ่มหัวใจ --- */}
                 <div className="flex items-start justify-between">
                   <h1 className="text-3xl font-bold text-gray-900 mb-4">
                     {product.name}
@@ -283,7 +308,6 @@ const ProductDetail = () => {
                     />
                   </Button>
                 </div>
-                {/* --- จบส่วนที่แก้ไข --- */}
                 
                 <div className="space-y-4">
                   <div className="flex items-center space-x-2">
@@ -291,6 +315,7 @@ const ProductDetail = () => {
                     <span className="text-gray-600">หมวดหมู่:</span>
                     <span className="font-medium text-purple-600">{product.category}</span>
                   </div>
+                  
                   <div className="bg-white rounded-lg border p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
@@ -307,6 +332,16 @@ const ProductDetail = () => {
                         </Badge>
                       </div>
                     </div>
+                    
+                    {/* SKU Badge - ปรับให้ดูเหมือนป้ายสวยงาม */}
+                    <div className="flex items-center space-x-2 pt-2 border-t">
+                      <Package className="h-4 w-4 text-purple-500" />
+                      <span className="text-sm font-medium text-gray-700">SKU:</span>
+                      <Badge className="bg-purple-100 text-purple-800 border-purple-200 font-mono text-sm">
+                        {product.sku}
+                      </Badge>
+                    </div>
+                    
                     {product.shipment_date && (
                       <div className="flex items-center space-x-2 pt-2 border-t">
                         <Calendar className="h-4 w-4 text-blue-500" />
@@ -319,10 +354,28 @@ const ProductDetail = () => {
                       </div>
                     )}
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-gray-600">SKU:</span>
-                    <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">{product.sku}</span>
-                  </div>
+
+                  {/* Tags Section */}
+                  {tags.length > 0 && (
+                    <div className="bg-white rounded-lg border p-4">
+                      <div className="flex items-center space-x-2 mb-3">
+                        <Tag className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm font-medium text-gray-700">แท็ก:</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {tags.map((tag) => (
+                          <Badge
+                            key={tag.id}
+                            variant="secondary"
+                            className="cursor-pointer hover:bg-purple-100 hover:text-purple-800 transition-colors"
+                            onClick={() => handleTagClick(tag.slug)}
+                          >
+                            #{tag.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

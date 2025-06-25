@@ -304,6 +304,50 @@ export type Database = {
           },
         ]
       }
+      product_tags: {
+        Row: {
+          product_id: number
+          tag_id: number
+        }
+        Insert: {
+          product_id: number
+          tag_id: number
+        }
+        Update: {
+          product_id?: number
+          tag_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_tags_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_tags_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "public_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_tags_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "public_products_with_main_image"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_types: {
         Row: {
           created_at: string | null
@@ -347,6 +391,7 @@ export type Database = {
           shipment_date: string | null
           shipping_fee: string | null
           sku: string
+          slug: string | null
           updated_at: string | null
           variant: string | null
         }
@@ -371,6 +416,7 @@ export type Database = {
           shipment_date?: string | null
           shipping_fee?: string | null
           sku: string
+          slug?: string | null
           updated_at?: string | null
           variant?: string | null
         }
@@ -395,6 +441,7 @@ export type Database = {
           shipment_date?: string | null
           shipping_fee?: string | null
           sku?: string
+          slug?: string | null
           updated_at?: string | null
           variant?: string | null
         }
@@ -444,6 +491,70 @@ export type Database = {
           wishlist?: Json | null
         }
         Relationships: []
+      }
+      tags: {
+        Row: {
+          created_at: string
+          id: number
+          name: string
+          slug: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          name: string
+          slug: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          name?: string
+          slug?: string
+        }
+        Relationships: []
+      }
+      wishlist_items: {
+        Row: {
+          created_at: string
+          id: number
+          product_id: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          product_id: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          product_id?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wishlist_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wishlist_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "public_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wishlist_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "public_products_with_main_image"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -617,7 +728,14 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      slugify: {
+        Args: { v: string }
+        Returns: string
+      }
+      update_main_image_via_view: {
+        Args: { image_id: number; new_image_url: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

@@ -20,6 +20,7 @@ export interface ProductAdmin {
   shipping_fee: string;
   created_at: string;
   updated_at: string;
+  slug?: string;
 }
 
 export interface ProductPublic {
@@ -38,6 +39,7 @@ export interface ProductPublic {
   product_type: string;
   created_at: string;
   updated_at: string;
+  slug?: string;
   product_images?: Array<{
     id: number;
     image_url: string;
