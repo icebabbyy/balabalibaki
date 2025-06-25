@@ -235,10 +235,6 @@ const Admin = () => {
                         <tr className="border-b">
                           <th className="text-left p-2">รูปภาพ</th>
                           <th className="text-left p-2">ชื่อสินค้า</th>
-                          <th className="text-left p-2">SKU</th>
-                          <th className="text-left p-2">หมวดหมู่</th>
-                          <th className="text-left p-2">ราคาขาย</th>
-                          <th className="text-left p-2">สถานะ</th>
                           <th className="text-left p-2">คำอธิบาย</th>
                           <th className="text-left p-2">จัดการ</th>
                         </tr>
@@ -260,12 +256,6 @@ const Admin = () => {
                                 <p className="text-sm text-gray-500">จำนวน: {product.quantity}</p>
                               </div>
                             </td>
-                            <td className="p-2 font-mono text-sm">{product.product_sku}</td>
-                            <td className="p-2">{product.category}</td>
-                            <td className="p-2 font-medium">฿{product.selling_price?.toLocaleString()}</td>
-                            <td className="p-2">
-                              <Badge className={getStatusColor(product.product_status)}>
-                                {product.product_status}
                               </Badge>
                             </td>
                             <td className="p-2 max-w-xs">
