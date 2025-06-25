@@ -256,7 +256,6 @@ const Admin = () => {
                                 <p className="text-sm text-gray-500">จำนวน: {product.quantity}</p>
                               </div>
                             </td>
-                              </Badge>
                             </td>
                             <td className="p-2 max-w-xs">
                               {editingDescription?.productId === product.id ? (
