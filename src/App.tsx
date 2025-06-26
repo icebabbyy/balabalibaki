@@ -1,13 +1,9 @@
-// src/App.tsx (เวอร์ชัน Final ที่ใช้ HashRouter)
 
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-// --- 1. เปลี่ยนมา import HashRouter ---
-import { HashRouter, Routes, Route } from "react-router-dom";
-
-// --- Import หน้าทั้งหมดที่ใช้งาน ---
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Categories from "./pages/Categories";
 import ProductDetail from "./pages/ProductDetail";
@@ -35,15 +31,14 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      {/* --- 2. เปลี่ยนมาใช้ HashRouter --- */}
-      <HashRouter>
+      <BrowserRouter>
         <div className="min-h-screen flex flex-col">
           <div className="flex-grow">
             <Routes>
-              {/* --- 3. เส้นทางทั้งหมดของคุณยังอยู่ครบ --- */}
               <Route path="/" element={<Index />} />
               <Route path="/categories" element={<Categories />} />
               <Route path="/product/:slug" element={<ProductDetail />} />
+              <Route path="/products/tag/:tagName" element={<ProductsByTag />} />
               <Route path="/qa" element={<QA />} />
               <Route path="/reviews" element={<Reviews />} />
               <Route path="/order-status" element={<OrderStatus />} />
@@ -57,17 +52,13 @@ const App = () => (
               <Route path="/returns" element={<Returns />} />
               <Route path="/wishlist" element={<Wishlist />} />
               <Route path="/order-history" element={<OrderHistory />} />
-              
-              {/* ✅ และเส้นทางสำหรับหน้า Tags ก็ยังอยู่ตรงนี้ */}
-              <Route path="/products/tag/:tagName" element={<ProductsByTag />} />
-              
-              {/* เส้นทางสำหรับหน้าที่หาไม่เจอ (ต้องอยู่ล่างสุดเสมอ) */}
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
           <Footer />
         </div>
-      </HashRouter>
+      </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );
