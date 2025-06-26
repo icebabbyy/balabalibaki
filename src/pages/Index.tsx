@@ -265,13 +265,26 @@ const Index = () => {
             className="w-full h-48 object-cover rounded-t-lg"
           />
           {product.product_status && (
-            <Badge className="absolute top-2 left-2">
-              {product.product_status}
-            </Badge>
+            {product.product_status && (
+  <Badge 
+    className={`absolute top-2 left-2 border ${
+      // ✅ เงื่อนไขที่ 1: ถ้าเป็น 'พร้อมส่ง' ใช้สีเขียว
+      product.product_status === 'พร้อมส่ง' 
+        ? 'bg-green-100 text-green-800 border-green-200' 
+      // ✅ เงื่อนไขที่ 2: ถ้าเป็น 'พรีออเดอร์' ใช้สีม่วง
+      : product.product_status === 'พรีออเดอร์'
+        ? 'bg-purple-100 text-purple-800 border-purple-200'
+      // สีสำรอง (ถ้ามีสถานะอื่นๆ ที่ยังไม่กำหนด)
+      : 'bg-gray-100 text-gray-800 border-gray-200'
+    }`}
+  >
+    {product.product_status}
+  </Badge>
+)}
           )}
         </div>
         <CardContent className="p-4 flex flex-col flex-grow">
-          <h3 className="font-semibold mb-2 line-clamp-2 h-12">{product.name}</h3>
+          <h3 className="font-semibold mb-2 line-clamp-2">{product.name}</h3>
           <div className="flex items-center justify-between mb-3">
             <span className="text-lg font-bold text-purple-600">
               ฿{product.selling_price?.toLocaleString()}
