@@ -96,6 +96,7 @@ const Index = () => {
   product_type: item.product_type || 'ETC',
   created_at: item.created_at || '',
   updated_at: item.updated_at || '',
+  tags: item.tags || [],
   slug: item.slug || String(item.id)         // แก้ไขให้ใช้ slug จริงๆ
 }));
       
@@ -144,6 +145,7 @@ const Index = () => {
           const mappedProducts: ProductPublic[] = (products || []).map(item => ({
             id: item.id || 0,
             name: item.name || '',
+            tags: item.tags || [],
             selling_price: item.selling_price || 0,
             category: item.category || '',
             description: item.description || '',
@@ -156,6 +158,7 @@ const Index = () => {
             product_type: item.product_type || 'ETC',
             created_at: item.created_at || '',
             updated_at: item.updated_at || '',
+          
             slug: item.sku // Use SKU as slug fallback
           }));
 
