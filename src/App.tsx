@@ -1,4 +1,4 @@
-// src/App.tsx (เวอร์ชันที่แก้ไขและจัดระเบียบแล้ว)
+// src/App.tsx (เวอร์ชันสมบูรณ์)
 
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -55,7 +55,7 @@ const App = () => (
               <Route path="/wishlist" element={<Wishlist />} />
               <Route path="/order-history" element={<OrderHistory />} />
               
-              {/* ✅ เส้นทางสำหรับหน้า Tags ที่ถูกต้อง (มีแค่อันเดียว) */}
+              {/* ✅ เส้นทางสำหรับหน้า Tags ที่ถูกต้อง */}
               <Route path="/products/tag/:tagName" element={<ProductsByTag />} />
               
               {/* เส้นทางสำหรับหน้าที่หาไม่เจอ (ต้องอยู่ล่างสุดเสมอ) */}
