@@ -143,7 +143,7 @@ const Index = () => {
 
           const mappedProducts: ProductPublic[] = (products || []).map(item => ({
             id: item.id || 0,
-            name: item.product_name || '',
+            name: item.name || '',
             selling_price: item.selling_price || 0,
             category: item.category || '',
             description: item.description || '',
