@@ -271,7 +271,6 @@ const Index = () => {
                   ? 'bg-green-100 text-green-800 border-green-300' 
                 : product.product_status === 'พรีออเดอร์'
                   ? 'bg-purple-100 text-purple-800 border-purple-300'
-                  : 'bg-gray-100 text-gray-800 border-gray-200'
               }`}
             >
             </Badge>
