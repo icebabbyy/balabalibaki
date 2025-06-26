@@ -20,14 +20,21 @@ interface PublineOrder {
 }
 
 export const usePublineOrders = () => {
-  const [orders, setOrders] = useState<PublineOrder[]>([]);
+  const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchOrders = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('publice_orders')
+const { data, error } = await supabase.from('publine_orders').select('*');
+        if (error) throw error;
+        setOrders(data || []);
+      } catch (error) {
+        console.error('Error fetching orders:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchOrders();
+  }, []);
+       
         .select('*')
         .order('id', { ascending: false });
 
@@ -61,20 +68,15 @@ export const usePublineOrders = () => {
     }
   };
 
-  const searchOrdersByUsername = (username: string) => {
+const searchOrdersByUsername = (username) => {
+    if (!username) return [];
+    const lowercasedUsername = username.toLowerCase();
+    
+    // เปลี่ยนจาก .startsWith() หรือ .includes() มาเป็น === เพื่อการเปรียบเทียบที่ตรงกันเป๊ะๆ
     return orders.filter(order => 
-      order.username && order.username.toLowerCase().includes(username.toLowerCase())
+      order.username.toLowerCase() === lowercasedUsername
     );
   };
 
-  useEffect(() => {
-    fetchOrders();
-  }, []);
-
-  return {
-    orders,
-    loading,
-    searchOrdersByUsername,
-    refetch: fetchOrders
-  };
+  return { orders, loading, searchOrdersByUsername };
 };
