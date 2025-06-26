@@ -220,7 +220,25 @@ const Index = () => {
         image: productToBuy.image,
         variant: null
       };
-
+{/* วางโค้ดส่วนนี้เข้าไปใต้ราคาได้เลย */}
+{product.tags && product.tags.length > 0 && (
+  <div className="flex flex-wrap gap-1 mb-3">
+    {product.tags.map((tag) => (
+      <Badge
+        key={tag}
+        variant="outline"
+        className="cursor-pointer hover:bg-amber-100 border-amber-300 text-amber-800"
+        onClick={(e) => {
+          e.stopPropagation(); // ป้องกันไม่ให้ Card ทั้งใบถูกคลิกไปด้วย
+          // ✅ สั่งให้ navigate ไปยัง Path ที่ถูกต้อง
+          navigate(`/products/tag/${encodeURIComponent(tag)}`);
+        }}
+      >
+        #{tag}
+      </Badge>
+    ))}
+  </div>
+)}
       const existingCart = JSON.parse(localStorage.getItem('cart') || '[]');
       const existingItemIndex = existingCart.findIndex((item: any) => item.id === productToBuy.id && item.variant === null);
 
