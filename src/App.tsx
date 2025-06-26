@@ -52,8 +52,11 @@ const App = () => (
               <Route path="/returns" element={<Returns />} />
               <Route path="/wishlist" element={<Wishlist />} />
               <Route path="/order-history" element={<OrderHistory />} />
+               {/* ✅ เพิ่มเส้นทางสำหรับหน้า Tags เข้าไปที่นี่ */}
+              <Route path="/products/tag/:tagName" element={<ProductsByTag />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
+              
             </Routes>
           </div>
           <Footer />
