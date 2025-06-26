@@ -215,7 +215,7 @@ const Index = () => {
       const cartItem = {
         id: productToBuy.id,
         name: productToBuy.name,
-        price: productToBuy.selling_price,
+        price: productToBuy.selling_price
         quantity: 1,
         image: productToBuy.image,
         variant: null
@@ -269,17 +269,17 @@ const Index = () => {
   />
   {/* ✅ ใช้โค้ดบล็อกนี้แทนที่ของเดิมทั้งหมด */}
   {product.product_status && (
-    <Badge 
-      className={`absolute top-2 left-2 border ${
-        product.product_status === 'พร้อมส่ง' 
-          ? 'bg-green-100 text-green-800 border-green-300' 
-        : product.product_status === 'พรีออเดอร์'
-          ? 'bg-purple-100 text-purple-800 border-purple-300'
-          : 'bg-gray-100 text-gray-800 border-gray-200'
-      }`}
-    >
-      {product.product_status}
-    </Badge>
+ <Badge 
+              className={`absolute top-2 left-2 border ${
+                product.product_status === 'พร้อมส่ง' 
+                  ? 'bg-green-100 text-green-800 border-green-300' 
+                : product.product_status === 'พรีออเดอร์'
+                  ? 'bg-purple-100 text-purple-800 border-purple-300'
+                  : 'bg-gray-100 text-gray-800 border-gray-200'
+              }`}
+            >
+              {product.product_status}
+            </Badge>
   )}
 </div>
         <CardContent className="p-4 flex flex-col flex-grow">
