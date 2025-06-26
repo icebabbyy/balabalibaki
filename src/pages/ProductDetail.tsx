@@ -320,6 +320,7 @@ const ProductDetail = () => {
                   </div>
                   
               {/* ✅ วางโค้dบล็อกนี้แทนที่ของเดิมทั้งหมด */}
+{/* ✅ วางโค้dบล็อกนี้แทนที่ของเดิมทั้งหมด */}
 <div className="bg-white rounded-lg border p-4 space-y-3">
 
   {/* 1. SKU */}
@@ -357,7 +358,7 @@ const ProductDetail = () => {
     </div>
   )}
 
-  {/* 4. Tags (ดึงข้อมูลจาก State `tags`) */}
+  {/* 4. Tags (ดึงข้อมูลจาก State `tags` ไม่ใช่ `product.tags`) */}
   {tags && tags.length > 0 && (
     <div className="flex flex-wrap items-center gap-2 pt-3 border-t">
       <Tag className="h-4 w-4 text-gray-500" />
@@ -375,8 +376,6 @@ const ProductDetail = () => {
     </div>
   )}
 </div>
-
-
               <div className="text-3xl font-bold text-purple-600">
                 ฿{product.selling_price?.toLocaleString()}
               </div>
