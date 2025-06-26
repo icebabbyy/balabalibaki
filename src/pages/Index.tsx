@@ -5,11 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { ArrowRight, ShoppingCart, CreditCard } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import Header from "@/components/Header";
-import Autoplay from "embla-carousel-autoplay";
-import { ProductPublic } from "@/types/product";
-import FeaturedProductsCarousel from "@/components/FeaturedProductsCarousel";
+import { supabase } from "@/integrations/supabase/client";อม
 import { toast } from "sonner";
 
 interface Banner {
@@ -278,7 +274,6 @@ const Index = () => {
                   : 'bg-gray-100 text-gray-800 border-gray-200'
               }`}
             >
-              {product.product_status}
             </Badge>
   )}
 </div>
