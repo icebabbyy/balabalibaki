@@ -18,29 +18,34 @@ const ProductsByTag = () => {
     }
   }, [tagName]);
 
-  const fetchProductsByTag = async (tag: string) => {
-    setLoading(true);
-    try {
-      console.log('Fetching products for tag:', tag);
-      
-      const { data, error } = await supabase
-        .from('products')
-        .select(`
-          *,
-          product_tags!inner (
-            tags!inner (
-              name
-            )
-          )
-        `)
-        .ilike('product_tags.tags.name', tag);
+const fetchProductsByTag = async (tag: string) => {
+  setLoading(true);
+  try {
+    console.log('Fetching products for tag:', tag);
 
-      if (error) {
-        console.error('Error fetching products by tag:', error);
-        toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูลสินค้า');
-        return;
-      }
+    // --- เปลี่ยนมาใช้ View "public_products" ที่ฉลาดของเรา ---
+    const { data, error } = await supabase
+      .from('public_products') // <--- 1. เปลี่ยนจาก 'products' เป็น 'public_products'
+      .select('*')
+      .filter('tags', 'cs', `{"${tag}"}`); // <--- 2. ใช้ filter แบบ 'contains' เพื่อหา tag ใน array
 
+    if (error) {
+      console.error('Error fetching products by tag:', error);
+      toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูลสินค้า');
+      return;
+    }
+
+    // 3. ไม่ต้อง Transform ข้อมูลแล้ว เพราะ View ของเรามีข้อมูลครบถ้วน
+    console.log('Fetched products:', data);
+    setProducts(data || []);
+
+  } catch (error) {
+    console.error('Error:', error);
+    toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูลสินค้า');
+  } finally {
+    setLoading(false);
+  }
+};
       console.log('Raw products data:', data);
       
       // Transform data to match ProductPublic interface
