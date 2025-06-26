@@ -24,7 +24,7 @@ interface PublicProduct {
   product_type?: string;
   description: string;
   main_image_url: string;
-  all_images: any;
+  product_images: any;
   shipment_date: string;
 }
 
