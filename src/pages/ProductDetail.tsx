@@ -319,82 +319,63 @@ const ProductDetail = () => {
                     <span className="font-medium text-purple-600">{product.category}</span>
                   </div>
                   
-                  <div className="bg-white rounded-lg border p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className="flex items-center space-x-2">
-                          {product.product_status === 'พรีออเดอร์' ? (
-                            <Clock className="h-4 w-4 text-orange-500" />
-                          ) : (
-                            <Package className="h-4 w-4 text-green-500" />
-                          )}
-                          <span className="text-sm font-medium text-gray-700">สถานะสินค้า:</span>
-                        </div>
-                        <Badge className={`${getStatusColor(product.product_status)} font-medium`}>
-                          {product.product_status}
-                        </Badge>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2 pt-2 border-t">
-                      <Package className="h-4 w-4 text-purple-500" />
-                      <span className="text-sm font-medium text-gray-700">SKU:</span>
-                      <Badge className="bg-purple-100 text-purple-800 border-purple-200 font-mono text-sm">
-                        {product.sku}
-                      </Badge>
-                    </div>
-                    {/* วางโค้ดส่วนนี้เข้าไปใต้ SKU ได้เลย */}
-{product.tags && product.tags.length > 0 && (
-  <div className="flex flex-wrap items-center gap-2 mb-4">
-    <span className="text-sm font-medium">Tags:</span>
-    {product.tags.map((tag) => (
-      <Badge
-        key={tag}
-        variant="outline"
-        className="cursor-pointer hover:bg-amber-100 border-amber-300 text-amber-800"
-        onClick={() => navigate(`/products?tag=${encodeURIComponent(tag)}`)}
-      >
-        #{tag}
-      </Badge>
-    ))}
-  </div>
-)}
-                    {product.shipment_date && (
-                      <div className="flex items-center space-x-2 pt-2 border-t">
-                        <Calendar className="h-4 w-4 text-blue-500" />
-                        <span className="text-sm font-medium text-gray-700">กำหนดส่ง:</span>
-                        <span className="text-sm text-blue-600 font-medium">
-                          {new Date(product.shipment_date).toLocaleDateString('th-TH', {
-                            year: 'numeric', month: 'long', day: 'numeric'
-                          })}
-                        </span>
-                      </div>
-                    )}
-                  </div>
+              {/* ✅ วางโค้dบล็อกนี้แทนที่ของเดิมทั้งหมด */}
+<div className="bg-white rounded-lg border p-4 space-y-3">
 
-                  {/* Tags Section */}
-                  {tags.length > 0 && (
-                    <div className="bg-white rounded-lg border p-4">
-                      <div className="flex items-center space-x-2 mb-3">
-                        <Tag className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm font-medium text-gray-700">Tags:</span>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {tags.map((tag) => (
-                          <Badge
-                            key={tag.id}
-                            variant="secondary"
-                            className="cursor-pointer hover:bg-purple-100 hover:text-purple-800 transition-colors bg-purple-50 text-purple-700 border-purple-200"
-                            onClick={() => handleTagClick(tag.name)}
-                          >
-                            [{tag.name}]
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
+  {/* 1. SKU */}
+  <div className="flex items-center space-x-2">
+    <Package className="h-4 w-4 text-purple-500" />
+    <span className="text-sm font-medium text-gray-700">SKU:</span>
+    <Badge className="bg-purple-100 text-purple-800 border-purple-200 font-mono text-sm">
+      {product.sku}
+    </Badge>
+  </div>
+
+  {/* 2. สถานะสินค้า */}
+  <div className="flex items-center space-x-2 pt-3 border-t">
+    {product.product_status === 'พรีออเดอร์' ? (
+      <Clock className="h-4 w-4 text-orange-500" />
+    ) : (
+      <Package className="h-4 w-4 text-green-500" />
+    )}
+    <span className="text-sm font-medium text-gray-700">สถานะสินค้า:</span>
+    <Badge className={`${getStatusColor(product.product_status)} font-medium`}>
+      {product.product_status}
+    </Badge>
+  </div>
+
+  {/* 3. กำหนดส่ง */}
+  {product.shipment_date && (
+    <div className="flex items-center space-x-2 pt-3 border-t">
+      <Calendar className="h-4 w-4 text-blue-500" />
+      <span className="text-sm font-medium text-gray-700">กำหนดส่ง:</span>
+      <span className="text-sm text-blue-600 font-medium">
+        {new Date(product.shipment_date).toLocaleDateString('th-TH', {
+          year: 'numeric', month: 'long', day: 'numeric'
+        })}
+      </span>
+    </div>
+  )}
+
+  {/* 4. Tags (ดึงข้อมูลจาก State `tags`) */}
+  {tags && tags.length > 0 && (
+    <div className="flex flex-wrap items-center gap-2 pt-3 border-t">
+      <Tag className="h-4 w-4 text-gray-500" />
+      <span className="text-sm font-medium text-gray-700">Tags:</span>
+      {tags.map((tag) => (
+        <Badge
+          key={tag.id}
+          variant="outline"
+          className="cursor-pointer hover:bg-amber-100 border-amber-300 text-amber-800"
+          onClick={() => handleTagClick(tag.name)}
+        >
+          #{tag.name}
+        </Badge>
+      ))}
+    </div>
+  )}
+</div>
+
 
               <div className="text-3xl font-bold text-purple-600">
                 ฿{product.selling_price?.toLocaleString()}
