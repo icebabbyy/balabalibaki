@@ -40,7 +40,7 @@ const App = () => (
         <div className="min-h-screen flex flex-col">
           <div className="flex-grow">
             <Routes>
-              {/* --- 3. เส้นทางทั้งหมดถูกต้องแล้ว --- */}
+              {/* --- 3. เส้นทางทั้งหมดของคุณยังอยู่ครบ --- */}
               <Route path="/" element={<Index />} />
               <Route path="/categories" element={<Categories />} />
               <Route path="/product/:slug" element={<ProductDetail />} />
@@ -57,8 +57,11 @@ const App = () => (
               <Route path="/returns" element={<Returns />} />
               <Route path="/wishlist" element={<Wishlist />} />
               <Route path="/order-history" element={<OrderHistory />} />
+              
+              {/* ✅ และเส้นทางสำหรับหน้า Tags ก็ยังอยู่ตรงนี้ */}
               <Route path="/products/tag/:tagName" element={<ProductsByTag />} />
               
+              {/* เส้นทางสำหรับหน้าที่หาไม่เจอ (ต้องอยู่ล่างสุดเสมอ) */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
