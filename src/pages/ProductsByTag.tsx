@@ -1,18 +1,14 @@
-// src/pages/ProductsByTag.tsx
 
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import ProductGrid from "@/components/categories/ProductGrid";
 import { ProductPublic } from "@/types/product";
 import { toast } from "sonner";
-import { ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 const ProductsByTag = () => {
   const { tagName } = useParams<{ tagName: string }>();
-  const navigate = useNavigate();
   const [products, setProducts] = useState<ProductPublic[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -26,12 +22,18 @@ const ProductsByTag = () => {
     setLoading(true);
     try {
       console.log('Fetching products for tag:', tag);
-
-      // --- ใช้ View "public_products" ที่ฉลาดของเรา ---
+      
       const { data, error } = await supabase
-        .from('public_products') //  ดึงจาก 'public_products'
-        .select('*')
-        .filter('tags', 'cs', `{"${tag}"}`); //  ใช้ filter แบบ 'contains' เพื่อหา tag ใน array
+        .from('products')
+        .select(`
+          *,
+          product_tags!inner (
+            tags!inner (
+              name
+            )
+          )
+        `)
+        .ilike('product_tags.tags.name', tag);
 
       if (error) {
         console.error('Error fetching products by tag:', error);
@@ -39,10 +41,29 @@ const ProductsByTag = () => {
         return;
       }
 
-      //  ไม่ต้อง Transform ข้อมูลแล้ว เพราะ View ของเรามีข้อมูลครบถ้วน
-      console.log('Fetched products:', data);
-      setProducts(data || []);
+      console.log('Raw products data:', data);
+      
+      // Transform data to match ProductPublic interface
+      const transformedProducts: ProductPublic[] = (data || []).map(item => ({
+        id: item.id,
+        name: item.name,
+        selling_price: item.selling_price,
+        category: item.category,
+        description: item.description,
+        image: item.image,
+        product_status: item.product_status,
+        sku: item.sku,
+        quantity: item.quantity,
+        shipment_date: item.shipment_date,
+        options: item.options,
+        product_type: item.product_type,
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+        slug: item.slug
+      }));
 
+      console.log('Transformed products:', transformedProducts);
+      setProducts(transformedProducts);
     } catch (error) {
       console.error('Error:', error);
       toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูลสินค้า');
@@ -50,14 +71,15 @@ const ProductsByTag = () => {
       setLoading(false);
     }
   };
-  
- const handleProductClick = (product: ProductPublic) => {
-  if (product?.slug) {
-    navigate(`/product/${product.slug}`);
-  } else {
-    navigate(`/product/${product.id}`);
-  }
-};
+
+  const handleProductClick = (productId: number) => {
+    const product = products.find(p => p.id === productId);
+    if (product?.slug) {
+      window.location.href = `/product/${product.slug}`;
+    } else {
+      window.location.href = `/product/${productId}`;
+    }
+  };
 
   if (loading) {
     return (
@@ -78,32 +100,19 @@ const ProductsByTag = () => {
       <Header />
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-7xl mx-auto">
-          <Button variant="outline" onClick={() => navigate(-1)} className="mb-6">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            ย้อนกลับ
-          </Button>
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-800 mb-2">
-              สินค้าแท็ก: <span className="text-purple-600">#{tagName}</span>
+              สินค้าแท็ก: {tagName}
             </h1>
             <p className="text-gray-600">
               พบสินค้า {products.length} รายการ
             </p>
           </div>
 
-          {products.length > 0 ? (
           <ProductGrid 
-  products={products}
-  onProductClick={(productId) => {
-      const product = products.find(p => p.id === productId);
-      if (product) handleProductClick(product);
-  }}
-/>
-          ) : (
-            <div className="text-center py-16 text-gray-500">
-              <p>ไม่พบสินค้าที่มีแท็กนี้</p>
-            </div>
-          )}
+            products={products}
+            onProductClick={handleProductClick}
+          />
         </div>
       </div>
     </div>
