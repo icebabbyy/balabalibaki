@@ -5,7 +5,11 @@ import { Badge } from "@/components/ui/badge";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { ArrowRight, ShoppingCart, CreditCard } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";อม
+import { supabase } from "@/integrations/supabase/client";
+import Header from "@/components/Header";
+import Autoplay from "embla-carousel-autoplay";
+import { ProductPublic } from "@/types/product";
+import FeaturedProductsCarousel from "@/components/FeaturedProductsCarousel";
 import { toast } from "sonner";
 
 interface Banner {
@@ -211,7 +215,7 @@ const Index = () => {
       const cartItem = {
         id: productToBuy.id,
         name: productToBuy.name,
-        price: productToBuy.selling_price
+        price: productToBuy.selling_price,
         quantity: 1,
         image: productToBuy.image,
         variant: null
@@ -265,15 +269,17 @@ const Index = () => {
   />
   {/* ✅ ใช้โค้ดบล็อกนี้แทนที่ของเดิมทั้งหมด */}
   {product.product_status && (
- <Badge 
-              className={`absolute top-2 left-2 border ${
-                product.product_status === 'พร้อมส่ง' 
-                  ? 'bg-green-100 text-green-800 border-green-300' 
-                : product.product_status === 'พรีออเดอร์'
-                  ? 'bg-purple-100 text-purple-800 border-purple-300'
-              }`}
-            >
-            </Badge>
+    <Badge 
+      className={`absolute top-2 left-2 border ${
+        product.product_status === 'พร้อมส่ง' 
+          ? 'bg-green-100 text-green-800 border-green-300' 
+        : product.product_status === 'พรีออเดอร์'
+          ? 'bg-purple-100 text-purple-800 border-purple-300'
+          : 'bg-gray-100 text-gray-800 border-gray-200'
+      }`}
+    >
+      {product.product_status}
+    </Badge>
   )}
 </div>
         <CardContent className="p-4 flex flex-col flex-grow">

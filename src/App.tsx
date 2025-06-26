@@ -1,13 +1,16 @@
+// src/App.tsx (เวอร์ชันที่แก้ไขและจัดระเบียบแล้ว)
 
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+
+// --- Import หน้าทั้งหมดที่ใช้งาน ---
 import Index from "./pages/Index";
 import Categories from "./pages/Categories";
 import ProductDetail from "./pages/ProductDetail";
-import ProductsByTag from "./pages/ProductsByTag";
+import ProductsByTag from "./pages/ProductsByTag"; // หน้าสำหรับ Tag
 import QA from "./pages/QA";
 import Reviews from "./pages/Reviews";
 import OrderStatus from "./pages/OrderStatus";
@@ -38,7 +41,6 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/categories" element={<Categories />} />
               <Route path="/product/:slug" element={<ProductDetail />} />
-              <Route path="/products/tag/:tagName" element={<ProductsByTag />} />
               <Route path="/qa" element={<QA />} />
               <Route path="/reviews" element={<Reviews />} />
               <Route path="/order-status" element={<OrderStatus />} />
@@ -52,7 +54,11 @@ const App = () => (
               <Route path="/returns" element={<Returns />} />
               <Route path="/wishlist" element={<Wishlist />} />
               <Route path="/order-history" element={<OrderHistory />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              
+              {/* ✅ เส้นทางสำหรับหน้า Tags ที่ถูกต้อง (มีแค่อันเดียว) */}
+              <Route path="/products/tag/:tagName" element={<ProductsByTag />} />
+              
+              {/* เส้นทางสำหรับหน้าที่หาไม่เจอ (ต้องอยู่ล่างสุดเสมอ) */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
