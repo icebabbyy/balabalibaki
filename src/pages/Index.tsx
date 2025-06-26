@@ -265,7 +265,6 @@ const Index = () => {
             className="w-full h-48 object-cover rounded-t-lg"
           />
           {product.product_status && (
-            {product.product_status && (
   <Badge 
     className={`absolute top-2 left-2 border ${
       // ✅ เงื่อนไขที่ 1: ถ้าเป็น 'พร้อมส่ง' ใช้สีเขียว
