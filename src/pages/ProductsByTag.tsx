@@ -51,10 +51,13 @@ const ProductsByTag = () => {
     }
   };
   
-  const handleProductClick = (product: ProductPublic) => {
-    const slug = product.slug || product.id.toString();
-    navigate(`/product/${slug}`);
-  };
+ const handleProductClick = (product: ProductPublic) => {
+  if (product?.slug) {
+    navigate(`/product/${product.slug}`);
+  } else {
+    navigate(`/product/${product.id}`);
+  }
+};
 
   if (loading) {
     return (
@@ -89,13 +92,13 @@ const ProductsByTag = () => {
           </div>
 
           {products.length > 0 ? (
-            <ProductGrid 
-              products={products}
-              onProductClick={(productId) => {
-                  const product = products.find(p => p.id === productId);
-                  if (product) handleProductClick(product);
-              }}
-            />
+          <ProductGrid 
+  products={products}
+  onProductClick={(productId) => {
+      const product = products.find(p => p.id === productId);
+      if (product) handleProductClick(product);
+  }}
+/>
           ) : (
             <div className="text-center py-16 text-gray-500">
               <p>ไม่พบสินค้าที่มีแท็กนี้</p>
