@@ -82,7 +82,7 @@ const Index = () => {
       
    const mappedProducts: ProductPublic[] = (data || []).map(item => ({
   id: item.id || 0,
-  name: item.name || '',                     // แก้จาก product_name
+  name: item.product_name || '',               // แก้จาก product_name
   selling_price: item.selling_price || 0,
   category: item.category || '',
   description: item.description || '',
@@ -149,14 +149,14 @@ const Index = () => {
             description: item.description || '',
             image: item.image || '',
             product_status: item.product_status || 'พรีออเดอร์',
-            sku: item.product_sku || '',
+            sku: item.sku || '',
             quantity: 0,
             shipment_date: item.shipment_date || '',
             options: item.all_images || null,
             product_type: item.product_type || 'ETC',
             created_at: item.created_at || '',
             updated_at: item.updated_at || '',
-            slug: item.product_sku // Use SKU as slug fallback
+            slug: item.sku // Use SKU as slug fallback
           }));
 
           productsData[categoryName] = mappedProducts;
