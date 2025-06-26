@@ -343,7 +343,22 @@ const ProductDetail = () => {
                         {product.sku}
                       </Badge>
                     </div>
-                    
+                    {/* วางโค้ดส่วนนี้เข้าไปใต้ SKU ได้เลย */}
+{product.tags && product.tags.length > 0 && (
+  <div className="flex flex-wrap items-center gap-2 mb-4">
+    <span className="text-sm font-medium">Tags:</span>
+    {product.tags.map((tag) => (
+      <Badge
+        key={tag}
+        variant="outline"
+        className="cursor-pointer hover:bg-amber-100 border-amber-300 text-amber-800"
+        onClick={() => navigate(`/products?tag=${encodeURIComponent(tag)}`)}
+      >
+        #{tag}
+      </Badge>
+    ))}
+  </div>
+)}
                     {product.shipment_date && (
                       <div className="flex items-center space-x-2 pt-2 border-t">
                         <Calendar className="h-4 w-4 text-blue-500" />
