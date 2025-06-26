@@ -281,7 +281,6 @@ const Index = () => {
     {product.product_status}
   </Badge>
 )}
-          )}
         </div>
         <CardContent className="p-4 flex flex-col flex-grow">
           <h3 className="font-semibold mb-2 line-clamp-2">{product.name}</h3>
