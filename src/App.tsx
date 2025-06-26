@@ -1,16 +1,17 @@
-// src/App.tsx (เวอร์ชันที่แก้ไขและสมบูรณ์แล้ว)
+// src/App.tsx (เวอร์ชัน Final ที่ใช้ HashRouter)
 
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+// --- 1. เปลี่ยนมา import HashRouter ---
+import { HashRouter, Routes, Route } from "react-router-dom";
 
 // --- Import หน้าทั้งหมดที่ใช้งาน ---
 import Index from "./pages/Index";
 import Categories from "./pages/Categories";
 import ProductDetail from "./pages/ProductDetail";
-import ProductsByTag from "./pages/ProductsByTag"; // หน้าสำหรับ Tag
+import ProductsByTag from "./pages/ProductsByTag";
 import QA from "./pages/QA";
 import Reviews from "./pages/Reviews";
 import OrderStatus from "./pages/OrderStatus";
@@ -34,10 +35,12 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
+      {/* --- 2. เปลี่ยนมาใช้ HashRouter --- */}
+      <HashRouter>
         <div className="min-h-screen flex flex-col">
           <div className="flex-grow">
             <Routes>
+              {/* --- 3. เส้นทางทั้งหมดถูกต้องแล้ว --- */}
               <Route path="/" element={<Index />} />
               <Route path="/categories" element={<Categories />} />
               <Route path="/product/:slug" element={<ProductDetail />} />
@@ -54,17 +57,14 @@ const App = () => (
               <Route path="/returns" element={<Returns />} />
               <Route path="/wishlist" element={<Wishlist />} />
               <Route path="/order-history" element={<OrderHistory />} />
-              
-              {/* ✅ เส้นทางสำหรับหน้า Tags ที่ถูกต้อง */}
               <Route path="/products/tag/:tagName" element={<ProductsByTag />} />
               
-              {/* เส้นทางสำหรับหน้าที่หาไม่เจอ (ต้องอยู่ล่างสุดเสมอ) */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
           <Footer />
         </div>
-      </BrowserRouter>
+      </HashRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );
