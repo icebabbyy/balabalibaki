@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Trash2, Package, Edit } from "lucide-react";
 import RichTextEditor from "@/components/RichTextEditor";
@@ -56,15 +55,15 @@ const Admin = () => {
       // Map the data to ensure all required fields are present
       const mappedProducts: PublicProduct[] = (data || []).map(item => ({
         id: item.id || 0,
-        product_name: item.product_name || '',
+        product_name: item.name || '', // Fixed: use 'name' field from public_products
         category: item.category || '',
         selling_price: item.selling_price || 0,
-        main_image_url: item.main_image_url || '',
+        main_image_url: item.image || '', // Fixed: use 'image' field from public_products
         description: item.description || '',
-        product_sku: item.product_sku || '',
+        product_sku: item.sku || '', // Fixed: use 'sku' field from public_products
         quantity: item.quantity || 0,
         product_status: item.product_status || 'พรีออเดอร์',
-        product_type: 'ETC', // Default value since it's not in public_products
+        product_type: 'ETC',
         shipment_date: item.shipment_date || '',
         all_images: item.all_images || null
       }));
@@ -95,7 +94,7 @@ const Admin = () => {
       }
 
       toast.success('บันทึกคำอธิบายสำเร็จ');
-      await fetchProducts(); // Refresh data
+      await fetchProducts();
       return true;
     } catch (error) {
       console.error('Error:', error);
@@ -133,19 +132,6 @@ const Admin = () => {
     } catch (error) {
       console.error('Error:', error);
       toast.error('เกิดข้อผิดพลาดในการลบสินค้า');
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'พรีออเดอร์':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'พร้อมส่ง':
-        return 'bg-green-100 text-green-800';
-      case 'สินค้าหมด':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -235,10 +221,6 @@ const Admin = () => {
                         <tr className="border-b">
                           <th className="text-left p-2">รูปภาพ</th>
                           <th className="text-left p-2">ชื่อสินค้า</th>
-                          <th className="text-left p-2">SKU</th>
-                          <th className="text-left p-2">หมวดหมู่</th>
-                          <th className="text-left p-2">ราคาขาย</th>
-                          <th className="text-left p-2">สถานะ</th>
                           <th className="text-left p-2">คำอธิบาย</th>
                           <th className="text-left p-2">จัดการ</th>
                         </tr>
@@ -257,16 +239,7 @@ const Admin = () => {
                             <td className="p-2">
                               <div>
                                 <p className="font-medium">{product.product_name}</p>
-                                <p className="text-sm text-gray-500">จำนวน: {product.quantity}</p>
                               </div>
-                            </td>
-                            <td className="p-2 font-mono text-sm">{product.product_sku}</td>
-                            <td className="p-2">{product.category}</td>
-                            <td className="p-2 font-medium">฿{product.selling_price?.toLocaleString()}</td>
-                            <td className="p-2">
-                              <Badge className={getStatusColor(product.product_status)}>
-                                {product.product_status}
-                              </Badge>
                             </td>
                             <td className="p-2 max-w-xs">
                               {editingDescription?.productId === product.id ? (

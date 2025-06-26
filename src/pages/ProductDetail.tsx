@@ -181,8 +181,8 @@ const ProductDetail = () => {
     }
   };
 
-  const handleTagClick = (tagSlug: string) => {
-    navigate(`/products/tag/${tagSlug}`);
+  const handleTagClick = (tagName: string) => {
+    navigate(`/products/tag/${tagName.toLowerCase()}`);
   };
 
   const addToCart = () => {
@@ -362,17 +362,17 @@ const ProductDetail = () => {
                     <div className="bg-white rounded-lg border p-4">
                       <div className="flex items-center space-x-2 mb-3">
                         <Tag className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm font-medium text-gray-700">แท็ก:</span>
+                        <span className="text-sm font-medium text-gray-700">Tags:</span>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {tags.map((tag) => (
                           <Badge
                             key={tag.id}
                             variant="secondary"
-                            className="cursor-pointer hover:bg-purple-100 hover:text-purple-800 transition-colors"
-                            onClick={() => handleTagClick(tag.slug)}
+                            className="cursor-pointer hover:bg-purple-100 hover:text-purple-800 transition-colors bg-purple-50 text-purple-700 border-purple-200"
+                            onClick={() => handleTagClick(tag.name)}
                           >
-                            #{tag.name}
+                            [{tag.name}]
                           </Badge>
                         ))}
                       </div>
