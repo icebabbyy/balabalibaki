@@ -1,4 +1,4 @@
-// src/App.tsx (เวอร์ชันสมบูรณ์)
+// src/App.tsx (เวอร์ชันที่แก้ไขและสมบูรณ์แล้ว)
 
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
