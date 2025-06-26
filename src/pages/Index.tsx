@@ -82,7 +82,7 @@ const Index = () => {
       
    const mappedProducts: ProductPublic[] = (data || []).map(item => ({
   id: item.id || 0,
-  name: item.product_name || '',               // แก้จาก product_name
+  name: item.name || '', // ใช้ item.name ที่ถูกต้อง
   selling_price: item.selling_price || 0,
   category: item.category || '',
   description: item.description || '',
