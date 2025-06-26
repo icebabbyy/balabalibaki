@@ -1,14 +1,18 @@
+// src/pages/ProductsByTag.tsx
 
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import ProductGrid from "@/components/categories/ProductGrid";
 import { ProductPublic } from "@/types/product";
 import { toast } from "sonner";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const ProductsByTag = () => {
   const { tagName } = useParams<{ tagName: string }>();
+  const navigate = useNavigate();
   const [products, setProducts] = useState<ProductPublic[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -18,57 +22,27 @@ const ProductsByTag = () => {
     }
   }, [tagName]);
 
-const fetchProductsByTag = async (tag: string) => {
-  setLoading(true);
-  try {
-    console.log('Fetching products for tag:', tag);
+  const fetchProductsByTag = async (tag: string) => {
+    setLoading(true);
+    try {
+      console.log('Fetching products for tag:', tag);
 
-    // --- เปลี่ยนมาใช้ View "public_products" ที่ฉลาดของเรา ---
-    const { data, error } = await supabase
-      .from('public_products') // <--- 1. เปลี่ยนจาก 'products' เป็น 'public_products'
-      .select('*')
-      .filter('tags', 'cs', `{"${tag}"}`); // <--- 2. ใช้ filter แบบ 'contains' เพื่อหา tag ใน array
+      // --- ใช้ View "public_products" ที่ฉลาดของเรา ---
+      const { data, error } = await supabase
+        .from('public_products') //  ดึงจาก 'public_products'
+        .select('*')
+        .filter('tags', 'cs', `{"${tag}"}`); //  ใช้ filter แบบ 'contains' เพื่อหา tag ใน array
 
-    if (error) {
-      console.error('Error fetching products by tag:', error);
-      toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูลสินค้า');
-      return;
-    }
+      if (error) {
+        console.error('Error fetching products by tag:', error);
+        toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูลสินค้า');
+        return;
+      }
 
-    // 3. ไม่ต้อง Transform ข้อมูลแล้ว เพราะ View ของเรามีข้อมูลครบถ้วน
-    console.log('Fetched products:', data);
-    setProducts(data || []);
+      //  ไม่ต้อง Transform ข้อมูลแล้ว เพราะ View ของเรามีข้อมูลครบถ้วน
+      console.log('Fetched products:', data);
+      setProducts(data || []);
 
-  } catch (error) {
-    console.error('Error:', error);
-    toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูลสินค้า');
-  } finally {
-    setLoading(false);
-  }
-};
-      console.log('Raw products data:', data);
-      
-      // Transform data to match ProductPublic interface
-      const transformedProducts: ProductPublic[] = (data || []).map(item => ({
-        id: item.id,
-        name: item.name,
-        selling_price: item.selling_price,
-        category: item.category,
-        description: item.description,
-        image: item.image,
-        product_status: item.product_status,
-        sku: item.sku,
-        quantity: item.quantity,
-        shipment_date: item.shipment_date,
-        options: item.options,
-        product_type: item.product_type,
-        created_at: item.created_at,
-        updated_at: item.updated_at,
-        slug: item.slug
-      }));
-
-      console.log('Transformed products:', transformedProducts);
-      setProducts(transformedProducts);
     } catch (error) {
       console.error('Error:', error);
       toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูลสินค้า');
@@ -76,14 +50,10 @@ const fetchProductsByTag = async (tag: string) => {
       setLoading(false);
     }
   };
-
-  const handleProductClick = (productId: number) => {
-    const product = products.find(p => p.id === productId);
-    if (product?.slug) {
-      window.location.href = `/product/${product.slug}`;
-    } else {
-      window.location.href = `/product/${productId}`;
-    }
+  
+  const handleProductClick = (product: ProductPublic) => {
+    const slug = product.slug || product.id.toString();
+    navigate(`/product/${slug}`);
   };
 
   if (loading) {
@@ -105,19 +75,32 @@ const fetchProductsByTag = async (tag: string) => {
       <Header />
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-7xl mx-auto">
+          <Button variant="outline" onClick={() => navigate(-1)} className="mb-6">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            ย้อนกลับ
+          </Button>
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-800 mb-2">
-              สินค้าแท็ก: {tagName}
+              สินค้าแท็ก: <span className="text-purple-600">#{tagName}</span>
             </h1>
             <p className="text-gray-600">
               พบสินค้า {products.length} รายการ
             </p>
           </div>
 
-          <ProductGrid 
-            products={products}
-            onProductClick={handleProductClick}
-          />
+          {products.length > 0 ? (
+            <ProductGrid 
+              products={products}
+              onProductClick={(productId) => {
+                  const product = products.find(p => p.id === productId);
+                  if (product) handleProductClick(product);
+              }}
+            />
+          ) : (
+            <div className="text-center py-16 text-gray-500">
+              <p>ไม่พบสินค้าที่มีแท็กนี้</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
