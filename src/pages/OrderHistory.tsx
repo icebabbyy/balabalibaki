@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import Header from "@/components/Header";
@@ -56,11 +57,11 @@ const OrderHistory = () => {
 
       const { data: productImages } = await supabase
         .from("public_products")
-        .select("product_sku, image")
-        .in("product_sku", uniqueSkus);
+        .select("sku, image")
+        .in("sku", uniqueSkus);
 
       const imageMap = new Map(
-        (productImages || []).map(p => [p.product_sku, p.image])
+        (productImages || []).map(p => [p.sku, p.image])
       );
 
       const enrichedOrders = ordersData.map(order => ({

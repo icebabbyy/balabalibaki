@@ -65,7 +65,7 @@ const Admin = () => {
         product_status: item.product_status || 'พรีออเดอร์',
         product_type: 'ETC',
         shipment_date: item.shipment_date || '',
-        all_images: item.all_images || null
+        product_images: item.images_list || null
       }));
 
       setProducts(mappedProducts);
@@ -159,7 +159,7 @@ const Admin = () => {
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-800">แผงควบคุม</h1>
-            <p className="text-gray-500">จัดการสินค้าจากฐานข้อมูล public_products</p>
+            <p className="text-gray-500">จัดการสينค้าจากฐานข้อมูล public_products</p>
           </div>
 
           {/* Tabs */}

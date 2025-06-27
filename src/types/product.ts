@@ -40,6 +40,7 @@ export interface ProductPublic {
   created_at: string;
   updated_at: string;
   slug?: string;
+  tags?: string[];
   product_images?: Array<{
     id: number;
     image_url: string;
