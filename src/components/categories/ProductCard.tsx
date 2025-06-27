@@ -65,6 +65,7 @@ const ProductCard = ({ product }: { product: ProductPublic }) => {
     navigate('/cart');
   };
 
+  
   // เพิ่มตะกร้าอย่างเดียว
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
