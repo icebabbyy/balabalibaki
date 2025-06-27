@@ -73,7 +73,7 @@ const Categories = () => {
     try {
       let query = supabase
         .from('products')
-        .select(`*, product_images (id, image_url, order)`)
+        .select(`*, product_images (id, image_url, "order")`)
         .order('created_at', { ascending: false });
 
       if (tagSlug) {
@@ -93,30 +93,39 @@ const Categories = () => {
         return;
       }
 
-      // Properly transform the data to match ProductPublic interface
-      const transformedProducts: ProductPublic[] = (data || []).map(product => ({
-        id: product.id,
-        name: product.name,
-        selling_price: product.selling_price,
-        category: product.category,
-        description: product.description,
-        image: product.image,
-        product_status: product.product_status,
-        sku: product.sku,
-        quantity: product.quantity,
-        shipment_date: product.shipment_date,
-        options: product.options,
-        product_type: product.product_type,
-        created_at: product.created_at,
-        updated_at: product.updated_at,
-        slug: product.slug,
-        tags: [], // Initialize as empty array, will be populated if needed
-        product_images: (product.product_images || []).map((img: any) => ({
-          id: img.id,
-          image_url: img.image_url,
-          order: img.order
-        }))
-      }));
+      // Simplify the transformation to avoid type issues
+      const transformedProducts = (data || []).map(product => {
+        const baseProduct: ProductPublic = {
+          id: product.id,
+          name: product.name,
+          selling_price: product.selling_price,
+          category: product.category,
+          description: product.description,
+          image: product.image,
+          product_status: product.product_status,
+          sku: product.sku,
+          quantity: product.quantity,
+          shipment_date: product.shipment_date,
+          options: product.options,
+          product_type: product.product_type,
+          created_at: product.created_at,
+          updated_at: product.updated_at,
+          slug: product.slug,
+          tags: [],
+          product_images: []
+        };
+
+        // Handle product images separately to avoid type issues
+        if (product.product_images && Array.isArray(product.product_images)) {
+          baseProduct.product_images = product.product_images.map((img: any) => ({
+            id: img.id || 0,
+            image_url: img.image_url || '',
+            order: img.order || 0
+          }));
+        }
+
+        return baseProduct;
+      });
 
       setProducts(transformedProducts);
       setFilteredProducts(transformedProducts);
