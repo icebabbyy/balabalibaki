@@ -14,7 +14,7 @@ const Categories = () => {
   const [products, setProducts] = useState([] as ProductPublic[]);
   const [filteredProducts, setFilteredProducts] = useState([] as ProductPublic[]);
   const [loading, setLoading] = useState(true);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState([] as any[]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentTag, setCurrentTag] = useState<any>(null);
@@ -45,7 +45,8 @@ const Categories = () => {
         console.error('Error fetching categories:', error);
         return;
       }
-      setCategories(data || []);
+      // Use type assertion to prevent recursion
+      setCategories((data || []) as any[]);
     } catch (error) {
       console.error('Error fetching categories:', error);
     }
@@ -63,7 +64,7 @@ const Categories = () => {
         console.error('Error fetching tag:', error);
         return;
       }
-      setCurrentTag(data);
+      setCurrentTag(data as any);
     } catch (error) {
       console.error('Error fetching tag:', error);
     }
@@ -87,22 +88,15 @@ const Categories = () => {
           const { data: productTagData } = await supabase
             .from('product_tags')
             .select('product_id')
-            .eq('tag_id', tagData.id);
+            .eq('tag_id', (tagData as any).id);
             
           if (productTagData) {
-            productIds = productTagData.map(pt => pt.product_id);
+            productIds = (productTagData as any[]).map(pt => pt.product_id);
           }
         }
       }
 
-      // Define columns explicitly to avoid type inference issues
-      const columns = [
-        'id', 'name', 'selling_price', 'category', 'description',
-        'image', 'product_status', 'sku', 'quantity', 'shipment_date',
-        'options', 'product_type', 'created_at', 'updated_at', 'slug', 'tags', 'images_list'
-      ] as const;
-
-      // Simplified query approach
+      // Simplified query approach with explicit typing
       let queryResult;
       
       if (productIds.length > 0) {
@@ -125,15 +119,18 @@ const Categories = () => {
         return;
       }
 
-      // Transform with explicit type handling
+      // Transform with explicit type handling and assertions
       const transformedProducts: ProductPublic[] = [];
       
       if (rawData) {
-        for (const item of rawData) {
+        // Use type assertion to prevent TypeScript recursion
+        const safeRawData = rawData as any[];
+        
+        for (const item of safeRawData) {
           // Handle tags safely
           let tagsArray: string[] = [];
           if (item.tags && Array.isArray(item.tags)) {
-            tagsArray = item.tags.filter(tag => typeof tag === 'string');
+            tagsArray = item.tags.filter((tag: any) => typeof tag === 'string');
           }
 
           // Handle product images safely
