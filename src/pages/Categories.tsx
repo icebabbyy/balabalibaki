@@ -14,10 +14,10 @@ const Categories = () => {
   const [products, setProducts] = useState([] as ProductPublic[]);
   const [filteredProducts, setFilteredProducts] = useState([] as ProductPublic[]);
   const [loading, setLoading] = useState(true);
-  const [categories, setCategories] = useState<any[]>([]);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState([] as any[]);
+  const [selectedCategories, setSelectedCategories] = useState([] as string[]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [currentTag, setCurrentTag] = useState<any>(null);
+  const [currentTag, setCurrentTag] = useState(null as any);
 
   const initialCategoryFromUrl = searchParams.get('category');
 
@@ -37,16 +37,18 @@ const Categories = () => {
 
   const fetchCategories = async () => {
     try {
-      const { data, error } = await supabase
+      const query = supabase
         .from('categories')
         .select('*')
         .order('name');
       
-      if (error) {
-        console.error('Error fetching categories:', error);
+      const result = await query;
+      
+      if (result.error) {
+        console.error('Error fetching categories:', result.error);
         return;
       }
-      setCategories(data || []);
+      setCategories(result.data || []);
     } catch (error) {
       console.error('Error fetching categories:', error);
     }
@@ -55,16 +57,18 @@ const Categories = () => {
   const fetchTagInfo = async () => {
     if (!tagSlug) return;
     try {
-      const { data, error } = await supabase
+      const query = supabase
         .from('tags')
         .select('*')
         .eq('slug', tagSlug);
       
-      if (error) {
-        console.error('Error fetching tag:', error);
+      const result = await query;
+      
+      if (result.error) {
+        console.error('Error fetching tag:', result.error);
         return;
       }
-      const tagData = data && data.length > 0 ? data[0] : null;
+      const tagData = result.data && result.data.length > 0 ? result.data[0] : null;
       setCurrentTag(tagData);
     } catch (error) {
       console.error('Error fetching tag:', error);
@@ -72,20 +76,24 @@ const Categories = () => {
   };
 
   const getProductIdsByTag = async (tagSlug: string) => {
-    const { data: tagData } = await supabase
+    const tagQuery = supabase
       .from('tags')
       .select('id')
       .eq('slug', tagSlug);
+    
+    const tagResult = await tagQuery;
         
-    if (tagData && tagData.length > 0) {
-      const tagId = tagData[0].id;
-      const { data: productTagData } = await supabase
+    if (tagResult.data && tagResult.data.length > 0) {
+      const tagId = tagResult.data[0].id;
+      const productTagQuery = supabase
         .from('product_tags')
         .select('product_id')
         .eq('tag_id', tagId);
+      
+      const productTagResult = await productTagQuery;
         
-      if (productTagData) {
-        return productTagData.map((pt: any) => pt.product_id);
+      if (productTagResult.data) {
+        return productTagResult.data.map((pt: any) => pt.product_id);
       }
     }
     return [];
@@ -155,22 +163,23 @@ const Categories = () => {
         productIds = await getProductIdsByTag(tagSlug);
       }
 
-      let query = supabase.from('public_products').select('*');
+      const baseQuery = supabase.from('public_products').select('*');
+      let finalQuery = baseQuery;
       
       if (productIds.length > 0) {
-        query = query.in('id', productIds);
+        finalQuery = baseQuery.in('id', productIds);
       }
       
-      query = query.order('created_at', { ascending: false });
+      finalQuery = finalQuery.order('created_at', { ascending: false });
       
-      const { data, error } = await query;
+      const result = await finalQuery;
       
-      if (error) {
-        console.error('Error fetching products:', error);
+      if (result.error) {
+        console.error('Error fetching products:', result.error);
         return;
       }
 
-      const rawProducts = data || [];
+      const rawProducts = result.data || [];
       const transformedProducts = transformProductData(rawProducts);
 
       setProducts(transformedProducts);
