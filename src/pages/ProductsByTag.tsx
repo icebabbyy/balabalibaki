@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -48,8 +49,8 @@ const ProductsByTag = () => {
         created_at: item.created_at,
         updated_at: item.updated_at,
         slug: item.slug,
-        tags: item.tags || [],
-        product_images: item.images_list || [],
+        tags: Array.isArray(item.tags) ? item.tags : [],
+        product_images: Array.isArray(item.images_list) ? item.images_list : [],
       }));
 
       setProducts(transformedProducts);
