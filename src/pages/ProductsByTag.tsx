@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
 import ProductGrid from "@/components/categories/ProductGrid";
@@ -11,6 +10,7 @@ const ProductsByTag = () => {
   const { tagName } = useParams<{ tagName: string }>();
   const [products, setProducts] = useState<ProductPublic[]>([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (tagName) {
@@ -21,30 +21,18 @@ const ProductsByTag = () => {
   const fetchProductsByTag = async (tag: string) => {
     setLoading(true);
     try {
-      console.log('Fetching products for tag:', tag);
-      
       const { data, error } = await supabase
-        .from('products')
-        .select(`
-          *,
-          product_tags!inner (
-            tags!inner (
-              name
-            )
-          )
-        `)
-        .ilike('product_tags.tags.name', tag);
+        .from("public_products")
+        .select("*")
+        .contains("tags", [tag]);
 
       if (error) {
-        console.error('Error fetching products by tag:', error);
-        toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูลสินค้า');
+        console.error("Error fetching products by tag:", error);
+        toast.error("เกิดข้อผิดพลาดในการโหลดข้อมูลสินค้า");
         return;
       }
 
-      console.log('Raw products data:', data);
-      
-      // Transform data to match ProductPublic interface
-      const transformedProducts: ProductPublic[] = (data || []).map(item => ({
+      const transformedProducts: ProductPublic[] = (data || []).map((item) => ({
         id: item.id,
         name: item.name,
         selling_price: item.selling_price,
@@ -59,25 +47,26 @@ const ProductsByTag = () => {
         product_type: item.product_type,
         created_at: item.created_at,
         updated_at: item.updated_at,
-        slug: item.slug
+        slug: item.slug,
+        tags: item.tags || [],
+        product_images: item.images_list || [],
       }));
 
-      console.log('Transformed products:', transformedProducts);
       setProducts(transformedProducts);
     } catch (error) {
-      console.error('Error:', error);
-      toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูลสินค้า');
+      console.error("Error:", error);
+      toast.error("เกิดข้อผิดพลาดในการโหลดข้อมูลสินค้า");
     } finally {
       setLoading(false);
     }
   };
 
   const handleProductClick = (productId: number) => {
-    const product = products.find(p => p.id === productId);
+    const product = products.find((p) => p.id === productId);
     if (product?.slug) {
-      window.location.href = `/product/${product.slug}`;
+      navigate(`/product/${product.slug}`);
     } else {
-      window.location.href = `/product/${productId}`;
+      navigate(`/product/${productId}`);
     }
   };
 
@@ -104,15 +93,10 @@ const ProductsByTag = () => {
             <h1 className="text-3xl font-bold text-gray-800 mb-2">
               สินค้าแท็ก: {tagName}
             </h1>
-            <p className="text-gray-600">
-              พบสินค้า {products.length} รายการ
-            </p>
+            <p className="text-gray-600">พบสินค้า {products.length} รายการ</p>
           </div>
 
-          <ProductGrid 
-            products={products}
-            onProductClick={handleProductClick}
-          />
+          <ProductGrid products={products} onProductClick={handleProductClick} />
         </div>
       </div>
     </div>
