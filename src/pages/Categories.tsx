@@ -73,84 +73,48 @@ const Categories = () => {
     try {
       setLoading(true);
       
-      // First, get product IDs for tag filtering if needed
-      const productIds: number[] = [];
+      // Get product IDs for tag filtering if needed
+      let productIds: number[] = [];
       
       if (tagSlug) {
-        const tagResult = await supabase
+        const { data: tagData } = await supabase
           .from('tags')
           .select('id')
           .eq('slug', tagSlug)
           .single();
           
-        if (tagResult.data) {
-          const productTagResult = await supabase
+        if (tagData) {
+          const { data: productTagData } = await supabase
             .from('product_tags')
             .select('product_id')
-            .eq('tag_id', tagResult.data.id);
+            .eq('tag_id', tagData.id);
             
-          if (productTagResult.data) {
-            productIds.push(...productTagResult.data.map(pt => pt.product_id));
+          if (productTagData) {
+            productIds = productTagData.map(pt => pt.product_id);
           }
         }
       }
 
-      // Fetch products with simplified query to avoid type issues
-      let productsResult;
-      
+      // Fetch products using the public_products view to avoid complex typing
+      let query = supabase
+        .from('public_products')
+        .select('*')
+        .order('created_at', { ascending: false });
+
       if (productIds.length > 0) {
-        productsResult = await supabase
-          .from('products')
-          .select(`
-            id,
-            name,
-            selling_price,
-            category,
-            description,
-            image,
-            product_status,
-            sku,
-            quantity,
-            shipment_date,
-            options,
-            product_type,
-            created_at,
-            updated_at,
-            slug
-          `)
-          .in('id', productIds)
-          .order('created_at', { ascending: false });
-      } else {
-        productsResult = await supabase
-          .from('products')
-          .select(`
-            id,
-            name,
-            selling_price,
-            category,
-            description,
-            image,
-            product_status,
-            sku,
-            quantity,
-            shipment_date,
-            options,
-            product_type,
-            created_at,
-            updated_at,
-            slug
-          `)
-          .order('created_at', { ascending: false });
+        query = query.in('id', productIds);
       }
+
+      const { data: productsData, error } = await query;
       
-      if (productsResult.error) {
-        console.error('Error fetching products:', productsResult.error);
+      if (error) {
+        console.error('Error fetching products:', error);
         return;
       }
 
-      // Transform to ProductPublic with explicit casting
-      const transformedProducts: ProductPublic[] = (productsResult.data || []).map((item: any) => ({
-        id: item.id,
+      // Transform to ProductPublic with proper type handling
+      const transformedProducts: ProductPublic[] = (productsData || []).map(item => ({
+        id: item.id || 0,
         name: item.name || '',
         selling_price: item.selling_price || 0,
         category: item.category || '',
@@ -165,8 +129,14 @@ const Categories = () => {
         created_at: item.created_at || '',
         updated_at: item.updated_at || '',
         slug: item.slug || '',
-        tags: [],
-        product_images: []
+        tags: Array.isArray(item.tags) ? 
+          item.tags.filter((tag: any) => typeof tag === 'string') : [],
+        product_images: item.images_list && Array.isArray(item.images_list) ? 
+          item.images_list.map((img: any, index: number) => ({
+            id: index,
+            image_url: typeof img === 'string' ? img : img?.image_url || '',
+            order: index
+          })) : []
       }));
 
       setProducts(transformedProducts);
