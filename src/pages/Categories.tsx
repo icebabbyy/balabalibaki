@@ -93,6 +93,7 @@ const Categories = () => {
         return;
       }
 
+      // Properly transform the data to match ProductPublic interface
       const transformedProducts: ProductPublic[] = (data || []).map(product => ({
         id: product.id,
         name: product.name,
@@ -109,8 +110,12 @@ const Categories = () => {
         created_at: product.created_at,
         updated_at: product.updated_at,
         slug: product.slug,
-        tags: [],
-        product_images: product.product_images || []
+        tags: [], // Initialize as empty array, will be populated if needed
+        product_images: (product.product_images || []).map((img: any) => ({
+          id: img.id,
+          image_url: img.image_url,
+          order: img.order
+        }))
       }));
 
       setProducts(transformedProducts);

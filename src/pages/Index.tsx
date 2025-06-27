@@ -95,7 +95,9 @@ const Index = () => {
         product_type: item.product_type || 'ETC',
         created_at: item.created_at || '',
         updated_at: item.updated_at || '',
-        tags: Array.isArray(item.tags) ? item.tags : [],
+        // Properly convert Json to string array for tags
+        tags: Array.isArray(item.tags) ? 
+          item.tags.filter((tag: any) => typeof tag === 'string') : [],
         slug: item.slug || String(item.id),
         product_images: []
       }));
@@ -145,7 +147,9 @@ const Index = () => {
           const mappedProducts: ProductPublic[] = (products || []).map(item => ({
             id: item.id || 0,
             name: item.name || '',
-            tags: Array.isArray(item.tags) ? item.tags : [],
+            // Properly convert Json to string array for tags
+            tags: Array.isArray(item.tags) ? 
+              item.tags.filter((tag: any) => typeof tag === 'string') : [],
             selling_price: item.selling_price || 0,
             category: item.category || '',
             description: item.description || '',
@@ -159,7 +163,13 @@ const Index = () => {
             created_at: item.created_at || '',
             updated_at: item.updated_at || '',
             slug: item.sku,
-            product_images: item.images_list ? (Array.isArray(item.images_list) ? item.images_list : []) : []
+            // Properly convert Json to product images array
+            product_images: item.images_list && Array.isArray(item.images_list) ? 
+              item.images_list.map((img: any, index: number) => ({
+                id: index,
+                image_url: typeof img === 'string' ? img : img?.image_url || '',
+                order: index
+              })) : []
           }));
 
           productsData[categoryName] = mappedProducts;
