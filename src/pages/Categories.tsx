@@ -10,7 +10,6 @@ const Categories = () => {
   const { tagSlug } = useParams();
   const [searchParams] = useSearchParams(); 
 
-  // Use type assertion to avoid generic recursion
   const [products, setProducts] = useState([] as ProductPublic[]);
   const [filteredProducts, setFilteredProducts] = useState([] as ProductPublic[]);
   const [loading, setLoading] = useState(true);
@@ -45,7 +44,6 @@ const Categories = () => {
         console.error('Error fetching categories:', error);
         return;
       }
-      // Use type assertion to prevent recursion
       setCategories((data || []) as any[]);
     } catch (error) {
       console.error('Error fetching categories:', error);
@@ -58,13 +56,14 @@ const Categories = () => {
       const { data, error } = await supabase
         .from('tags')
         .select('*')
-        .eq('slug', tagSlug)
-        .single();
+        .eq('slug', tagSlug);
       if (error) {
         console.error('Error fetching tag:', error);
         return;
       }
-      setCurrentTag(data as any);
+      // Handle array result and get first item
+      const tagData = data && data.length > 0 ? data[0] : null;
+      setCurrentTag(tagData as any);
     } catch (error) {
       console.error('Error fetching tag:', error);
     }
@@ -74,21 +73,20 @@ const Categories = () => {
     try {
       setLoading(true);
       
-      // Get product IDs for tag filtering if needed
       let productIds: number[] = [];
       
       if (tagSlug) {
         const { data: tagData } = await supabase
           .from('tags')
           .select('id')
-          .eq('slug', tagSlug)
-          .single();
+          .eq('slug', tagSlug);
           
-        if (tagData) {
+        if (tagData && tagData.length > 0) {
+          const tagId = (tagData[0] as any).id;
           const { data: productTagData } = await supabase
             .from('product_tags')
             .select('product_id')
-            .eq('tag_id', (tagData as any).id);
+            .eq('tag_id', tagId);
             
           if (productTagData) {
             productIds = (productTagData as any[]).map(pt => pt.product_id);
@@ -96,8 +94,7 @@ const Categories = () => {
         }
       }
 
-      // Simplified query approach with explicit typing
-      let queryResult;
+      let queryResult: any;
       
       if (productIds.length > 0) {
         queryResult = await supabase
@@ -119,21 +116,17 @@ const Categories = () => {
         return;
       }
 
-      // Transform with explicit type handling and assertions
       const transformedProducts: ProductPublic[] = [];
       
       if (rawData) {
-        // Use type assertion to prevent TypeScript recursion
         const safeRawData = rawData as any[];
         
         for (const item of safeRawData) {
-          // Handle tags safely
           let tagsArray: string[] = [];
           if (item.tags && Array.isArray(item.tags)) {
             tagsArray = item.tags.filter((tag: any) => typeof tag === 'string');
           }
 
-          // Handle product images safely
           let productImages: Array<{ id: number; image_url: string; order: number }> = [];
           if (item.images_list && Array.isArray(item.images_list)) {
             productImages = item.images_list.map((img: any, index: number) => ({
@@ -165,7 +158,6 @@ const Categories = () => {
         }
       }
 
-      // Use type assertion to avoid TypeScript recursion
       const safeProducts = transformedProducts as ProductPublic[];
       setProducts(safeProducts);
       setFilteredProducts(safeProducts);
@@ -194,7 +186,6 @@ const Categories = () => {
     setSelectedCategories([]);
   };
 
-  // Filter products based on selected categories and search term
   useEffect(() => {
     let filtered = [...products];
     if (selectedCategories.length > 0) {
