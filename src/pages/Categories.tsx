@@ -1,4 +1,5 @@
 
+
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams } from "react-router-dom"; 
 import { supabase } from "@/integrations/supabase/client";
@@ -94,41 +95,46 @@ const Categories = () => {
         }
       }
 
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .modify((query) => {
-          if (productIds.length > 0) {
-            return query.in('id', productIds);
-          }
-          return query;
-        })
-        .order('created_at', { ascending: false });
+      // Simplified query approach to avoid type issues
+      let query = supabase.from('products').select('*').order('created_at', { ascending: false });
+      
+      if (productIds.length > 0) {
+        query = query.in('id', productIds);
+      }
+      
+      const { data, error } = await query;
       
       if (error) {
         console.error('Error fetching products:', error);
         return;
       }
 
-      const transformedProducts: ProductPublic[] = (data || []).map(item => ({
-        id: item.id,
-        name: item.name || '',
-        selling_price: item.selling_price || 0,
-        category: item.category || '',
-        description: item.description || '',
-        image: item.image || '',
-        product_status: item.product_status || 'พรีออเดอร์',
-        sku: item.sku || '',
-        quantity: item.quantity || 0,
-        shipment_date: item.shipment_date || '',
-        options: item.options || null,
-        product_type: item.product_type || 'ETC',
-        created_at: item.created_at || '',
-        updated_at: item.updated_at || '',
-        slug: item.slug || '',
-        tags: [],
-        product_images: []
-      }));
+      // Simple transformation with explicit typing
+      const transformedProducts: ProductPublic[] = [];
+      
+      if (data) {
+        for (const item of data) {
+          transformedProducts.push({
+            id: item.id,
+            name: item.name || '',
+            selling_price: item.selling_price || 0,
+            category: item.category || '',
+            description: item.description || '',
+            image: item.image || '',
+            product_status: item.product_status || 'พรีออเดอร์',
+            sku: item.sku || '',
+            quantity: item.quantity || 0,
+            shipment_date: item.shipment_date || '',
+            options: item.options || null,
+            product_type: item.product_type || 'ETC',
+            created_at: item.created_at || '',
+            updated_at: item.updated_at || '',
+            slug: item.slug || '',
+            tags: [],
+            product_images: []
+          });
+        }
+      }
 
       setProducts(transformedProducts);
       setFilteredProducts(transformedProducts);
@@ -220,3 +226,4 @@ const Categories = () => {
 };
 
 export default Categories;
+
