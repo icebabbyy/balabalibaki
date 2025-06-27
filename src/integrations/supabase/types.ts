@@ -711,6 +711,10 @@ export type Database = {
         Args: { p_data: Json }
         Returns: Json
       }
+      upsert_product_with_tags: {
+        Args: { p_data: Json }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

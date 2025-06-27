@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -99,7 +98,6 @@ const ProductCard = ({ product }: { product: ProductPublic }) => {
             ฿{product.selling_price?.toLocaleString()}
           </span>
         </div>
-        {/* วางโค้ดส่วนนี้เข้าไปใต้ราคาได้เลย */}
         {product.tags && product.tags.length > 0 && (
           <div className="flex flex-wrap gap-1 mb-3">
             {product.tags.map((tag) => (
@@ -108,7 +106,7 @@ const ProductCard = ({ product }: { product: ProductPublic }) => {
                 variant="outline"
                 className="cursor-pointer hover:bg-amber-100 border-amber-300 text-amber-800"
                 onClick={(e) => {
-                  e.stopPropagation(); // ป้องกันไม่ให้ Card ทั้งใบถูกคลิกไปด้วย
+                  e.stopPropagation();
                   navigate(`/products/tag/${tag}`);
                 }}
               >
