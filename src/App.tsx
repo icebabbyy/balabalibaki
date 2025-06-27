@@ -37,9 +37,9 @@ const App = () => (
           <div className="flex-grow">
             <Routes>
               <Route path="/" element={<Index />} />
+              <Route path="/products/tag/:tagName" element={<ProductsByTag />} />
               <Route path="/categories" element={<Categories />} />
               <Route path="/product/:slug" element={<ProductDetail />} />
-              <Route path="/products/tag/:tagName" element={<ProductsByTag />} />
               <Route path="/tag/:tag" element={<TagProductPage />} />
               <Route path="/qa" element={<QA />} />
               <Route path="/reviews" element={<Reviews />} />
