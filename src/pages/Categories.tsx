@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams } from "react-router-dom"; 
 import { supabase } from "@/integrations/supabase/client";
@@ -73,7 +72,7 @@ const Categories = () => {
     try {
       let query = supabase
         .from('products')
-        .select(`*, product_images (id, image_url, "order")`)
+        .select('id, name, selling_price, category, description, image, product_status, sku, quantity, shipment_date, options, product_type, created_at, updated_at, slug')
         .order('created_at', { ascending: false });
 
       if (tagSlug) {
@@ -93,39 +92,33 @@ const Categories = () => {
         return;
       }
 
-      // Simplify the transformation to avoid type issues
-      const transformedProducts = (data || []).map(product => {
-        const baseProduct: ProductPublic = {
-          id: product.id,
-          name: product.name,
-          selling_price: product.selling_price,
-          category: product.category,
-          description: product.description,
-          image: product.image,
-          product_status: product.product_status,
-          sku: product.sku,
-          quantity: product.quantity,
-          shipment_date: product.shipment_date,
-          options: product.options,
-          product_type: product.product_type,
-          created_at: product.created_at,
-          updated_at: product.updated_at,
-          slug: product.slug,
-          tags: [],
-          product_images: []
-        };
-
-        // Handle product images separately to avoid type issues
-        if (product.product_images && Array.isArray(product.product_images)) {
-          baseProduct.product_images = product.product_images.map((img: any) => ({
-            id: img.id || 0,
-            image_url: img.image_url || '',
-            order: img.order || 0
-          }));
+      // Simple transformation without complex type inference
+      const transformedProducts: ProductPublic[] = [];
+      
+      if (data) {
+        for (const item of data) {
+          const product: ProductPublic = {
+            id: item.id || 0,
+            name: item.name || '',
+            selling_price: item.selling_price || 0,
+            category: item.category || '',
+            description: item.description || '',
+            image: item.image || '',
+            product_status: item.product_status || 'พรีออเดอร์',
+            sku: item.sku || '',
+            quantity: item.quantity || 0,
+            shipment_date: item.shipment_date || '',
+            options: item.options || null,
+            product_type: item.product_type || 'ETC',
+            created_at: item.created_at || '',
+            updated_at: item.updated_at || '',
+            slug: item.slug || '',
+            tags: [],
+            product_images: []
+          };
+          transformedProducts.push(product);
         }
-
-        return baseProduct;
-      });
+      }
 
       setProducts(transformedProducts);
       setFilteredProducts(transformedProducts);
