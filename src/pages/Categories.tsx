@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams } from "react-router-dom"; 
 import { supabase } from "@/integrations/supabase/client";
@@ -93,22 +94,23 @@ const Categories = () => {
         }
       }
 
-      // Simplified approach - avoid complex type assertions
-      let query = supabase.from('products').select('*');
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .modify((query) => {
+          if (productIds.length > 0) {
+            return query.in('id', productIds);
+          }
+          return query;
+        })
+        .order('created_at', { ascending: false });
       
-      if (productIds.length > 0) {
-        query = query.in('id', productIds);
-      }
-      
-      const result = await query.order('created_at', { ascending: false });
-      
-      if (result.error) {
-        console.error('Error fetching products:', result.error);
+      if (error) {
+        console.error('Error fetching products:', error);
         return;
       }
 
-      // Transform data safely
-      const transformedProducts: ProductPublic[] = (result.data || []).map((item: any) => ({
+      const transformedProducts: ProductPublic[] = (data || []).map(item => ({
         id: item.id,
         name: item.name || '',
         selling_price: item.selling_price || 0,
