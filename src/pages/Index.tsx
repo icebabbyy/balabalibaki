@@ -80,25 +80,25 @@ const Index = () => {
         .select('*')
         .limit(8);
       
-   const mappedProducts: ProductPublic[] = (data || []).map(item => ({
-  id: item.id || 0,
-  name: item.name || '', // ใช้ item.name ที่ถูกต้อง
-  selling_price: item.selling_price || 0,
-  category: item.category || '',
-  description: item.description || '',
-  image: item.image || '',
-  product_status: item.product_status || 'พรีออเดอร์',
-  sku: item.sku || '',                       // แก้จาก product_sku
-  quantity: item.quantity || 0,
-  shipment_date: item.shipment_date || '',
-  options: item.options || null,
-  images_list: item.images_list || [],     // แก้จาก all_images
-  product_type: item.product_type || 'ETC',
-  created_at: item.created_at || '',
-  updated_at: item.updated_at || '',
-  tags: item.tags || [],
-  slug: item.slug || String(item.id)         // แก้ไขให้ใช้ slug จริงๆ
-}));
+      const mappedProducts: ProductPublic[] = (data || []).map(item => ({
+        id: item.id || 0,
+        name: item.name || '',
+        selling_price: item.selling_price || 0,
+        category: item.category || '',
+        description: item.description || '',
+        image: item.image || '',
+        product_status: item.product_status || 'พรีออเดอร์',
+        sku: item.sku || '',
+        quantity: item.quantity || 0,
+        shipment_date: item.shipment_date || '',
+        options: item.options || null,
+        product_type: item.product_type || 'ETC',
+        created_at: item.created_at || '',
+        updated_at: item.updated_at || '',
+        tags: Array.isArray(item.tags) ? item.tags : [],
+        slug: item.slug || String(item.id),
+        product_images: []
+      }));
       
       setFeaturedProducts(mappedProducts);
     } catch (error) {
@@ -145,7 +145,7 @@ const Index = () => {
           const mappedProducts: ProductPublic[] = (products || []).map(item => ({
             id: item.id || 0,
             name: item.name || '',
-            tags: item.tags || [],
+            tags: Array.isArray(item.tags) ? item.tags : [],
             selling_price: item.selling_price || 0,
             category: item.category || '',
             description: item.description || '',
@@ -154,12 +154,12 @@ const Index = () => {
             sku: item.sku || '',
             quantity: 0,
             shipment_date: item.shipment_date || '',
-            options: item.all_images || null,
+            options: item.options || null,
             product_type: item.product_type || 'ETC',
             created_at: item.created_at || '',
             updated_at: item.updated_at || '',
-          
-            slug: item.sku // Use SKU as slug fallback
+            slug: item.sku,
+            product_images: item.images_list ? (Array.isArray(item.images_list) ? item.images_list : []) : []
           }));
 
           productsData[categoryName] = mappedProducts;

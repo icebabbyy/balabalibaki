@@ -1,5 +1,5 @@
+
 import { useState, useEffect } from "react";
-// --- 1. แก้ไข: import useSearchParams เพิ่มเข้ามา ---
 import { useParams, useSearchParams } from "react-router-dom"; 
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
@@ -9,7 +9,6 @@ import { ProductPublic } from "@/types/product";
 
 const Categories = () => {
   const { tagSlug } = useParams();
-  // --- 2. แก้ไข: สร้างตัวแปรเพื่ออ่านค่าจาก URL ---
   const [searchParams] = useSearchParams(); 
 
   const [products, setProducts] = useState<ProductPublic[]>([]);
@@ -20,10 +19,8 @@ const Categories = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentTag, setCurrentTag] = useState<any>(null);
 
-  // --- 3. แก้ไข: อ่านค่า 'category' จาก URL มาเก็บไว้ ---
   const initialCategoryFromUrl = searchParams.get('category');
 
-  // useEffect หลักของคุณ สำหรับดึงข้อมูล αρχικά
   useEffect(() => {
     fetchCategories();
     fetchProducts();
@@ -32,11 +29,8 @@ const Categories = () => {
     }
   }, [tagSlug]);
 
-  // --- 4. แก้ไข: เพิ่ม useEffect ใหม่ เพื่อตั้งค่า Filter เริ่มต้นจาก URL ---
-  // useEffect นี้จะทำงานแค่ครั้งเดียวตอนเปิดหน้า หรือเมื่อค่า category ใน URL เปลี่ยนไป
   useEffect(() => {
     if (initialCategoryFromUrl) {
-      // ถ้าใน URL มี ?category=... ให้ตั้งค่านั้นเป็นหมวดหมู่ที่ถูกเลือก
       setSelectedCategories([initialCategoryFromUrl]);
     }
   }, [initialCategoryFromUrl]);
@@ -76,7 +70,6 @@ const Categories = () => {
   };
 
   const fetchProducts = async () => {
-    // โค้ด fetchProducts เดิมของคุณ (ทำงานได้ดีอยู่แล้ว)
     try {
       let query = supabase
         .from('products')
@@ -100,7 +93,7 @@ const Categories = () => {
         return;
       }
 
-      const transformedProducts: ProductPublic[] = data?.map(product => ({
+      const transformedProducts: ProductPublic[] = (data || []).map(product => ({
         id: product.id,
         name: product.name,
         selling_price: product.selling_price,
@@ -116,11 +109,12 @@ const Categories = () => {
         created_at: product.created_at,
         updated_at: product.updated_at,
         slug: product.slug,
+        tags: [],
         product_images: product.product_images || []
-      })) || [];
+      }));
 
       setProducts(transformedProducts);
-      setFilteredProducts(transformedProducts); // ตั้งค่าเริ่มต้น
+      setFilteredProducts(transformedProducts);
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -131,8 +125,6 @@ const Categories = () => {
   const handleProductClick = (productId: number) => {
     const product = products.find(p => p.id === productId);
     const slug = product?.slug || productId.toString();
-    // แนะนำให้ใช้ navigate ของ react-router-dom แทน window.location.href เพื่อประสบการณ์ใช้งานที่ดีกว่า
-    // แต่โค้ดเดิมก็ทำงานได้ครับ
     window.location.href = `/product/${slug}`;
   };
 
@@ -148,8 +140,7 @@ const Categories = () => {
     setSelectedCategories([]);
   };
 
-  // useEffect สำหรับกรองสินค้า (โค้ดเดิมของคุณ ทำงานถูกต้องแล้ว)
-  // มันจะทำงานอัตโนมัติเมื่อ selectedCategories ถูกตั้งค่าจาก URL
+  // Filter products based on selected categories and search term
   useEffect(() => {
     let filtered = [...products];
     if (selectedCategories.length > 0) {
@@ -167,15 +158,31 @@ const Categories = () => {
   }, [products, selectedCategories, searchTerm]);
 
   if (loading) {
-    // ... UI ตอนโหลด ...
-    return <div>Loading...</div>;
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-4xl mx-auto text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+            <p className="text-purple-600 font-medium">กำลังโหลดสินค้า...</p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
       <div className="container mx-auto px-4 py-8">
-        {/* ... ส่วนหัว Title ... */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+            {currentTag ? `สินค้าแท็ก: ${currentTag.name}` : 'หมวดหมู่สินค้า'}
+          </h1>
+          <p className="text-gray-600">
+            {currentTag ? `ค้นหาสินค้าที่มีแท็ก "${currentTag.name}"` : 'เลือกหมวดหมู่สินค้าที่ต้องการ'}
+          </p>
+        </div>
         
         <CategoryFilters
           searchTerm={searchTerm}
