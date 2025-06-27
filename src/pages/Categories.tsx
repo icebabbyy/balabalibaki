@@ -7,38 +7,16 @@ import CategoryFilters from "@/components/categories/CategoryFilters";
 import ProductGrid from "@/components/categories/ProductGrid";
 import { ProductPublic } from "@/types/product";
 
-// Simple interface to avoid complex type inference
-interface RawProductData {
-  id: any;
-  name: any;
-  selling_price: any;
-  category: any;
-  description: any;
-  image: any;
-  product_status: any;
-  sku: any;
-  quantity: any;
-  shipment_date: any;
-  options: any;
-  product_type: any;
-  created_at: any;
-  updated_at: any;
-  slug: any;
-  tags: any;
-  images_list: any;
-}
-
 const Categories = () => {
   const { tagSlug } = useParams();
   const [searchParams] = useSearchParams(); 
 
-  // Use explicit type assertions to avoid deep type inference
-  const [products, setProducts] = useState<ProductPublic[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<ProductPublic[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [products, setProducts] = useState([] as ProductPublic[]);
+  const [filteredProducts, setFilteredProducts] = useState([] as ProductPublic[]);
+  const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [currentTag, setCurrentTag] = useState<any>(null);
 
   const initialCategoryFromUrl = searchParams.get('category');
@@ -57,7 +35,7 @@ const Categories = () => {
     }
   }, [initialCategoryFromUrl]);
 
-  const fetchCategories = async (): Promise<void> => {
+  const fetchCategories = async () => {
     try {
       const { data, error } = await supabase
         .from('categories')
@@ -74,7 +52,7 @@ const Categories = () => {
     }
   };
 
-  const fetchTagInfo = async (): Promise<void> => {
+  const fetchTagInfo = async () => {
     if (!tagSlug) return;
     try {
       const { data, error } = await supabase
@@ -93,7 +71,7 @@ const Categories = () => {
     }
   };
 
-  const getProductIdsByTag = async (tagSlug: string): Promise<number[]> => {
+  const getProductIdsByTag = async (tagSlug: string) => {
     const { data: tagData } = await supabase
       .from('tags')
       .select('id')
@@ -113,8 +91,8 @@ const Categories = () => {
     return [];
   };
 
-  const transformProductData = (rawData: any[]): ProductPublic[] => {
-    return rawData.map((item: RawProductData): ProductPublic => {
+  const transformProductData = (rawData: any[]) => {
+    return rawData.map((item: any) => {
       const tagsArray: string[] = [];
       if (item.tags && Array.isArray(item.tags)) {
         item.tags.forEach((tag: any) => {
@@ -163,11 +141,11 @@ const Categories = () => {
         slug: String(item.slug) || '',
         tags: tagsArray,
         product_images: productImages
-      };
+      } as ProductPublic;
     });
   };
 
-  const fetchProducts = async (): Promise<void> => {
+  const fetchProducts = async () => {
     try {
       setLoading(true);
       
@@ -177,14 +155,15 @@ const Categories = () => {
         productIds = await getProductIdsByTag(tagSlug);
       }
 
-      const query = supabase
-        .from('public_products')
-        .select('*')
-        .order('created_at', { ascending: false });
+      let query = supabase.from('public_products').select('*');
       
-      const { data, error } = productIds.length > 0 
-        ? await query.in('id', productIds)
-        : await query;
+      if (productIds.length > 0) {
+        query = query.in('id', productIds);
+      }
+      
+      query = query.order('created_at', { ascending: false });
+      
+      const { data, error } = await query;
       
       if (error) {
         console.error('Error fetching products:', error);
@@ -203,13 +182,13 @@ const Categories = () => {
     }
   };
 
-  const handleProductClick = (productId: number): void => {
+  const handleProductClick = (productId: number) => {
     const product = products.find(p => p.id === productId);
     const slug = product?.slug || productId.toString();
     window.location.href = `/product/${slug}`;
   };
 
-  const handleCategoryChange = (categoryName: string, checked: boolean): void => {
+  const handleCategoryChange = (categoryName: string, checked: boolean) => {
     if (checked) {
       setSelectedCategories(prev => [...prev, categoryName]);
     } else {
@@ -217,7 +196,7 @@ const Categories = () => {
     }
   };
 
-  const handleClearSelection = (): void => {
+  const handleClearSelection = () => {
     setSelectedCategories([]);
   };
 
