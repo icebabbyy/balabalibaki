@@ -109,7 +109,7 @@ const ProductCard = ({ product }: { product: ProductPublic }) => {
                 className="cursor-pointer hover:bg-amber-100 border-amber-300 text-amber-800"
                 onClick={(e) => {
                   e.stopPropagation(); // ป้องกันไม่ให้ Card ทั้งใบถูกคลิกไปด้วย
-                  navigate(`/tag/${encodeURIComponent(tag)}`);
+                  navigate(`/products/tag/${tag}`);
                 }}
               >
                 #{tag}
