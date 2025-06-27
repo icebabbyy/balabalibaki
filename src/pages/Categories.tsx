@@ -7,6 +7,26 @@ import CategoryFilters from "@/components/categories/CategoryFilters";
 import ProductGrid from "@/components/categories/ProductGrid";
 import { ProductPublic } from "@/types/product";
 
+interface SupabaseProductRow {
+  id: number;
+  name: string;
+  selling_price: number;
+  category: string;
+  description: string;
+  image: string;
+  product_status: string;
+  sku: string;
+  quantity: number;
+  shipment_date: string;
+  options: any;
+  product_type: string;
+  created_at: string;
+  updated_at: string;
+  slug: string;
+  tags: any;
+  images_list: any;
+}
+
 const Categories = () => {
   const { tagSlug } = useParams();
   const [searchParams] = useSearchParams(); 
@@ -37,16 +57,16 @@ const Categories = () => {
 
   const fetchCategories = async () => {
     try {
-      const { data, error } = await supabase
+      const categoryResult = await supabase
         .from('categories')
         .select('*')
         .order('name');
       
-      if (error) {
-        console.error('Error fetching categories:', error);
+      if (categoryResult.error) {
+        console.error('Error fetching categories:', categoryResult.error);
         return;
       }
-      setCategories(data || []);
+      setCategories(categoryResult.data || []);
     } catch (error) {
       console.error('Error fetching categories:', error);
     }
@@ -55,16 +75,16 @@ const Categories = () => {
   const fetchTagInfo = async () => {
     if (!tagSlug) return;
     try {
-      const { data, error } = await supabase
+      const tagResult = await supabase
         .from('tags')
         .select('*')
         .eq('slug', tagSlug);
       
-      if (error) {
-        console.error('Error fetching tag:', error);
+      if (tagResult.error) {
+        console.error('Error fetching tag:', tagResult.error);
         return;
       }
-      const tagData = data && data.length > 0 ? data[0] : null;
+      const tagData = tagResult.data && tagResult.data.length > 0 ? tagResult.data[0] : null;
       setCurrentTag(tagData);
     } catch (error) {
       console.error('Error fetching tag:', error);
@@ -78,20 +98,20 @@ const Categories = () => {
       let productIds: number[] = [];
       
       if (tagSlug) {
-        const { data: tagData } = await supabase
+        const tagResult = await supabase
           .from('tags')
           .select('id')
           .eq('slug', tagSlug);
           
-        if (tagData && tagData.length > 0) {
-          const tagId = tagData[0].id;
-          const { data: productTagData } = await supabase
+        if (tagResult.data && tagResult.data.length > 0) {
+          const tagId = tagResult.data[0].id;
+          const productTagResult = await supabase
             .from('product_tags')
             .select('product_id')
             .eq('tag_id', tagId);
             
-          if (productTagData) {
-            productIds = productTagData.map((pt: any) => pt.product_id);
+          if (productTagResult.data) {
+            productIds = productTagResult.data.map((pt: any) => pt.product_id);
           }
         }
       }
@@ -105,17 +125,17 @@ const Categories = () => {
         productQuery = productQuery.in('id', productIds);
       }
       
-      const { data: rawProducts, error } = await productQuery;
+      const productResult = await productQuery;
       
-      if (error) {
-        console.error('Error fetching products:', error);
+      if (productResult.error) {
+        console.error('Error fetching products:', productResult.error);
         return;
       }
 
       const transformedProducts: ProductPublic[] = [];
-      const productData = rawProducts || [];
+      const rawProducts = productResult.data as SupabaseProductRow[] || [];
       
-      for (const item of productData) {
+      for (const item of rawProducts) {
         const tagsArray: string[] = [];
         if (item.tags && Array.isArray(item.tags)) {
           for (const tag of item.tags) {
@@ -129,11 +149,21 @@ const Categories = () => {
         if (item.images_list && Array.isArray(item.images_list)) {
           for (let index = 0; index < item.images_list.length; index++) {
             const img = item.images_list[index];
-            productImages.push({
-              id: index,
-              image_url: typeof img === 'string' ? img : (img?.image_url || ''),
-              order: index
-            });
+            let imageUrl = '';
+            
+            if (typeof img === 'string') {
+              imageUrl = img;
+            } else if (img && typeof img === 'object' && 'image_url' in img) {
+              imageUrl = String(img.image_url || '');
+            }
+            
+            if (imageUrl) {
+              productImages.push({
+                id: index,
+                image_url: imageUrl,
+                order: index
+              });
+            }
           }
         }
 
