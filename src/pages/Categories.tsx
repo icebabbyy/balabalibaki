@@ -71,62 +71,66 @@ const Categories = () => {
 
   const fetchProducts = async () => {
     try {
-      // Use explicit typing to avoid deep type inference
-      let query = supabase
-        .from('products')
-        .select('*')
-        .order('created_at', { ascending: false });
-
+      setLoading(true);
+      
+      // Simplified query without complex type chaining
+      let productIds: number[] = [];
+      
       if (tagSlug) {
-        const { data: tagData } = await supabase.from('tags').select('id').eq('slug', tagSlug).single();
-        if (tagData) {
-          const { data: productTagData } = await supabase.from('product_tags').select('product_id').eq('tag_id', tagData.id);
-          if (productTagData) {
-            const productIds = productTagData.map(pt => pt.product_id);
-            query = query.in('id', productIds);
+        const tagResponse = await supabase
+          .from('tags')
+          .select('id')
+          .eq('slug', tagSlug)
+          .single();
+          
+        if (tagResponse.data) {
+          const productTagResponse = await supabase
+            .from('product_tags')
+            .select('product_id')
+            .eq('tag_id', tagResponse.data.id);
+            
+          if (productTagResponse.data) {
+            productIds = productTagResponse.data.map(pt => pt.product_id);
           }
         }
       }
 
-      const response = await query;
-      const data = response.data;
-      const error = response.error;
+      // Simple, direct query
+      const baseQuery = supabase.from('products').select('*');
+      const finalQuery = productIds.length > 0 
+        ? baseQuery.in('id', productIds)
+        : baseQuery;
+      
+      const { data: rawProducts, error } = await finalQuery.order('created_at', { ascending: false });
       
       if (error) {
         console.error('Error fetching products:', error);
         return;
       }
 
-      // Manual transformation to avoid type inference issues
-      const transformedProducts: ProductPublic[] = [];
-      
-      if (data) {
-        data.forEach((item: any) => {
-          const product: ProductPublic = {
-            id: Number(item.id) || 0,
-            name: String(item.name) || '',
-            selling_price: Number(item.selling_price) || 0,
-            category: String(item.category) || '',
-            description: String(item.description) || '',
-            image: String(item.image) || '',
-            product_status: String(item.product_status) || 'พรีออเดอร์',
-            sku: String(item.sku) || '',
-            quantity: Number(item.quantity) || 0,
-            shipment_date: String(item.shipment_date) || '',
-            options: item.options || null,
-            product_type: String(item.product_type) || 'ETC',
-            created_at: String(item.created_at) || '',
-            updated_at: String(item.updated_at) || '',
-            slug: String(item.slug) || '',
-            tags: [],
-            product_images: []
-          };
-          transformedProducts.push(product);
-        });
-      }
+      // Direct transformation without complex inference
+      const products: ProductPublic[] = (rawProducts || []).map((item: any) => ({
+        id: item.id,
+        name: item.name || '',
+        selling_price: item.selling_price || 0,
+        category: item.category || '',
+        description: item.description || '',
+        image: item.image || '',
+        product_status: item.product_status || 'พรีออเดอร์',
+        sku: item.sku || '',
+        quantity: item.quantity || 0,
+        shipment_date: item.shipment_date || '',
+        options: item.options || null,
+        product_type: item.product_type || 'ETC',
+        created_at: item.created_at || '',
+        updated_at: item.updated_at || '',
+        slug: item.slug || '',
+        tags: [],
+        product_images: []
+      }));
 
-      setProducts(transformedProducts);
-      setFilteredProducts(transformedProducts);
+      setProducts(products);
+      setFilteredProducts(products);
     } catch (error) {
       console.error('Error:', error);
     } finally {
