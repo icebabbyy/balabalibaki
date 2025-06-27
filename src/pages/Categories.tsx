@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams } from "react-router-dom"; 
 import { supabase } from "@/integrations/supabase/client";
@@ -11,10 +10,10 @@ const Categories = () => {
   const { tagSlug } = useParams();
   const [searchParams] = useSearchParams(); 
 
-  const [products, setProducts] = useState([] as ProductPublic[]);
-  const [filteredProducts, setFilteredProducts] = useState([] as ProductPublic[]);
+  const [products, setProducts] = useState<ProductPublic[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<ProductPublic[]>([]);
   const [loading, setLoading] = useState(true);
-  const [categories, setCategories] = useState([] as any[]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentTag, setCurrentTag] = useState<any>(null);
@@ -46,7 +45,7 @@ const Categories = () => {
         console.error('Error fetching categories:', result.error);
         return;
       }
-      setCategories((result.data || []) as any[]);
+      setCategories(result.data || []);
     } catch (error) {
       console.error('Error fetching categories:', error);
     }
@@ -64,8 +63,9 @@ const Categories = () => {
         console.error('Error fetching tag:', result.error);
         return;
       }
-      const tagData = result.data && result.data.length > 0 ? result.data[0] : null;
-      setCurrentTag(tagData as any);
+      const tags = result.data || [];
+      const tagData = tags.length > 0 ? tags[0] : null;
+      setCurrentTag(tagData);
     } catch (error) {
       console.error('Error fetching tag:', error);
     }
@@ -83,16 +83,16 @@ const Categories = () => {
           .select('id')
           .eq('slug', tagSlug);
           
-        if (tagResult.data && tagResult.data.length > 0) {
-          const tagId = (tagResult.data[0] as any).id;
+        const tagData = tagResult.data || [];
+        if (tagData.length > 0) {
+          const tagId = tagData[0].id;
           const productTagResult = await supabase
             .from('product_tags')
             .select('product_id')
             .eq('tag_id', tagId);
             
-          if (productTagResult.data) {
-            productIds = (productTagResult.data as any[]).map(pt => pt.product_id);
-          }
+          const productTagData = productTagResult.data || [];
+          productIds = productTagData.map((pt: any) => pt.product_id);
         }
       }
 
@@ -117,50 +117,46 @@ const Categories = () => {
       }
 
       const transformedProducts: ProductPublic[] = [];
+      const rawData = productResult.data || [];
       
-      if (productResult.data) {
-        const safeRawData = productResult.data as any[];
-        
-        for (const item of safeRawData) {
-          let tagsArray: string[] = [];
-          if (item.tags && Array.isArray(item.tags)) {
-            tagsArray = item.tags.filter((tag: any) => typeof tag === 'string');
-          }
-
-          let productImages: Array<{ id: number; image_url: string; order: number }> = [];
-          if (item.images_list && Array.isArray(item.images_list)) {
-            productImages = item.images_list.map((img: any, index: number) => ({
-              id: index,
-              image_url: typeof img === 'string' ? img : (img?.image_url || ''),
-              order: index
-            }));
-          }
-
-          transformedProducts.push({
-            id: item.id || 0,
-            name: item.name || '',
-            selling_price: item.selling_price || 0,
-            category: item.category || '',
-            description: item.description || '',
-            image: item.image || '',
-            product_status: item.product_status || 'พรีออเดอร์',
-            sku: item.sku || '',
-            quantity: item.quantity || 0,
-            shipment_date: item.shipment_date || '',
-            options: item.options || null,
-            product_type: item.product_type || 'ETC',
-            created_at: item.created_at || '',
-            updated_at: item.updated_at || '',
-            slug: item.slug || '',
-            tags: tagsArray,
-            product_images: productImages
-          });
+      for (const item of rawData) {
+        let tagsArray: string[] = [];
+        if (item.tags && Array.isArray(item.tags)) {
+          tagsArray = item.tags.filter((tag: any) => typeof tag === 'string');
         }
+
+        let productImages: Array<{ id: number; image_url: string; order: number }> = [];
+        if (item.images_list && Array.isArray(item.images_list)) {
+          productImages = item.images_list.map((img: any, index: number) => ({
+            id: index,
+            image_url: typeof img === 'string' ? img : (img?.image_url || ''),
+            order: index
+          }));
+        }
+
+        transformedProducts.push({
+          id: item.id || 0,
+          name: item.name || '',
+          selling_price: item.selling_price || 0,
+          category: item.category || '',
+          description: item.description || '',
+          image: item.image || '',
+          product_status: item.product_status || 'พรีออเดอร์',
+          sku: item.sku || '',
+          quantity: item.quantity || 0,
+          shipment_date: item.shipment_date || '',
+          options: item.options || null,
+          product_type: item.product_type || 'ETC',
+          created_at: item.created_at || '',
+          updated_at: item.updated_at || '',
+          slug: item.slug || '',
+          tags: tagsArray,
+          product_images: productImages
+        });
       }
 
-      const safeProducts = transformedProducts as ProductPublic[];
-      setProducts(safeProducts);
-      setFilteredProducts(safeProducts);
+      setProducts(transformedProducts);
+      setFilteredProducts(transformedProducts);
     } catch (error) {
       console.error('Error:', error);
     } finally {
