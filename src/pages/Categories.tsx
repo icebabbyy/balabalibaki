@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams } from "react-router-dom"; 
 import { supabase } from "@/integrations/supabase/client";
@@ -73,7 +72,6 @@ const Categories = () => {
     try {
       setLoading(true);
       
-      // Simplified query without complex type chaining
       let productIds: number[] = [];
       
       if (tagSlug) {
@@ -95,42 +93,48 @@ const Categories = () => {
         }
       }
 
-      // Simple, direct query
+      // Use explicit type annotation to avoid inference issues
       const baseQuery = supabase.from('products').select('*');
       const finalQuery = productIds.length > 0 
         ? baseQuery.in('id', productIds)
         : baseQuery;
       
-      const { data: rawProducts, error } = await finalQuery.order('created_at', { ascending: false });
+      const response = await finalQuery.order('created_at', { ascending: false });
       
-      if (error) {
-        console.error('Error fetching products:', error);
+      if (response.error) {
+        console.error('Error fetching products:', response.error);
         return;
       }
 
-      // Direct transformation without complex inference
-      const products: ProductPublic[] = (rawProducts || []).map((item: any) => ({
-        id: item.id,
-        name: item.name || '',
-        selling_price: item.selling_price || 0,
-        category: item.category || '',
-        description: item.description || '',
-        image: item.image || '',
-        product_status: item.product_status || 'พรีออเดอร์',
-        sku: item.sku || '',
-        quantity: item.quantity || 0,
-        shipment_date: item.shipment_date || '',
-        options: item.options || null,
-        product_type: item.product_type || 'ETC',
-        created_at: item.created_at || '',
-        updated_at: item.updated_at || '',
-        slug: item.slug || '',
-        tags: [],
-        product_images: []
-      }));
+      // Transform with explicit typing to avoid deep inference
+      const transformedProducts: ProductPublic[] = [];
+      const rawData = response.data || [];
+      
+      for (const item of rawData) {
+        const product: ProductPublic = {
+          id: item.id,
+          name: item.name || '',
+          selling_price: item.selling_price || 0,
+          category: item.category || '',
+          description: item.description || '',
+          image: item.image || '',
+          product_status: item.product_status || 'พรีออเดอร์',
+          sku: item.sku || '',
+          quantity: item.quantity || 0,
+          shipment_date: item.shipment_date || '',
+          options: item.options || null,
+          product_type: item.product_type || 'ETC',
+          created_at: item.created_at || '',
+          updated_at: item.updated_at || '',
+          slug: item.slug || '',
+          tags: [],
+          product_images: []
+        };
+        transformedProducts.push(product);
+      }
 
-      setProducts(products);
-      setFilteredProducts(products);
+      setProducts(transformedProducts);
+      setFilteredProducts(transformedProducts);
     } catch (error) {
       console.error('Error:', error);
     } finally {
