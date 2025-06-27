@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams } from "react-router-dom"; 
 import { supabase } from "@/integrations/supabase/client";
@@ -7,17 +6,31 @@ import CategoryFilters from "@/components/categories/CategoryFilters";
 import ProductGrid from "@/components/categories/ProductGrid";
 import { ProductPublic } from "@/types/product";
 
+interface Category {
+  id: number;
+  name: string;
+  image: string;
+  display_on_homepage: boolean;
+  homepage_order: number;
+}
+
+interface Tag {
+  id: number;
+  name: string;
+  slug: string;
+}
+
 const Categories = () => {
   const { tagSlug } = useParams();
   const [searchParams] = useSearchParams(); 
 
-  const [products, setProducts] = useState([] as ProductPublic[]);
-  const [filteredProducts, setFilteredProducts] = useState([] as ProductPublic[]);
+  const [products, setProducts] = useState<ProductPublic[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<ProductPublic[]>([]);
   const [loading, setLoading] = useState(true);
-  const [categories, setCategories] = useState([] as any[]);
-  const [selectedCategories, setSelectedCategories] = useState([] as string[]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [currentTag, setCurrentTag] = useState(null as any);
+  const [currentTag, setCurrentTag] = useState<Tag | null>(null);
 
   const initialCategoryFromUrl = searchParams.get('category');
 
@@ -37,18 +50,16 @@ const Categories = () => {
 
   const fetchCategories = async () => {
     try {
-      const query = supabase
+      const { data, error } = await supabase
         .from('categories')
         .select('*')
         .order('name');
       
-      const result = await query;
-      
-      if (result.error) {
-        console.error('Error fetching categories:', result.error);
+      if (error) {
+        console.error('Error fetching categories:', error);
         return;
       }
-      setCategories(result.data || []);
+      setCategories((data as Category[]) || []);
     } catch (error) {
       console.error('Error fetching categories:', error);
     }
@@ -57,43 +68,37 @@ const Categories = () => {
   const fetchTagInfo = async () => {
     if (!tagSlug) return;
     try {
-      const query = supabase
+      const { data, error } = await supabase
         .from('tags')
         .select('*')
         .eq('slug', tagSlug);
       
-      const result = await query;
-      
-      if (result.error) {
-        console.error('Error fetching tag:', result.error);
+      if (error) {
+        console.error('Error fetching tag:', error);
         return;
       }
-      const tagData = result.data && result.data.length > 0 ? result.data[0] : null;
-      setCurrentTag(tagData);
+      const tagData = (data as Tag[]) || [];
+      setCurrentTag(tagData.length > 0 ? tagData[0] : null);
     } catch (error) {
       console.error('Error fetching tag:', error);
     }
   };
 
-  const getProductIdsByTag = async (tagSlug: string) => {
-    const tagQuery = supabase
+  const getProductIdsByTag = async (tagSlug: string): Promise<number[]> => {
+    const { data: tagData } = await supabase
       .from('tags')
       .select('id')
       .eq('slug', tagSlug);
-    
-    const tagResult = await tagQuery;
         
-    if (tagResult.data && tagResult.data.length > 0) {
-      const tagId = tagResult.data[0].id;
-      const productTagQuery = supabase
+    if (tagData && tagData.length > 0) {
+      const tagId = tagData[0].id;
+      const { data: productTagData } = await supabase
         .from('product_tags')
         .select('product_id')
         .eq('tag_id', tagId);
-      
-      const productTagResult = await productTagQuery;
         
-      if (productTagResult.data) {
-        return productTagResult.data.map((pt: any) => pt.product_id);
+      if (productTagData) {
+        return productTagData.map((pt: { product_id: number }) => pt.product_id);
       }
     }
     return [];
@@ -163,23 +168,22 @@ const Categories = () => {
         productIds = await getProductIdsByTag(tagSlug);
       }
 
-      const baseQuery = supabase.from('public_products').select('*');
-      let finalQuery = baseQuery;
+      let query = supabase.from('public_products').select('*');
       
       if (productIds.length > 0) {
-        finalQuery = baseQuery.in('id', productIds);
+        query = query.in('id', productIds);
       }
       
-      finalQuery = finalQuery.order('created_at', { ascending: false });
+      query = query.order('created_at', { ascending: false });
       
-      const result = await finalQuery;
+      const { data, error } = await query;
       
-      if (result.error) {
-        console.error('Error fetching products:', result.error);
+      if (error) {
+        console.error('Error fetching products:', error);
         return;
       }
 
-      const rawProducts = result.data || [];
+      const rawProducts = data || [];
       const transformedProducts = transformProductData(rawProducts);
 
       setProducts(transformedProducts);
