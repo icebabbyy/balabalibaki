@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams } from "react-router-dom"; 
 import { supabase } from "@/integrations/supabase/client";
@@ -36,15 +37,16 @@ const Categories = () => {
 
   const fetchCategories = async () => {
     try {
-      const { data, error } = await supabase
+      const result = await supabase
         .from('categories')
         .select('*')
         .order('name');
-      if (error) {
-        console.error('Error fetching categories:', error);
+      
+      if (result.error) {
+        console.error('Error fetching categories:', result.error);
         return;
       }
-      setCategories((data || []) as any[]);
+      setCategories((result.data || []) as any[]);
     } catch (error) {
       console.error('Error fetching categories:', error);
     }
@@ -53,16 +55,16 @@ const Categories = () => {
   const fetchTagInfo = async () => {
     if (!tagSlug) return;
     try {
-      const { data, error } = await supabase
+      const result = await supabase
         .from('tags')
         .select('*')
         .eq('slug', tagSlug);
-      if (error) {
-        console.error('Error fetching tag:', error);
+      
+      if (result.error) {
+        console.error('Error fetching tag:', result.error);
         return;
       }
-      // Handle array result and get first item
-      const tagData = data && data.length > 0 ? data[0] : null;
+      const tagData = result.data && result.data.length > 0 ? result.data[0] : null;
       setCurrentTag(tagData as any);
     } catch (error) {
       console.error('Error fetching tag:', error);
@@ -76,50 +78,48 @@ const Categories = () => {
       let productIds: number[] = [];
       
       if (tagSlug) {
-        const { data: tagData } = await supabase
+        const tagResult = await supabase
           .from('tags')
           .select('id')
           .eq('slug', tagSlug);
           
-        if (tagData && tagData.length > 0) {
-          const tagId = (tagData[0] as any).id;
-          const { data: productTagData } = await supabase
+        if (tagResult.data && tagResult.data.length > 0) {
+          const tagId = (tagResult.data[0] as any).id;
+          const productTagResult = await supabase
             .from('product_tags')
             .select('product_id')
             .eq('tag_id', tagId);
             
-          if (productTagData) {
-            productIds = (productTagData as any[]).map(pt => pt.product_id);
+          if (productTagResult.data) {
+            productIds = (productTagResult.data as any[]).map(pt => pt.product_id);
           }
         }
       }
 
-      let queryResult: any;
+      let productResult: any;
       
       if (productIds.length > 0) {
-        queryResult = await supabase
+        productResult = await supabase
           .from('public_products')
           .select('*')
           .in('id', productIds)
           .order('created_at', { ascending: false });
       } else {
-        queryResult = await supabase
+        productResult = await supabase
           .from('public_products')
           .select('*')
           .order('created_at', { ascending: false });
       }
       
-      const { data: rawData, error } = queryResult;
-      
-      if (error) {
-        console.error('Error fetching products:', error);
+      if (productResult.error) {
+        console.error('Error fetching products:', productResult.error);
         return;
       }
 
       const transformedProducts: ProductPublic[] = [];
       
-      if (rawData) {
-        const safeRawData = rawData as any[];
+      if (productResult.data) {
+        const safeRawData = productResult.data as any[];
         
         for (const item of safeRawData) {
           let tagsArray: string[] = [];
