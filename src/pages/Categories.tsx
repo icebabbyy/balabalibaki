@@ -95,49 +95,62 @@ const Categories = () => {
         }
       }
 
-      // Fetch products using the public_products view to avoid complex typing
-      let query = supabase
-        .from('public_products')
-        .select('*')
-        .order('created_at', { ascending: false });
-
+      // Simplified query with explicit typing
+      let query = supabase.from('public_products').select('*');
+      
       if (productIds.length > 0) {
         query = query.in('id', productIds);
       }
+      
+      query = query.order('created_at', { ascending: false });
 
-      const { data: productsData, error } = await query;
+      const { data: rawData, error } = await query;
       
       if (error) {
         console.error('Error fetching products:', error);
         return;
       }
 
-      // Transform to ProductPublic with proper type handling
-      const transformedProducts: ProductPublic[] = (productsData || []).map(item => ({
-        id: item.id || 0,
-        name: item.name || '',
-        selling_price: item.selling_price || 0,
-        category: item.category || '',
-        description: item.description || '',
-        image: item.image || '',
-        product_status: item.product_status || 'พรีออเดอร์',
-        sku: item.sku || '',
-        quantity: item.quantity || 0,
-        shipment_date: item.shipment_date || '',
-        options: item.options || null,
-        product_type: item.product_type || 'ETC',
-        created_at: item.created_at || '',
-        updated_at: item.updated_at || '',
-        slug: item.slug || '',
-        tags: Array.isArray(item.tags) ? 
-          item.tags.filter((tag: any) => typeof tag === 'string') : [],
-        product_images: item.images_list && Array.isArray(item.images_list) ? 
-          item.images_list.map((img: any, index: number) => ({
+      // Simple transformation with explicit types
+      const transformedProducts: ProductPublic[] = (rawData || []).map((item: any) => {
+        // Handle tags - ensure it's always a string array
+        let tagsArray: string[] = [];
+        if (item.tags) {
+          if (Array.isArray(item.tags)) {
+            tagsArray = item.tags.filter((tag: any) => typeof tag === 'string');
+          }
+        }
+
+        // Handle product images - ensure it's always an array
+        let productImages: Array<{ id: number; image_url: string; order: number }> = [];
+        if (item.images_list && Array.isArray(item.images_list)) {
+          productImages = item.images_list.map((img: any, index: number) => ({
             id: index,
-            image_url: typeof img === 'string' ? img : img?.image_url || '',
+            image_url: typeof img === 'string' ? img : (img?.image_url || ''),
             order: index
-          })) : []
-      }));
+          }));
+        }
+
+        return {
+          id: item.id || 0,
+          name: item.name || '',
+          selling_price: item.selling_price || 0,
+          category: item.category || '',
+          description: item.description || '',
+          image: item.image || '',
+          product_status: item.product_status || 'พรีออเดอร์',
+          sku: item.sku || '',
+          quantity: item.quantity || 0,
+          shipment_date: item.shipment_date || '',
+          options: item.options || null,
+          product_type: item.product_type || 'ETC',
+          created_at: item.created_at || '',
+          updated_at: item.updated_at || '',
+          slug: item.slug || '',
+          tags: tagsArray,
+          product_images: productImages
+        };
+      });
 
       setProducts(transformedProducts);
       setFilteredProducts(transformedProducts);
