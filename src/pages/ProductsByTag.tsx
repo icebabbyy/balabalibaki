@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,7 +24,7 @@ const ProductsByTag = () => {
       const { data, error } = await supabase
         .from("public_products")
         .select("*")
-        .contains("tags", [tag]);
+        .contains("tags", [tag]); // การ query ข้อมูลถูกต้องแล้ว
 
       if (error) {
         console.error("Error fetching products by tag:", error);
@@ -33,30 +32,23 @@ const ProductsByTag = () => {
         return;
       }
 
-      const transformedProducts: ProductPublic[] = (data || []).map((item) => ({
-        id: item.id,
-        name: item.name,
-        selling_price: item.selling_price,
-        category: item.category,
-        description: item.description,
-        image: item.image,
-        product_status: item.product_status,
-        sku: item.sku,
-        quantity: item.quantity,
-        shipment_date: item.shipment_date,
-        options: item.options,
-        product_type: item.product_type,
-        created_at: item.created_at,
-        updated_at: item.updated_at,
-        slug: item.slug,
-        tags: Array.isArray(item.tags) ? item.tags.map(tag => String(tag)) : [],
-        product_images: Array.isArray(item.images_list) 
-          ? item.images_list.map((img: any) => ({
-              id: img.id || 0,
-              image_url: String(img.image_url || img),
-              order: img.order || 0
+      // ✨🎯 จุดที่แก้ไขสำคัญอยู่ตรงนี้ครับ ✨🎯
+      const transformedProducts: ProductPublic[] = (data || []).map((item: any) => ({
+        ...item, // 1. ใช้ Spread Operator เพื่อลดความซ้ำซ้อนและป้องกัน field ตกหล่น
+
+        // 2. แก้ไขการแปลงข้อมูล product_images
+        //    - เปลี่ยนจาก `item.images_list` เป็น `item.product_images`
+        //    - เพิ่มการป้องกันค่า null/undefined ให้แต่ละ property ของรูปภาพ
+        product_images: Array.isArray(item.product_images)
+          ? item.product_images.map((img: any) => ({
+              id: img.id || 0, 
+              image_url: String(img.image_url || ''),
+              order: img.order || 0,
             }))
-          : [],
+          : [], // ถ้าไม่มีข้อมูล ให้เป็น array ว่าง
+
+        // 3. การแปลง tags ยังคงเดิม เพราะทำถูกต้องอยู่แล้ว
+        tags: Array.isArray(item.tags) ? item.tags.map(String) : [],
       }));
 
       setProducts(transformedProducts);
@@ -68,6 +60,7 @@ const ProductsByTag = () => {
     }
   };
 
+  // ฟังก์ชัน handleProductClick ไม่มีการเปลี่ยนแปลง
   const handleProductClick = (productId: number) => {
     const product = products.find((p) => p.id === productId);
     if (product?.slug) {
@@ -77,6 +70,7 @@ const ProductsByTag = () => {
     }
   };
 
+  // ส่วน JSX สำหรับ Loading ไม่มีการเปลี่ยนแปลง
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -91,6 +85,7 @@ const ProductsByTag = () => {
     );
   }
 
+  // ส่วน JSX สำหรับแสดงผล ไม่มีการเปลี่ยนแปลง
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -102,7 +97,6 @@ const ProductsByTag = () => {
             </h1>
             <p className="text-gray-600">พบสินค้า {products.length} รายการ</p>
           </div>
-
           <ProductGrid products={products} onProductClick={handleProductClick} />
         </div>
       </div>
