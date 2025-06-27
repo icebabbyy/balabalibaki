@@ -94,35 +94,23 @@ const Categories = () => {
         }
       }
 
-      // Use a simpler approach to avoid type inference issues
-      const queryBuilder = supabase.from('public_products');
-      let query = queryBuilder.select(`
-        id,
-        name,
-        selling_price,
-        category,
-        description,
-        image,
-        product_status,
-        sku,
-        quantity,
-        shipment_date,
-        options,
-        product_type,
-        created_at,
-        updated_at,
-        slug,
-        tags,
-        images_list
-      `);
+      // Simplified approach: Use direct query with explicit result type
+      let queryResult;
       
       if (productIds.length > 0) {
-        query = query.in('id', productIds);
+        queryResult = await supabase
+          .from('public_products')
+          .select('id, name, selling_price, category, description, image, product_status, sku, quantity, shipment_date, options, product_type, created_at, updated_at, slug, tags, images_list')
+          .in('id', productIds)
+          .order('created_at', { ascending: false });
+      } else {
+        queryResult = await supabase
+          .from('public_products')
+          .select('id, name, selling_price, category, description, image, product_status, sku, quantity, shipment_date, options, product_type, created_at, updated_at, slug, tags, images_list')
+          .order('created_at', { ascending: false });
       }
       
-      query = query.order('created_at', { ascending: false });
-
-      const { data: rawData, error } = await query;
+      const { data: rawData, error } = queryResult;
       
       if (error) {
         console.error('Error fetching products:', error);
