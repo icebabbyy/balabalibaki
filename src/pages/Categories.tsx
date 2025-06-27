@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams } from "react-router-dom"; 
 import { supabase } from "@/integrations/supabase/client";
@@ -70,9 +71,10 @@ const Categories = () => {
 
   const fetchProducts = async () => {
     try {
+      // Use explicit typing to avoid deep type inference
       let query = supabase
         .from('products')
-        .select('id, name, selling_price, category, description, image, product_status, sku, quantity, shipment_date, options, product_type, created_at, updated_at, slug')
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (tagSlug) {
@@ -86,38 +88,41 @@ const Categories = () => {
         }
       }
 
-      const { data, error } = await query;
+      const response = await query;
+      const data = response.data;
+      const error = response.error;
+      
       if (error) {
         console.error('Error fetching products:', error);
         return;
       }
 
-      // Simple transformation without complex type inference
+      // Manual transformation to avoid type inference issues
       const transformedProducts: ProductPublic[] = [];
       
       if (data) {
-        for (const item of data) {
+        data.forEach((item: any) => {
           const product: ProductPublic = {
-            id: item.id || 0,
-            name: item.name || '',
-            selling_price: item.selling_price || 0,
-            category: item.category || '',
-            description: item.description || '',
-            image: item.image || '',
-            product_status: item.product_status || 'พรีออเดอร์',
-            sku: item.sku || '',
-            quantity: item.quantity || 0,
-            shipment_date: item.shipment_date || '',
+            id: Number(item.id) || 0,
+            name: String(item.name) || '',
+            selling_price: Number(item.selling_price) || 0,
+            category: String(item.category) || '',
+            description: String(item.description) || '',
+            image: String(item.image) || '',
+            product_status: String(item.product_status) || 'พรีออเดอร์',
+            sku: String(item.sku) || '',
+            quantity: Number(item.quantity) || 0,
+            shipment_date: String(item.shipment_date) || '',
             options: item.options || null,
-            product_type: item.product_type || 'ETC',
-            created_at: item.created_at || '',
-            updated_at: item.updated_at || '',
-            slug: item.slug || '',
+            product_type: String(item.product_type) || 'ETC',
+            created_at: String(item.created_at) || '',
+            updated_at: String(item.updated_at) || '',
+            slug: String(item.slug) || '',
             tags: [],
             product_images: []
           };
           transformedProducts.push(product);
-        }
+        });
       }
 
       setProducts(transformedProducts);
