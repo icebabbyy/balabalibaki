@@ -1,5 +1,3 @@
-
-
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams } from "react-router-dom"; 
 import { supabase } from "@/integrations/supabase/client";
@@ -95,46 +93,65 @@ const Categories = () => {
         }
       }
 
-      // Simplified query approach to avoid type issues
-      let query = supabase.from('products').select('*').order('created_at', { ascending: false });
-      
+      // Use explicit type annotation to prevent deep type inference
+      type ProductRow = {
+        id: number;
+        name: string;
+        selling_price: number;
+        category: string;
+        description: string;
+        image: string;
+        product_status: string;
+        sku: string;
+        quantity: number;
+        shipment_date: string;
+        options: any;
+        product_type: string;
+        created_at: string;
+        updated_at: string;
+        slug: string;
+      };
+
+      let result;
       if (productIds.length > 0) {
-        query = query.in('id', productIds);
+        result = await supabase
+          .from('products')
+          .select('*')
+          .in('id', productIds)
+          .order('created_at', { ascending: false });
+      } else {
+        result = await supabase
+          .from('products')
+          .select('*')
+          .order('created_at', { ascending: false });
       }
       
-      const { data, error } = await query;
-      
-      if (error) {
-        console.error('Error fetching products:', error);
+      if (result.error) {
+        console.error('Error fetching products:', result.error);
         return;
       }
 
-      // Simple transformation with explicit typing
-      const transformedProducts: ProductPublic[] = [];
-      
-      if (data) {
-        for (const item of data) {
-          transformedProducts.push({
-            id: item.id,
-            name: item.name || '',
-            selling_price: item.selling_price || 0,
-            category: item.category || '',
-            description: item.description || '',
-            image: item.image || '',
-            product_status: item.product_status || 'พรีออเดอร์',
-            sku: item.sku || '',
-            quantity: item.quantity || 0,
-            shipment_date: item.shipment_date || '',
-            options: item.options || null,
-            product_type: item.product_type || 'ETC',
-            created_at: item.created_at || '',
-            updated_at: item.updated_at || '',
-            slug: item.slug || '',
-            tags: [],
-            product_images: []
-          });
-        }
-      }
+      // Transform with explicit typing
+      const rawData = result.data as ProductRow[];
+      const transformedProducts: ProductPublic[] = rawData.map(item => ({
+        id: item.id,
+        name: item.name || '',
+        selling_price: item.selling_price || 0,
+        category: item.category || '',
+        description: item.description || '',
+        image: item.image || '',
+        product_status: item.product_status || 'พรีออเดอร์',
+        sku: item.sku || '',
+        quantity: item.quantity || 0,
+        shipment_date: item.shipment_date || '',
+        options: item.options || null,
+        product_type: item.product_type || 'ETC',
+        created_at: item.created_at || '',
+        updated_at: item.updated_at || '',
+        slug: item.slug || '',
+        tags: [],
+        product_images: []
+      }));
 
       setProducts(transformedProducts);
       setFilteredProducts(transformedProducts);
@@ -226,4 +243,3 @@ const Categories = () => {
 };
 
 export default Categories;
-
