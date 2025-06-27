@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams } from "react-router-dom"; 
 import { supabase } from "@/integrations/supabase/client";
@@ -36,16 +37,16 @@ const Categories = () => {
 
   const fetchCategories = async () => {
     try {
-      const result = await supabase
+      const { data, error } = await supabase
         .from('categories')
         .select('*')
         .order('name');
       
-      if (result.error) {
-        console.error('Error fetching categories:', result.error);
+      if (error) {
+        console.error('Error fetching categories:', error);
         return;
       }
-      setCategories(result.data || []);
+      setCategories(data || []);
     } catch (error) {
       console.error('Error fetching categories:', error);
     }
@@ -54,17 +55,16 @@ const Categories = () => {
   const fetchTagInfo = async () => {
     if (!tagSlug) return;
     try {
-      const result = await supabase
+      const { data, error } = await supabase
         .from('tags')
         .select('*')
         .eq('slug', tagSlug);
       
-      if (result.error) {
-        console.error('Error fetching tag:', result.error);
+      if (error) {
+        console.error('Error fetching tag:', error);
         return;
       }
-      const tags = result.data || [];
-      const tagData = tags.length > 0 ? tags[0] : null;
+      const tagData = data && data.length > 0 ? data[0] : null;
       setCurrentTag(tagData);
     } catch (error) {
       console.error('Error fetching tag:', error);
@@ -78,63 +78,66 @@ const Categories = () => {
       let productIds: number[] = [];
       
       if (tagSlug) {
-        const tagResult = await supabase
+        const { data: tagData } = await supabase
           .from('tags')
           .select('id')
           .eq('slug', tagSlug);
           
-        const tagData = tagResult.data || [];
-        if (tagData.length > 0) {
+        if (tagData && tagData.length > 0) {
           const tagId = tagData[0].id;
-          const productTagResult = await supabase
+          const { data: productTagData } = await supabase
             .from('product_tags')
             .select('product_id')
             .eq('tag_id', tagId);
             
-          const productTagData = productTagResult.data || [];
-          productIds = productTagData.map((pt: any) => pt.product_id);
+          if (productTagData) {
+            productIds = productTagData.map((pt: any) => pt.product_id);
+          }
         }
       }
 
-      let productResult: any;
+      let productQuery = supabase
+        .from('public_products')
+        .select('*')
+        .order('created_at', { ascending: false });
       
       if (productIds.length > 0) {
-        productResult = await supabase
-          .from('public_products')
-          .select('*')
-          .in('id', productIds)
-          .order('created_at', { ascending: false });
-      } else {
-        productResult = await supabase
-          .from('public_products')
-          .select('*')
-          .order('created_at', { ascending: false });
+        productQuery = productQuery.in('id', productIds);
       }
       
-      if (productResult.error) {
-        console.error('Error fetching products:', productResult.error);
+      const { data: rawProducts, error } = await productQuery;
+      
+      if (error) {
+        console.error('Error fetching products:', error);
         return;
       }
 
       const transformedProducts: ProductPublic[] = [];
-      const rawData = productResult.data || [];
+      const productData = rawProducts || [];
       
-      for (const item of rawData) {
-        let tagsArray: string[] = [];
+      for (const item of productData) {
+        const tagsArray: string[] = [];
         if (item.tags && Array.isArray(item.tags)) {
-          tagsArray = item.tags.filter((tag: any) => typeof tag === 'string');
+          for (const tag of item.tags) {
+            if (typeof tag === 'string') {
+              tagsArray.push(tag);
+            }
+          }
         }
 
-        let productImages: Array<{ id: number; image_url: string; order: number }> = [];
+        const productImages: Array<{ id: number; image_url: string; order: number }> = [];
         if (item.images_list && Array.isArray(item.images_list)) {
-          productImages = item.images_list.map((img: any, index: number) => ({
-            id: index,
-            image_url: typeof img === 'string' ? img : (img?.image_url || ''),
-            order: index
-          }));
+          for (let index = 0; index < item.images_list.length; index++) {
+            const img = item.images_list[index];
+            productImages.push({
+              id: index,
+              image_url: typeof img === 'string' ? img : (img?.image_url || ''),
+              order: index
+            });
+          }
         }
 
-        transformedProducts.push({
+        const product: ProductPublic = {
           id: item.id || 0,
           name: item.name || '',
           selling_price: item.selling_price || 0,
@@ -152,7 +155,9 @@ const Categories = () => {
           slug: item.slug || '',
           tags: tagsArray,
           product_images: productImages
-        });
+        };
+
+        transformedProducts.push(product);
       }
 
       setProducts(transformedProducts);
