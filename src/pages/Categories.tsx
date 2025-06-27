@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams } from "react-router-dom"; 
 import { supabase } from "@/integrations/supabase/client";
@@ -72,68 +73,83 @@ const Categories = () => {
     try {
       setLoading(true);
       
-      let productIds: number[] = [];
+      // First, get product IDs for tag filtering if needed
+      const productIds: number[] = [];
       
       if (tagSlug) {
-        const tagResponse = await supabase
+        const tagResult = await supabase
           .from('tags')
           .select('id')
           .eq('slug', tagSlug)
           .single();
           
-        if (tagResponse.data) {
-          const productTagResponse = await supabase
+        if (tagResult.data) {
+          const productTagResult = await supabase
             .from('product_tags')
             .select('product_id')
-            .eq('tag_id', tagResponse.data.id);
+            .eq('tag_id', tagResult.data.id);
             
-          if (productTagResponse.data) {
-            productIds = productTagResponse.data.map(pt => pt.product_id);
+          if (productTagResult.data) {
+            productIds.push(...productTagResult.data.map(pt => pt.product_id));
           }
         }
       }
 
-      // Use explicit type annotation to prevent deep type inference
-      type ProductRow = {
-        id: number;
-        name: string;
-        selling_price: number;
-        category: string;
-        description: string;
-        image: string;
-        product_status: string;
-        sku: string;
-        quantity: number;
-        shipment_date: string;
-        options: any;
-        product_type: string;
-        created_at: string;
-        updated_at: string;
-        slug: string;
-      };
-
-      let result;
+      // Fetch products with simplified query to avoid type issues
+      let productsResult;
+      
       if (productIds.length > 0) {
-        result = await supabase
+        productsResult = await supabase
           .from('products')
-          .select('*')
+          .select(`
+            id,
+            name,
+            selling_price,
+            category,
+            description,
+            image,
+            product_status,
+            sku,
+            quantity,
+            shipment_date,
+            options,
+            product_type,
+            created_at,
+            updated_at,
+            slug
+          `)
           .in('id', productIds)
           .order('created_at', { ascending: false });
       } else {
-        result = await supabase
+        productsResult = await supabase
           .from('products')
-          .select('*')
+          .select(`
+            id,
+            name,
+            selling_price,
+            category,
+            description,
+            image,
+            product_status,
+            sku,
+            quantity,
+            shipment_date,
+            options,
+            product_type,
+            created_at,
+            updated_at,
+            slug
+          `)
           .order('created_at', { ascending: false });
       }
       
-      if (result.error) {
-        console.error('Error fetching products:', result.error);
+      if (productsResult.error) {
+        console.error('Error fetching products:', productsResult.error);
         return;
       }
 
-      // Transform with explicit typing
-      const rawData = result.data as ProductRow[];
-      const transformedProducts: ProductPublic[] = rawData.map(item => ({
+      // Transform to ProductPublic with explicit casting
+      const transformedProducts: ProductPublic[] = (productsResult.data || []).map((item: any) => ({
         id: item.id,
         name: item.name || '',
         selling_price: item.selling_price || 0,
