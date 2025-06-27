@@ -93,44 +93,50 @@ const Categories = () => {
         }
       }
 
-      // Use explicit type annotation to avoid inference issues
-      const baseQuery = supabase.from('products').select('*');
-      const finalQuery = productIds.length > 0 
-        ? baseQuery.in('id', productIds)
-        : baseQuery;
+      // Explicitly type the query result to avoid deep inference
+      let query = supabase.from('products').select('*');
       
-      const response = await finalQuery.order('created_at', { ascending: false });
+      if (productIds.length > 0) {
+        query = query.in('id', productIds);
+      }
       
-      if (response.error) {
-        console.error('Error fetching products:', response.error);
+      const { data: rawData, error } = await query.order('created_at', { ascending: false }) as {
+        data: any[] | null;
+        error: any;
+      };
+      
+      if (error) {
+        console.error('Error fetching products:', error);
         return;
       }
 
-      // Transform with explicit typing to avoid deep inference
+      // Simple transformation with explicit typing
       const transformedProducts: ProductPublic[] = [];
-      const rawData = response.data || [];
       
-      for (const item of rawData) {
-        const product: ProductPublic = {
-          id: item.id,
-          name: item.name || '',
-          selling_price: item.selling_price || 0,
-          category: item.category || '',
-          description: item.description || '',
-          image: item.image || '',
-          product_status: item.product_status || 'พรีออเดอร์',
-          sku: item.sku || '',
-          quantity: item.quantity || 0,
-          shipment_date: item.shipment_date || '',
-          options: item.options || null,
-          product_type: item.product_type || 'ETC',
-          created_at: item.created_at || '',
-          updated_at: item.updated_at || '',
-          slug: item.slug || '',
-          tags: [],
-          product_images: []
-        };
-        transformedProducts.push(product);
+      if (rawData) {
+        for (let i = 0; i < rawData.length; i++) {
+          const item = rawData[i];
+          const product: ProductPublic = {
+            id: item.id,
+            name: item.name || '',
+            selling_price: item.selling_price || 0,
+            category: item.category || '',
+            description: item.description || '',
+            image: item.image || '',
+            product_status: item.product_status || 'พรีออเดอร์',
+            sku: item.sku || '',
+            quantity: item.quantity || 0,
+            shipment_date: item.shipment_date || '',
+            options: item.options || null,
+            product_type: item.product_type || 'ETC',
+            created_at: item.created_at || '',
+            updated_at: item.updated_at || '',
+            slug: item.slug || '',
+            tags: [],
+            product_images: []
+          };
+          transformedProducts.push(product);
+        }
       }
 
       setProducts(transformedProducts);
