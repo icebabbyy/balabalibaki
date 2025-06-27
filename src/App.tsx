@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Categories from "./pages/Categories";
 import ProductDetail from "./pages/ProductDetail";
 import ProductsByTag from "./pages/ProductsByTag";
+import TagProductPage from "./pages/TagProductPage";
 import QA from "./pages/QA";
 import Reviews from "./pages/Reviews";
 import OrderStatus from "./pages/OrderStatus";
@@ -39,6 +40,7 @@ const App = () => (
               <Route path="/categories" element={<Categories />} />
               <Route path="/product/:slug" element={<ProductDetail />} />
               <Route path="/products/tag/:tagName" element={<ProductsByTag />} />
+              <Route path="/tag/:tag" element={<TagProductPage />} />
               <Route path="/qa" element={<QA />} />
               <Route path="/reviews" element={<Reviews />} />
               <Route path="/order-status" element={<OrderStatus />} />
