@@ -10,8 +10,9 @@ const Categories = () => {
   const { tagSlug } = useParams();
   const [searchParams] = useSearchParams(); 
 
-  const [products, setProducts] = useState<ProductPublic[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<ProductPublic[]>([]);
+  // Use type assertion to avoid generic recursion
+  const [products, setProducts] = useState([] as ProductPublic[]);
+  const [filteredProducts, setFilteredProducts] = useState([] as ProductPublic[]);
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -94,19 +95,26 @@ const Categories = () => {
         }
       }
 
-      // Simplified approach: Use direct query with explicit result type
+      // Define columns explicitly to avoid type inference issues
+      const columns = [
+        'id', 'name', 'selling_price', 'category', 'description',
+        'image', 'product_status', 'sku', 'quantity', 'shipment_date',
+        'options', 'product_type', 'created_at', 'updated_at', 'slug', 'tags', 'images_list'
+      ] as const;
+
+      // Simplified query approach
       let queryResult;
       
       if (productIds.length > 0) {
         queryResult = await supabase
           .from('public_products')
-          .select('id, name, selling_price, category, description, image, product_status, sku, quantity, shipment_date, options, product_type, created_at, updated_at, slug, tags, images_list')
+          .select('*')
           .in('id', productIds)
           .order('created_at', { ascending: false });
       } else {
         queryResult = await supabase
           .from('public_products')
-          .select('id, name, selling_price, category, description, image, product_status, sku, quantity, shipment_date, options, product_type, created_at, updated_at, slug, tags, images_list')
+          .select('*')
           .order('created_at', { ascending: false });
       }
       
@@ -160,8 +168,10 @@ const Categories = () => {
         }
       }
 
-      setProducts(transformedProducts);
-      setFilteredProducts(transformedProducts);
+      // Use type assertion to avoid TypeScript recursion
+      const safeProducts = transformedProducts as ProductPublic[];
+      setProducts(safeProducts);
+      setFilteredProducts(safeProducts);
     } catch (error) {
       console.error('Error:', error);
     } finally {
