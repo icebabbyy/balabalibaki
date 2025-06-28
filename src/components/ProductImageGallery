@@ -1,0 +1,121 @@
+// src/components/ProductImageGallery.tsx
+
+import { useState, useMemo } from 'react';
+
+// กำหนด interface สำหรับ props ที่จะรับเข้ามา
+interface ImageObject {
+  image_url: string;
+  // สามารถเพิ่ม properties อื่นๆ ของรูปภาพได้ถ้าต้องการ เช่น id, order
+}
+
+interface ProductImageGalleryProps {
+  mainImage?: string;
+  imageList?: ImageObject[];
+}
+
+const ProductImageGallery = ({ mainImage, imageList = [] }: ProductImageGalleryProps) => {
+  // สร้างลิสต์รูปภาพทั้งหมดโดยไม่มีการซ้ำกัน
+  const uniqueImages = useMemo(() => {
+    if (!mainImage) return [];
+    
+    // 1. เอารูปภาพหลักมารวมกับลิสต์รูปภาพเพิ่มเติม
+    const allImages = [{ image_url: mainImage }, ...imageList];
+
+    // 2. ใช้ Map เพื่อคัดกรองเอารูปภาพที่มี url ไม่ซ้ำกันออกไป
+    // เทคนิคนี้จะเก็บเฉพาะรายการสุดท้ายที่มี key (image_url) ซ้ำกัน
+    const imageMap = new Map();
+    allImages.forEach(img => {
+      if(img.image_url) {
+        imageMap.set(img.image_url, img);
+      }
+    });
+
+    // 3. แปลง Map กลับมาเป็น Array
+    return Array.from(imageMap.values());
+  }, [mainImage, imageList]);
+
+  // State เพื่อเก็บ URL ของรูปภาพที่กำลังแสดงผลเป็นรูปหลัก
+  const [activeImage, setActiveImage] = useState(uniqueImages[0]?.image_url || '/placeholder.svg');
+  
+  // State เพื่อเก็บ index ของรูปที่ active อยู่ (สำหรับปุ่ม next/prev)
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  // ฟังก์ชันสำหรับเปลี่ยนรูปภาพ
+  const changeImage = (index: number) => {
+    setActiveIndex(index);
+    setActiveImage(uniqueImages[index].image_url);
+  };
+
+  const goToNext = () => {
+    const nextIndex = (activeIndex + 1) % uniqueImages.length;
+    changeImage(nextIndex);
+  };
+
+  const goToPrev = () => {
+    const prevIndex = (activeIndex - 1 + uniqueImages.length) % uniqueImages.length;
+    changeImage(prevIndex);
+  };
+
+
+  if (uniqueImages.length === 0) {
+    return <img src="/placeholder.svg" alt="No Image" className="w-full rounded-lg shadow-md" />;
+  }
+
+  return (
+    <div className="w-full">
+      {/* ส่วนแสดงรูปภาพหลัก */}
+      <div className="relative mb-4">
+        <img
+          key={activeImage} // ใช้ key เพื่อช่วยให้ React re-render ตอนเปลี่ยนรูป
+          src={activeImage}
+          alt="Product"
+          className="w-full h-auto aspect-square object-cover rounded-lg shadow-lg transition-opacity duration-300"
+        />
+        {uniqueImages.length > 1 && (
+          <>
+            <button 
+              onClick={goToPrev}
+              className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/70 rounded-full p-2 hover:bg-white transition"
+              aria-label="Previous Image"
+            >
+              &#x25C0;
+            </button>
+            <button 
+              onClick={goToNext}
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/70 rounded-full p-2 hover:bg-white transition"
+              aria-label="Next Image"
+            >
+              &#x25B6;
+            </button>
+            <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs rounded-full px-2 py-1">
+              {activeIndex + 1} / {uniqueImages.length}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* ส่วนแสดง Thumbnail ของรูปภาพทั้งหมด */}
+      {uniqueImages.length > 1 && (
+        <div className="grid grid-cols-5 gap-2">
+          {uniqueImages.map((image, index) => (
+            <button
+              key={index}
+              onClick={() => changeImage(index)}
+              className={`rounded-md overflow-hidden aspect-square border-2 transition ${
+                image.image_url === activeImage ? 'border-purple-600' : 'border-transparent'
+              }`}
+            >
+              <img
+                src={image.image_url}
+                alt={`Thumbnail ${index + 1}`}
+                className="w-full h-full object-cover"
+              />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default ProductImageGallery;
