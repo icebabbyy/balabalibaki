@@ -97,7 +97,7 @@ const Index = () => {
   };
 
   const fetchHomepageCategories = async () => {
-    /* ...โค้ดเดิม ไม่ต้องแก้ไข... */
+    /* ...โค้ดเดิม ไม่ต้อง���ก้ไข... */
   };
 
   // --- ฟังก์ชันจัดการ Wishlist (อยู่ที่นี่ที่เดียว) ---
@@ -154,9 +154,13 @@ const Index = () => {
               <EnhancedProductCard
                 key={product.id}
                 product={product}
-                onProductClick={(productId) =>
-                  navigate(`/product/${productId}`)
-                }
+                onProductClick={(productId) => {
+                  const targetProduct = products.find(
+                    (p) => p.id === productId,
+                  );
+                  const slug = targetProduct?.slug || productId.toString();
+                  navigate(`/product/${slug}`);
+                }}
               />
             ))}
           </div>
