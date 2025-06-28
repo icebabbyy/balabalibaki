@@ -143,10 +143,11 @@ const Index = () => {
               </Carousel>
             </div>
           </section>
+
+          {/* 4. หมวดสินค้า: LoL & Valorant */}
+          <CategorySection products={homepageCategoryProducts['League of Legends']} title="League of Legends" onProductClick={handleProductClick} />
+          <CategorySection products={homepageCategoryProducts['Valorant']} title="Valorant" onProductClick={handleProductClick} />
           
-          {/* 4. หมวดสินค้า: Nikke & Honkai */}
-          <CategorySection products={homepageCategoryProducts['Nikke']} title="Nikke" onProductClick={handleProductClick} />
-          <CategorySection products={homepageCategoryProducts['Honkai : Star Rail']} title="Honkai : Star Rail" onProductClick={handleProductClick} />
           
           {/* 5. แบนเนอร์ 2 */}
           <BannerSection banners={banners.filter(b => b.position === 2)} />
@@ -154,10 +155,10 @@ const Index = () => {
           {/* 6. แบนเนอร์ 3 (เล็ก + Autoplay) */}
           <BannerSection banners={banners.filter(b => b.position === 3)} small autoPlay aspectRatio="1400/300" />
           
-          {/* 7. หมวดสินค้า: LoL & Valorant */}
-          <CategorySection products={homepageCategoryProducts['League of Legends']} title="League of Legends" onProductClick={handleProductClick} />
-          <CategorySection products={homepageCategoryProducts['Valorant']} title="Valorant" onProductClick={handleProductClick} />
-          
+          {/* 7. หมวดสินค้า: Nikke & Honkai */}
+          <CategorySection products={homepageCategoryProducts['Nikke']} title="Nikke" onProductClick={handleProductClick} />
+          <CategorySection products={homepageCategoryProducts['Honkai : Star Rail']} title="Honkai : Star Rail" onProductClick={handleProductClick} />
+         
           {/* 8. แบนเนอร์ 4 (เล็ก) */}
           <BannerSection banners={banners.filter(b => b.position === 4)} small aspectRatio="1400/400" />
           
