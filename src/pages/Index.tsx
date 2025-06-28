@@ -31,7 +31,7 @@ interface Category {
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user } = useAuth(); // ดึง User มาใช้
+  const { user } = useAuth(); // ดึง User มาใช���
 
   const [mainBanners, setMainBanners] = useState<Banner[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<ProductPublic[]>([]);
@@ -97,7 +97,7 @@ const Index = () => {
   };
 
   const fetchHomepageCategories = async () => {
-    /* ...โค้ดเดิม ไม่ต้อง���ก้ไข... */
+    /* ...โค้ดเดิม ไม่��้องแก้ไข... */
   };
 
   // --- ฟังก์ชันจัดการ Wishlist (อยู่ที่นี่ที่เดียว) ---
@@ -129,7 +129,7 @@ const Index = () => {
         toast.success("เพิ่มในรายการโปรดแล้ว");
       }
     } catch (error) {
-      toast.error("เกิดข้อผิดพลาด");
+      toast.error("เกิดข้อผิดพ��าด");
       console.error("Error toggling wishlist:", error);
     } finally {
       setWishlistLoading(false);
@@ -185,7 +185,13 @@ const Index = () => {
           ) : (
             <FeaturedProductsCarousel
               products={featuredProducts}
-              onProductClick={(productId) => navigate(`/product/${productId}`)}
+              onProductClick={(productId) => {
+                const product = featuredProducts.find(
+                  (p) => p.id === productId,
+                );
+                const slug = product?.slug || productId.toString();
+                navigate(`/product/${slug}`);
+              }}
               onAddToCart={(product) => console.log("Add to cart:", product)}
             />
           )}
