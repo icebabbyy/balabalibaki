@@ -14,6 +14,8 @@ import EnhancedProductCard from "@/components/categories/EnhancedProductCard";
 interface Banner {
   id: string;
   image_url: string;
+  title?: string;
+  description?: string;
   link_url?: string;
   position: number;
 }
@@ -21,13 +23,14 @@ interface Category {
   id: number;
   name: string;
   image?: string;
+  display_on_homepage?: boolean;
 }
 
-// Helper function to map Supabase data to our ProductPublic type
+// Helper function to map Supabase data correctly
 const mapProduct = (item: any): ProductPublic => ({
   id: item.id || 0,
   name: item.name || "",
-  selling_price: item.selling_price || 0,
+  selling_price: item.selling_price,
   category: item.category || "",
   image: item.image || "",
   product_status: item.product_status || "พรีออเดอร์",
@@ -35,7 +38,6 @@ const mapProduct = (item: any): ProductPublic => ({
   product_images: Array.isArray(item.product_images) ? item.product_images.filter(img => img && img.image_url) : [],
   tags: Array.isArray(item.tags) ? item.tags.filter(Boolean) : [],
   description: item.description || "",
-  // Add other fields from ProductPublic type with fallbacks
   sku: item.sku || "",
   quantity: item.quantity || 0,
   shipment_date: item.shipment_date || null,
@@ -53,12 +55,12 @@ const Index = () => {
   const [homepageCategoryProducts, setHomepageCategoryProducts] = useState<Record<string, ProductPublic[]>>({});
   const [loading, setLoading] = useState(true);
 
-  const homepageCategoryNames = [ 'League of Legends', 'Valorant', 'Zenless Zone Zero', 'Nikke', 'Honkai : Star Rail' ];
-
   useEffect(() => {
     const fetchAllData = async () => {
       setLoading(true);
       try {
+        const homepageCategoryNames = ['League of Legends', 'Valorant', 'Zenless Zone Zero', 'Nikke', 'Honkai : Star Rail'];
+        
         const [bannerRes, featuredRes, categoryRes, homepageProdRes] = await Promise.all([
           supabase.from('banners').select('*').eq('active', true).order('position'),
           supabase.from('public_products').select('*').limit(12).order('created_at', { ascending: false }),
@@ -66,20 +68,23 @@ const Index = () => {
           supabase.from('public_products').select('*').in('category', homepageCategoryNames)
         ]);
 
-        // Process data
-        setBanners(bannerRes.data || []);
-        setFeaturedProducts((featuredRes.(data || []).filter(Boolean).map(mapProduct)
-        setAllCategories(categoryRes.data || []);
+        if (bannerRes.data) setBanners(bannerRes.data.filter(Boolean));
+        if (featuredRes.data) setFeaturedProducts(featuredRes.data.filter(Boolean).map(mapProduct));
+        if (categoryRes.data) setAllCategories(categoryRes.data.filter(Boolean));
         
-        const mappedHomepageProducts = (homepageProdRes.data || []).map(mapProduct);
-        const productMap: Record<string, ProductPublic[]> = {};
-        homepageCategoryNames.forEach(catName => {
+        if (homepageProdRes.data) {
+          const mappedHomepageProducts = homepageProdRes.data.filter(Boolean).map(mapProduct);
+          const productMap: Record<string, ProductPublic[]> = {};
+          homepageCategoryNames.forEach(catName => {
             productMap[catName] = mappedHomepageProducts.filter(p => p.category === catName).slice(0, 5);
-        });
-        setHomepageCategoryProducts(productMap);
-
-      } catch (error) { console.error("Failed to fetch homepage data:", error); } 
-      finally { setLoading(false); }
+          });
+          setHomepageCategoryProducts(productMap);
+        }
+      } catch (error) { 
+        console.error("Failed to fetch homepage data:", error);
+      } finally { 
+        setLoading(false);
+      }
     };
     fetchAllData();
   }, []);
@@ -91,18 +96,20 @@ const Index = () => {
       navigate(`/product/${product.slug || product.id}`);
     }
   };
-  
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
       {loading ? (
-        <div className="flex justify-center items-center h-screen"><p>กำลังโหลด...</p></div>
+        <div className="flex justify-center items-center h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+        </div>
       ) : (
         <>
-          {/* 1. แบนเนอร์อันแรก (ขนาดที่เหมาะสม) */}
+          {/* 1. แบนเนอร์อันแรก */}
           <BannerSection banners={banners.filter(b => b.position === 1)} aspectRatio="1400/400" maxWidth="max-w-7xl" />
 
-          {/* 2. หมวดหมู่ทั้งหมด (ขนาด ~200px) */}
+          {/* 2. หมวดหมู่ทั้งหมด */}
           <section className="py-12 bg-white">
             <div className="max-w-7xl mx-auto px-4">
               <h2 className="text-2xl font-bold mb-8 text-center">หมวดหมู่สินค้า</h2>
@@ -119,7 +126,7 @@ const Index = () => {
             </div>
           </section>
 
-          {/* 3. สินค้ามาใหม่ (เลื่อนอัตโนมัติ) */}
+          {/* 3. สินค้ามาใหม่ + Autoplay */}
           <section className="py-6 bg-gray-50">
             <div className="max-w-7xl mx-auto px-4">
               <h2 className="text-2xl font-bold mb-8 text-center">สินค้ามาใหม่</h2>
@@ -137,31 +144,33 @@ const Index = () => {
             </div>
           </section>
           
-          {/* 4 & 5. หมวดสินค้าตามลำดับ */}
-          <CategorySection products={homepageCategoryProducts['Nikke']} title="Nikke" />
-          <CategorySection products={homepageCategoryProducts['Honkai : Star Rail']} title="Honkai : Star Rail" />
+          {/* 4. หมวดสินค้า: Nikke & Honkai */}
+          <CategorySection products={homepageCategoryProducts['Nikke']} title="Nikke" onProductClick={handleProductClick} />
+          <CategorySection products={homepageCategoryProducts['Honkai : Star Rail']} title="Honkai : Star Rail" onProductClick={handleProductClick} />
           
-          {/* 6. แบนเนอร์ 2 */}
+          {/* 5. แบนเนอร์ 2 */}
           <BannerSection banners={banners.filter(b => b.position === 2)} />
           
-          {/* 7. แบนเนอร์ 3 (ขนาดเล็ก + Autoplay) */}
+          {/* 6. แบนเนอร์ 3 (เล็ก + Autoplay) */}
           <BannerSection banners={banners.filter(b => b.position === 3)} small autoPlay aspectRatio="1400/300" />
           
-          {/* 8 & 9. หมวดสินค้าตามลำดับ */}
-          <CategorySection products={homepageCategoryProducts['League of Legends']} title="League of Legends" />
-          <CategorySection products={homepageCategoryProducts['Valorant']} title="Valorant" />
+          {/* 7. หมวดสินค้า: LoL & Valorant */}
+          <CategorySection products={homepageCategoryProducts['League of Legends']} title="League of Legends" onProductClick={handleProductClick} />
+          <CategorySection products={homepageCategoryProducts['Valorant']} title="Valorant" onProductClick={handleProductClick} />
           
-          {/* 10. แบนเนอร์ 4 (ขนาดเล็ก) */}
+          {/* 8. แบนเนอร์ 4 (เล็ก) */}
           <BannerSection banners={banners.filter(b => b.position === 4)} small aspectRatio="1400/400" />
+          
+          {/* 9. หมวดสินค้าที่เหลือ */}
+          <CategorySection products={homepageCategoryProducts['Zenless Zone Zero']} title="Zenless Zone Zero" onProductClick={handleProductClick} />
         </>
       )}
     </div>
   );
 };
 
-// Helper Components
-const CategorySection = ({ title, products }: { title: string; products: ProductPublic[] }) => {
-  const navigate = useNavigate();
+// Helper Components (วางไว้นอก Index component เพื่อประสิทธิภาพที่ดีขึ้น)
+const CategorySection = ({ title, products, onProductClick }: { title: string; products: ProductPublic[]; onProductClick: (id: number) => void; }) => {
   if (!products || products.length === 0) return null;
   return (
     <section className="py-12 bg-white">
@@ -171,16 +180,16 @@ const CategorySection = ({ title, products }: { title: string; products: Product
           <Link to={`/categories?category=${encodeURIComponent(title)}`} className="flex items-center text-purple-600">ดูทั้งหมด <ArrowRight size={16} className="ml-1" /></Link>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-          {products.map((p) => <EnhancedProductCard key={p.id} product={p} onProductClick={() => navigate(`/product/${p.slug || p.id}`)} />)}
+          {products.map((p) => <EnhancedProductCard key={p.id} product={p} onProductClick={onProductClick} />)}
         </div>
       </div>
     </section>
   );
 };
 
-const BannerSection = ({ banners, small = false, autoPlay = false, aspectRatio = '1400/400' }: { banners: Banner[], small?: boolean, autoPlay?: boolean, aspectRatio?: string }) => {
+const BannerSection = ({ banners, small = false, autoPlay = false, aspectRatio = '1400/400' }: { banners: Banner[], small?: boolean, autoPlay?: boolean, aspectRatio?: string}) => {
    if (!banners || banners.length === 0) return null;
-   const plugins = autoPlay ? [Autoplay({ delay: 4000 })] : [];
+   const plugins = autoPlay ? [Autoplay({ delay: 4000, stopOnInteraction: true })] : [];
    return (
     <section className="py-8">
        <div className={`mx-auto px-4 ${small ? 'max-w-6xl' : 'max-w-7xl'}`}>
