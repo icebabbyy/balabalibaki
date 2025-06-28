@@ -1,5 +1,3 @@
-// src/components/categories/EnhancedProductCard.tsx
-
 import { ProductPublic } from '@/types/product';
 import { Heart, ShoppingCart, CreditCard } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -29,11 +27,6 @@ const EnhancedProductCard = ({ product, onProductClick }: EnhancedProductCardPro
       navigate('/cart');
     }
   };
-  
-  const handleTagClick = (e: React.MouseEvent, tag: string) => {
-    e.stopPropagation();
-    navigate(`/products/tag/${encodeURIComponent(tag)}`);
-  };
 
   return (
     <Card
@@ -53,35 +46,37 @@ const EnhancedProductCard = ({ product, onProductClick }: EnhancedProductCardPro
               </Badge>
             )}
           </div>
-          <Button variant="ghost" size="icon" className="absolute top-2 right-2 z-10 bg-white/70 backdrop-blur-sm p-2 rounded-full text-gray-600 hover:text-red-500" onClick={(e) => { e.stopPropagation(); /* Wishlist */ }}>
+          {/* ✨ FIX 3: เพิ่ม aria-label ให้ปุ่ม Wishlist */}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            aria-label="Add to wishlist"
+            className="absolute top-2 right-2 z-10 bg-white/70 backdrop-blur-sm p-2 rounded-full text-gray-600 hover:text-red-500" 
+            onClick={(e) => { e.stopPropagation(); /* Wishlist logic here */ }}
+          >
             <Heart size={18} />
           </Button>
         </div>
 
         <div className="p-4 flex flex-col flex-grow">
-          <h3 className="font-semibold mb-2 line-clamp-2 text-sm h-10">{product.name}</h3>
+          {/* ✨ FIX 2: เอา h-10 ออก ทำให้ความสูงยืดหยุ่น */}
+          <h3 className="font-semibold mb-2 line-clamp-2 text-sm">{product.name}</h3>
           
-          <div className="flex-grow"> {/* เพิ่ม div นี้เพื่อให้ราคากับ tag อยู่ด้วยกัน */}
+          <div className="flex-grow">
             <p className="text-lg font-bold text-purple-600">
               ฿{product.selling_price?.toLocaleString()}
             </p>
-            {product.tags && product.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-2">
-                {product.tags.map((tag) => (
-                  <Badge key={tag} variant="outline" className="cursor-pointer text-xs" onClick={(e) => handleTagClick(e, tag)}>
-                    #{tag}
-                  </Badge>
-                ))}
-              </div>
-            )}
+            {/* ✨ FIX 1: ลบส่วนแสดง Tags ออกไป */}
           </div>
 
           <div className="space-y-2 mt-4">
-            <Button onClick={(e) => handleActionClick(e, 'buyNow')} size="sm" className="w-full">
-              <CreditCard className="h-4 w-4 mr-2" /> ซื้อเดี๋ยวนี้
+            <Button onClick={(e) => handleActionClick(e, 'buyNow')} size="sm" className="w-full" disabled={product.product_status === 'สินค้าหมด'}>
+              <CreditCard className="h-4 w-4 mr-2" />
+              ซื้อเดี๋ยวนี้
             </Button>
-            <Button onClick={(e) => handleActionClick(e, 'addToCart')} variant="outline" size="sm" className="w-full">
-              <ShoppingCart className="h-4 w-4 mr-2" /> เพิ่มลงตะกร้า
+            <Button onClick={(e) => handleActionClick(e, 'addToCart')} variant="outline" size="sm" className="w-full" disabled={product.product_status === 'สินค้าหมด'}>
+              <ShoppingCart className="h-4 w-4 mr-2" />
+              เพิ่มลงตะกร้า
             </Button>
           </div>
         </div>
