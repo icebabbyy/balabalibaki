@@ -25,7 +25,7 @@ const ProductDetail = () => {
   const [user, setUser] = useState<any>(null);
   const [isInWishlist, setIsInWishlist] = useState(false);
   const [isWishlistLoading, setIsWishlistLoading] = useState(true);
-
+ 
   // --- Data Fetching Logic ---
   useEffect(() => {
     const fetchAllData = async () => {
