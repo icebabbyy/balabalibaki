@@ -1,80 +1,60 @@
+// src/hooks/usePublineOrders.ts
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 
+// กำหนด type ของ order ที่ดึงมาจาก publine_orders
 interface PublineOrder {
   id: number;
   username: string;
-  item_json: string;
-  item: string;
   sku: string;
-  qty: string;
-  price: string;
+  qty: number;
+  price: number;
   deposit: number;
-  balance: number;
   status: string;
-  tracking_number: string;
-  admin_notes: string;
-  photo: string;
+  tracking_number: string | null;
+  admin_notes: string | null;
+  // เพิ่ม field อื่นๆ ตามตารางของคุณ
 }
 
 export const usePublineOrders = () => {
-  const [orders, setOrders] = useState<PublineOrder[]>([]);
+  const [allOrders, setAllOrders] = useState<PublineOrder[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchOrders = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('publice_orders')
-        .select('*')
-        .order('id', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching publice orders:', error);
-        toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูลออเดอร์');
-        return;
-      }
-
-      // Map the data to ensure all required fields are present
-      // Note: tracking_number and admin_notes are available in publice_orders view
-      const mappedData = (data || []).map(item => ({
-        ...item,
-        tracking_number: item.tracking_number || '',
-        admin_notes: item.admin_notes || '',
-        photo: item.photo || '',
-        item_json: item.item_json || '',
-        item: item.item || '',
-        sku: item.sku || '',
-        qty: item.qty || '0',
-        price: item.price || '0',
-        balance: 0 // Not available in publice_orders view
-      }));
-
-      setOrders(mappedData);
-    } catch (error) {
-      console.error('Error fetching publice orders:', error);
-      toast.error('เกิดข้อผิดพลาดในการโหลดข้อมูลออเดอร์');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const searchOrdersByUsername = (username: string) => {
-    return orders.filter(order => 
-      order.username && order.username.toLowerCase().includes(username.toLowerCase())
-    );
-  };
-
   useEffect(() => {
-    fetchOrders();
+    const fetchAllOrders = async () => {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('publine_orders')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          throw error;
+        }
+        setAllOrders(data || []);
+      } catch (error) {
+        console.error('Error fetching publine orders:', error);
+        // ในกรณีที่เกิด error, ควรจะแสดง toast หรือ message บอก user
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAllOrders();
   }, []);
 
-  return {
-    orders,
-    loading,
-    searchOrdersByUsername,
-    refetch: fetchOrders
-  };
+  // สร้างฟังก์ชันสำหรับค้นหาแบบ Exact Match (ไม่สนตัวพิมพ์เล็ก/ใหญ่)
+  const searchOrdersByUsername = useCallback((username: string): PublineOrder[] => {
+    if (!username) {
+      return [];
+    }
+    const lowercasedUsername = username.toLowerCase();
+    return allOrders.filter(
+      (order) => order.username.toLowerCase() === lowercasedUsername
+    );
+  }, [allOrders]); // ฟังก์ชันนี้จะถูกสร้างใหม่ก็ต่อเมื่อ allOrders เปลี่ยนแปลง
+
+  return { loading, searchOrdersByUsername };
 };
