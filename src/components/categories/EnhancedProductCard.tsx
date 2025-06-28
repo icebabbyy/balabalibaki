@@ -34,7 +34,7 @@ const EnhancedProductCard = ({ product, onProductClick }: EnhancedProductCardPro
       onClick={() => onProductClick(product.id)}
     >
       <CardContent className="p-0 flex flex-col flex-grow">
-        <div className="relative w-full aspect-[4/5] bg-gray-100">
+        <div className="relative w-full aspect-square bg-gray-100">
           <img src={mainImage} alt={product.name} className="w-full h-full object-cover absolute inset-0 transition-opacity duration-300"/>
           {rolloverImage && (
             <img src={rolloverImage} alt={`${product.name} (hover)`} className="w-full h-full object-cover absolute inset-0 transition-opacity duration-300 opacity-0 group-hover:opacity-100"/>
