@@ -63,7 +63,7 @@ const EnhancedProductCard = ({ product, onProductClick }: EnhancedProductCardPro
           
           <div className="flex-grow"> {/* เพิ่ม div นี้เพื่อให้ราคากับ tag อยู่ด้วยกัน */}
             <p className="text-lg font-bold text-purple-600">
-              ฿{product.selling_price.toLocaleString()}
+              ฿{product.selling_price?.toLocaleString()}
             </p>
             {product.tags && product.tags.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-2">
