@@ -46,15 +46,16 @@ export const usePublineOrders = () => {
   }, []);
 
   // สร้างฟังก์ชันสำหรับค้นหาแบบ Exact Match (ไม่สนตัวพิมพ์เล็ก/ใหญ่)
-  const searchOrdersByUsername = useCallback((username: string): PublineOrder[] => {
-    if (!username) {
-      return [];
-    }
-    const lowercasedUsername = username.toLowerCase();
-    return allOrders.filter(
-      (order) => order.username.toLowerCase() === lowercasedUsername
-    );
-  }, [allOrders]); // ฟังก์ชันนี้จะถูกสร้างใหม่ก็ต่อเมื่อ allOrders เปลี่ยนแปลง
-
-  return { loading, searchOrdersByUsername };
+const searchOrders = useCallback((searchTerm: string): PublineOrder[] => {
+  if (!searchTerm) {
+    return [];
+  }
+  const lowercasedTerm = searchTerm.toLowerCase().trim();
+  return allOrders.filter(
+    (order) => 
+      (order.customer_name && order.customer_name.toLowerCase().includes(lowercasedTerm)) ||
+      (order.customer_email && order.customer_email.toLowerCase().includes(lowercasedTerm))
+  );
+}, [allOrders]);
+  return { loading, searchOrders };
 };
