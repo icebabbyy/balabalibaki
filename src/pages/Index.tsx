@@ -181,9 +181,8 @@ const Index = () => {
           ) : (
             <FeaturedProductsCarousel
               products={featuredProducts}
-              wishlist={wishlist}
-              onToggleWishlist={handleToggleWishlist}
-              wishlistLoading={wishlistLoading}
+              onProductClick={(productId) => navigate(`/product/${productId}`)}
+              onAddToCart={(product) => console.log("Add to cart:", product)}
             />
           )}
         </div>
