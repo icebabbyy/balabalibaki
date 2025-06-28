@@ -271,62 +271,37 @@ const Index = () => {
       toast.success(`เพิ่ม "${productToAdd.name}" ลงตะกร้าแล้ว`);
     };
 
-    return (
+  return (
       <Card 
         className="hover:shadow-lg transition-shadow cursor-pointer flex flex-col"
         onClick={() => handleProductClick(product.id)}
       >
        <div className="relative">
-  <img
-    src={product.image || '/placeholder.svg'}
-    alt={product.name}
-    className="w-full h-48 object-cover rounded-t-lg"
-  />
-  {/* ✅ ใช้โค้ดบล็อกนี้แทนที่ของเดิมทั้งหมด */}
-  {product.product_status && (
-    <Badge 
-      className={`absolute top-2 left-2 border ${
-        product.product_status === 'พร้อมส่ง' 
-          ? 'bg-green-100 text-green-800 border-green-500' 
-        : product.product_status === 'พรีออเดอร์'
-          ? 'bg-purple-100 text-purple-800 border-purple-600'
-          : 'bg-gray-100 text-gray-800 border-gray-200'
-      }`}
-    >
-      {product.product_status}
-    </Badge>
-  )}
-</div>
+        <img
+          src={product.image || '/placeholder.svg'}
+          alt={product.name}
+          className="w-full h-48 object-cover rounded-t-lg"
+        />
+        {/* ✅✅✅ แก้ไขโค้ด className ของ Badge ตรงนี้ ✅✅✅ */}
+        {product.product_status && (
+          <Badge 
+            className={`absolute top-2 left-2 border-transparent text-white ${
+              product.product_status === 'พร้อมส่ง' 
+                ? 'bg-green-500' 
+              : product.product_status === 'พรีออเดอร์'
+                ? 'bg-purple-600'
+                : 'bg-gray-500' // สีสำรอง
+            }`}
+          >
+            {product.product_status}
+          </Badge>
+        )}
+      </div>
         <CardContent className="p-4 flex flex-col flex-grow">
           <h3 className="font-semibold mb-2 line-clamp-2">{product.name}</h3>
           <div className="flex items-center justify-between mb-3">
             <span className="text-lg font-bold text-purple-600">
-              ฿{product.selling_price?.toLocaleString()}
-            </span>
-          </div>
-          <div className="space-y-2 mt-auto">
-            <Button
-              size="sm"
-              className="w-full"
-              onClick={(e) => { e.stopPropagation(); buyNow(product); }}
-            >
-              <CreditCard className="h-4 w-4" />
-              ซื้อเดี๋ยวนี้
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full"
-              onClick={(e) => { e.stopPropagation(); addToCart(product); }}
-            >
-              <ShoppingCart className="h-4 w-4" />
-              เพิ่มลงตะกร้า
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
+              ฿{product
 
   const CategorySection = ({ title, products, categoryName }: { title: string; products: ProductPublic[]; categoryName: string }) => (
     <section className="py-12 bg-white">
