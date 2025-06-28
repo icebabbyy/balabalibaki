@@ -287,9 +287,9 @@ const Index = () => {
     <Badge 
       className={`absolute top-2 left-2 border ${
         product.product_status === 'พร้อมส่ง' 
-          ? 'bg-green-100 text-green-800 border-green-300' 
+          ? 'bg-green-100 text-green-800 border-green-500' 
         : product.product_status === 'พรีออเดอร์'
-          ? 'bg-purple-100 text-purple-800 border-purple-300'
+          ? 'bg-purple-100 text-purple-800 border-purple-600'
           : 'bg-gray-100 text-gray-800 border-gray-200'
       }`}
     >
