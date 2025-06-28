@@ -1,4 +1,4 @@
-// src/components/EnhancedProductCard.tsx
+// src/components/categories/EnhancedProductCard.tsx
 
 import { ProductPublic } from '@/types/product';
 import { Heart, ShoppingCart, CreditCard } from 'lucide-react';
@@ -18,7 +18,7 @@ const EnhancedProductCard = ({ product, onProductClick }: EnhancedProductCardPro
   const { addToCart } = useCart();
   const navigate = useNavigate();
 
-  // ✨ เราจะหา rolloverImage มาเตรียมไว้ แต่จะไม่ใช้ State หรือ useEffect แล้ว
+  // เราจะหา rolloverImage มาเตรียมไว้ แต่จะไม่ใช้ State หรือ useEffect แล้ว
   const mainImage = product.image || product.product_images?.[0]?.image_url || '/placeholder.svg';
   const rolloverImage = product.product_images?.find(img => img.image_url !== mainImage)?.image_url;
 
@@ -34,12 +34,12 @@ const EnhancedProductCard = ({ product, onProductClick }: EnhancedProductCardPro
   };
 
   return (
-    // ✨ เพิ่ม className="group" ที่นี่ เพื่อให้ CSS hover ทำงานกับ element ลูกได้
+    // ✨ จุดที่ 1: เพิ่ม className="group" ที่นี่
     <div
       className="bg-white rounded-lg shadow-md overflow-hidden cursor-pointer group transform transition-transform duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col h-full"
       onClick={() => onProductClick(product.id)}
     >
-      {/* ✨ ส่วนของการแสดงรูปภาพที่แก้ไขใหม่ */}
+      {/* ✨ จุดที่ 2: แก้ไขส่วนแสดงรูปภาพใหม่ทั้งหมด */}
       <div className="relative w-full h-64 bg-gray-100">
         {/* รูปภาพหลัก (แสดงตลอดเวลา) */}
         <img
@@ -57,6 +57,7 @@ const EnhancedProductCard = ({ product, onProductClick }: EnhancedProductCardPro
           />
         )}
 
+        {/* ส่วน Badge และปุ่ม Heart จะต้องมี z-10 เพื่อให้ลอยอยู่เหนือรูปภาพ */}
         <div className="absolute top-2 left-2 z-10">
            {product.product_status && (
              <Badge className={
@@ -73,6 +74,7 @@ const EnhancedProductCard = ({ product, onProductClick }: EnhancedProductCardPro
         </Button>
       </div>
 
+      {/* ส่วนเนื้อหาของการ์ด (ไม่มีการเปลี่ยนแปลง) */}
       <div className="p-4 flex flex-col flex-grow">
         <h3 className="font-semibold mb-2 line-clamp-2">{product.name}</h3>
         
