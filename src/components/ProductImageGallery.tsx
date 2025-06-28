@@ -1,5 +1,6 @@
+// src/components/ProductImageGallery.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,21 +18,33 @@ const ProductImageGallery = ({
   productName = "สินค้า",
   variantImage 
 }: ProductImageGalleryProps) => {
+
+  // ✨ จุดที่แก้ไข: ใช้ useMemo และ new Set เพื่อสร้างลิสต์รูปภาพที่ไม่ซ้ำกัน
+  const allImages = useMemo(() => {
+    // 1. สร้างอาร์เรย์ดิบขึ้นมาก่อน โดยให้ความสำคัญกับ variantImage
+    const rawImages = variantImage 
+      ? [variantImage, mainImage, ...additionalImages]
+      : [mainImage, ...additionalImages];
+    
+    // 2. ใช้ filter(Boolean) เพื่อกรองค่า null, undefined, "" ออกไป
+    const filteredImages = rawImages.filter(Boolean) as string[];
+
+    // 3. ใช้ new Set เพื่อเอาค่าที่ซ้ำกันออก แล้วแปลงกลับเป็น Array
+    return [...new Set(filteredImages)];
+
+  }, [mainImage, additionalImages, variantImage]);
+
+
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  
-  // Combine main image with additional images, prioritize variant image if available
-  const allImages = variantImage ? 
-    [variantImage, mainImage, ...additionalImages].filter(Boolean) :
-    [mainImage, ...additionalImages].filter(Boolean);
   
   const currentImage = allImages[currentImageIndex] || '/placeholder.svg';
 
-  // Reset to first image when variant changes
+  // Reset to first image (variant image if available) when variant changes
   useEffect(() => {
-    if (variantImage) {
-      setCurrentImageIndex(0);
-    }
-  }, [variantImage]);
+    // เมื่อ variantImage เปลี่ยน หรือ allImages เปลี่ยน (ซึ่งจะเกิดเมื่อ variantImage เปลี่ยน)
+    // ให้กลับไปที่รูปแรกสุดเสมอ
+    setCurrentImageIndex(0);
+  }, [allImages]);
 
   const nextImage = () => {
     setCurrentImageIndex((prev) => (prev + 1) % allImages.length);
@@ -47,7 +60,7 @@ const ProductImageGallery = ({
 
   return (
     <div className="space-y-4">
-      {/* Main Image Display - Updated with size constraints */}
+      {/* Main Image Display */}
       <Card>
         <CardContent className="p-0 relative">
           <img
@@ -87,7 +100,7 @@ const ProductImageGallery = ({
           )}
           
           {/* Variant Image Indicator */}
-          {variantImage && currentImageIndex === 0 && (
+          {variantImage && currentImage === variantImage && (
             <div className="absolute top-2 left-2 bg-purple-600 text-white px-2 py-1 rounded text-sm">
               ตัวเลือกที่เลือก
             </div>
