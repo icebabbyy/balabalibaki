@@ -7,45 +7,35 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, CreditCard, Heart } from "lucide-react";
 import { ProductPublic } from "@/types/product";
-import { useCart } from "@/hooks/useCart"; // สมมติว่าคุณมี custom hook นี้
-import { toast } from "sonner"; // หรือ toast ปกติ
+import { useCart } from "@/hooks/useCart";
+import { toast } from "sonner";
 
 const ProductCard = ({ product }: { product: ProductPublic }) => {
   const navigate = useNavigate();
   const { addToCart } = useCart();
 
-  // --- ส่วนของการจัดการรูปภาพ ---
-  // 1. เตรียม URL รูปภาพไว้ล่วงหน้า
   const mainImage = product.image || '/placeholder.svg';
-  // หานิยามรูปภาพที่ไม่ใช่รูปหลัก
   const rolloverImage = product.product_images?.find(
     (img) => img && img.image_url !== mainImage
   )?.image_url;
 
-  // 2. สร้าง State เพื่อเก็บ URL ของรูปภาพที่จะแสดง
   const [displayImage, setDisplayImage] = useState(mainImage);
+  const [isHovered, setIsHovered] = useState(false);
 
-  // 3. ใช้ useEffect เพื่ออัปเดต displayImage เมื่อ product เปลี่ยนแปลง
-  //    (ป้องกันปัญหาข้อมูลมาไม่ทัน)
   useEffect(() => {
     setDisplayImage(product.image || '/placeholder.svg');
   }, [product.image]);
 
-
-  // 4. ฟังก์ชันสำหรับจัดการ Event ของเมาส์
   const handleMouseEnter = () => {
-    // ถ้ามีรูปภาพสำหรับ rollover ก็ให้เปลี่ยนไปแสดงรูปนั้น
     if (rolloverImage) {
       setDisplayImage(rolloverImage);
     }
   };
 
   const handleMouseLeave = () => {
-    // กลับไปแสดงรูปภาพหลักเสมอ
     setDisplayImage(mainImage);
   };
   
-  // --- ฟังก์ชันอื่นๆ ---
   const handleProductClick = () => {
     const slug = product.slug || product.id.toString();
     navigate(`/product/${slug}`);
@@ -62,15 +52,19 @@ const ProductCard = ({ product }: { product: ProductPublic }) => {
     navigate('/cart');
   };
 
+  // ฟังก์ชันสำหรับคลิก Tag
+  const handleTagClick = (e: React.MouseEvent, tag: string) => {
+    e.stopPropagation();
+    navigate(`/products/tag/${encodeURIComponent(tag)}`);
+  };
+
   return (
-    // 5. เพิ่ม onMouseEnter และ onMouseLeave เข้าไปที่ div หลัก
     <div
       className="bg-white rounded-lg shadow-md overflow-hidden cursor-pointer group transform transition-transform duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col h-full"
       onClick={handleProductClick}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      {/* 6. ผูก src ของ img เข้ากับ State 'displayImage' */}
       <div className="relative w-full h-64 bg-gray-100">
         <img
           src={displayImage}
@@ -94,11 +88,27 @@ const ProductCard = ({ product }: { product: ProductPublic }) => {
       </div>
 
       <div className="p-4 flex flex-col flex-grow">
-        <h3 className="font-semibold mb-2 line-clamp-2">{product.name}</h3>
+        <h3 className="font-semibold mb-2 line-clamp-2 h-12">{product.name}</h3>
         
         <p className="text-xl font-bold text-purple-600 mb-3">
           ฿{product.selling_price.toLocaleString()}
         </p>
+        
+        {/* ✨✅ จุดที่ผมลืมใส่ไปครับ เพิ่มให้แล้วตรงนี้ ✅✨ */}
+        {product.tags && product.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mb-3">
+            {product.tags.map((tag) => (
+              <Badge
+                key={tag}
+                variant="outline"
+                className="cursor-pointer hover:bg-amber-100 border-amber-300 text-amber-800"
+                onClick={(e) => handleTagClick(e, tag)}
+              >
+                #{tag}
+              </Badge>
+            ))}
+          </div>
+        )}
 
         <div className="space-y-2 mt-auto pt-2">
           <Button
