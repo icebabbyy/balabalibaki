@@ -97,7 +97,7 @@ const ProductDetail = () => {
   
   // --- Other Functions (Wishlist, Cart, etc.) ---
   const toggleWishlist = async () => { /* ...โค้ดเดิม... */ };
-  const handleTagClick = (tagName: string) => navigate(`/products?tag=${encodeURIComponent(tagName)}`);
+  const handleTagClick = (tagName: string) => navigate(`/products/tag/${encodeURIComponent(tagName)}`);
   const addToCart = () => { /* ...โค้ดเดิม... */ };
   const buyNow = () => { /* ...โค้dเดิม... */ };
   const getStatusColor = (status: string) => {
