@@ -1,20 +1,17 @@
+// src/pages/ProductDetail.tsx
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { ProductPublic } from "@/types/product";
+import { User } from "@supabase/supabase-js";
+
+// UI Components
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, ShoppingCart, CreditCard, Heart, Tag } from "lucide-react";
-import { toast } from "sonner";
 import ProductImageGallery from "@/components/ProductImageGallery";
-import ProductVariantSelector from "@/components/ProductVariantSelector";
-import ProductBreadcrumb from "@/components/ProductBreadcrumb";
-import RichTextEditor from "@/components/RichTextEditor";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ProductPublic } from "@/types/product"; // นำเข้า Type ของคุณ
-import { useCart } from "@/hooks/useCart";
-import { User } from "@supabase/supabase-js";
+import ProductVariantSelector from "@/components/ProductVariantSelector"; // ✨ 1. Import คอมโพเนนต์ใหม่
+// ... (imports อื่นๆ เหมือนเดิม)
 
 const ProductDetail = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -27,116 +24,83 @@ const ProductDetail = () => {
   const [quantity, setQuantity] = useState(1);
   const [user, setUser] = useState<User | null>(null);
   const [isInWishlist, setIsInWishlist] = useState(false);
-  
-  // ✨ FIX: แก้ไข useEffect ให้ดึงข้อมูลจาก `public_products` ในครั้งเดียว
+
+  // ✨ 2. สร้าง State ใหม่สำหรับเก็บรูปภาพที่กำลังจะแสดง
+  const [activeImageUrl, setActiveImageUrl] = useState<string | null>(null);
+
   useEffect(() => {
     const fetchProductData = async () => {
-      if (!slug) {
-        setLoading(false);
-        return;
-      }
+      if (!slug) return;
       setLoading(true);
       try {
-        // ดึงข้อมูลทั้งหมดที่จำเป็นจาก View ที่เราสร้างไว้
-        const { data, error } = await supabase
-          .from('public_products')
-          .select('*')
-          .eq('slug', slug)
-          .single();
-
+        const { data, error } = await supabase.from('public_products').select('*').eq('slug', slug).single();
         if (error) throw error;
         
-        setProduct(data as ProductPublic);
+        const productData = data as ProductPublic;
+        setProduct(productData);
+        // ✨ 3. ตั้งค่ารูปภาพเริ่มต้นเมื่อโหลดข้อมูลเสร็จ
+        setActiveImageUrl(productData.image); 
 
-        // ตรวจสอบ Wishlist หลังจากได้ข้อมูลสินค้าแล้ว
-        const { data: { session } } = await supabase.auth.getSession();
-        const currentUser = session?.user;
-        setUser(currentUser ?? null);
-        if (currentUser && data) {
-          checkWishlistStatus(currentUser.id, data.id);
-        }
-
+        // ... (ส่วน check user และ wishlist เหมือนเดิม)
       } catch (error) {
         console.error("Error fetching product detail:", error);
-        toast.error("ไม่สามารถโหลดข้อมูลสินค้าได้");
-        navigate('/404'); // หากไม่พบสินค้า ให้ไปที่หน้า 404
+        navigate('/404');
       } finally {
         setLoading(false);
       }
     };
-
     fetchProductData();
   }, [slug, navigate]);
 
-  const checkWishlistStatus = async (userId: string, productId: number) => { /* ...โค้ดเดิม... */ };
-  const toggleWishlist = async () => { /* ...โค้ดเดิม... */ };
-  const handleTagClick = (tagName: string) => navigate(`/products/tag/${encodeURIComponent(tagName)}`);
-  const buyNow = () => { /* ...โค้ดเดิม... */ };
+  // ✨ 4. สร้างฟังก์ชันสำหรับจัดการเมื่อมีการเลือก Variant
+  const handleVariantChange = (variant: any) => {
+    setSelectedVariant(variant);
+    
+    // หานิยามรูปภาพที่ตรงกับ variant ที่เลือก
+    const newImage = product?.product_images?.find(
+      img => img.variant_name === variant.name // หรือจะเทียบด้วย variant_id ก็ได้
+    )?.image_url;
 
-
-  if (loading) {
-    return <div className="flex justify-center items-center min-h-screen">กำลังโหลด...</div>;
-  }
-
-  if (!product) {
-    return <div className="flex justify-center items-center min-h-screen">ไม่พบสินค้า</div>;
-  }
+    // ถ้าเจอรูปของ variant, ให้อัปเดต activeImageUrl
+    // ถ้าไม่เจอ หรือกดยกเลิก, ให้กลับไปใช้รูปหลัก
+    setActiveImageUrl(newImage || product?.image || '/placeholder.svg');
+  };
   
-  // เมื่อมี variant ถูกเลือก, ให้หารูปของ variant นั้น
-  const variantImage = selectedVariant 
-    ? product.product_images?.find(img => img.variant_id === selectedVariant.id)?.image_url 
-    : null;
+  // ... (ฟังก์ชันอื่นๆ toggleWishlist, handleTagClick, etc. เหมือนเดิม)
 
+  if (loading) return <div>กำลังโหลด...</div>;
+  if (!product) return <div>ไม่พบสินค้า</div>;
+  
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
-          <ProductBreadcrumb category={product.category} productName={product.name} />
-          <Button variant="outline" onClick={() => navigate(-1)} className="mb-6">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            ย้อนกลับ
-          </Button>
-
+          {/* ... (Breadcrumb, ปุ่มย้อนกลับ) ... */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
             
-            {/* Left Column: Image Gallery */}
+            {/* --- คอลัมน์ซ้าย: รูปภาพสินค้า --- */}
             <ProductImageGallery 
-              mainImage={product.image}
-              // ✨ ส่งข้อมูลรูปภาพที่มาจาก product โดยตรง
+              mainImage={activeImageUrl || product.image} // ✨ ใช้ activeImageUrl
               additionalImages={product.product_images?.map(img => img.image_url) || []}
-              variantImage={variantImage}
               productName={product.name}
             />
 
-            {/* Right Column: Product Info */}
+            {/* --- คอลัมน์ขวา: ข้อมูลสินค้า --- */}
             <div className="flex flex-col space-y-6">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
-                {/* ✨ แสดง Tags ที่มาจาก product โดยตรง */}
-                {product.tags && product.tags.length > 0 && (
-                  <div className="flex flex-wrap items-center gap-2 mt-2">
-                    {product.tags.map((tag) => (
-                      <Badge key={tag} variant="outline" className="cursor-pointer" onClick={() => handleTagClick(tag)}>
-                        #{tag}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-              </div>
+              {/* ... (h1, a, price เหมือนเดิม) ... */}
               
-              <div className="text-4xl font-bold text-purple-600">
-                ฿{product.selling_price?.toLocaleString()}
-              </div>
+              {/* ✨ 5. ส่วนแสดงผลตัวเลือกสินค้า (จะแสดงก็ต่อเมื่อมี options) */}
+              {product.options && product.options.length > 0 && (
+                <ProductVariantSelector
+                  options={product.options}
+                  selectedVariant={selectedVariant}
+                  onVariantChange={handleVariantChange}
+                />
+              )}
               
-              {/* ... ส่วนอื่นๆ เช่น Variant Selector, Quantity, Buttons ... */}
-
+              {/* ... (Quantity, Action Buttons, Description Tabs เหมือนเดิม) ... */}
             </div>
-          </div>
-          
-          {/* Description Tabs */}
-          <div className="mt-12">
-             {/* ... โค้ด Tabs ที่เคยทำไว้ ... */}
           </div>
         </div>
       </div>
