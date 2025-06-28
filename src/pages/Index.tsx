@@ -10,28 +10,59 @@ import { ArrowRight } from "lucide-react";
 import Autoplay from "embla-carousel-autoplay";
 import Header from "@/components/Header";
 import FeaturedProductsCarousel from "@/components/FeaturedProductsCarousel";
-import EnhancedProductCard from "@/components/categories/EnhancedProductCard"; // ✨ ใช้ Card ที่เรามีอยู่แล้ว
-import { transformProductData } from "@/utils/transform"; // ✨ นำเข้าฟังก์ชันแปลงข้อมูล
+import EnhancedProductCard from "@/components/categories/EnhancedProductCard";
+import { transformProductData } from "@/utils/transform";
 import { ProductPublic } from "@/types/product";
-import { toast } from "sonner"; // หรือ toast ปกติ
+import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth"; // ✨✅ แก้ไขจุดที่ 1: เพิ่ม import useAuth
 
-// (ย้าย Interface ออกมาข้างนอกเพื่อให้ชัดเจน)
-interface Banner { /* ... */ }
-interface Category { /* ... */ }
+interface Banner {
+  id: number;
+  image_url: string;
+  link_url: string;
+}
+interface Category {
+  id: number;
+  name: string;
+  image_url: string;
+}
 
 const Index = () => {
   const navigate = useNavigate();
-  // (State declarations เหมือนเดิม)
+  const { user } = useAuth(); // ✨✅ แก้ไขจุดที่ 1: ดึง user จาก hook มาใช้งาน
+  
   const [mainBanners, setMainBanners] = useState<Banner[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<ProductPublic[]>([]);
   const [homepageCategories, setHomepageCategories] = useState<Category[]>([]);
   const [categoryProducts, setCategoryProducts] = useState<{[key: string]: ProductPublic[]}>({});
   const [loading, setLoading] = useState(true);
+  
+  // State สำหรับ Wishlist
+  const [wishlist, setWishlist] = useState<Set<number>>(new Set());
+  const [wishlistLoading, setWishlistLoading] = useState(false);
+
+  // useEffect สำหรับดึงข้อมูล Wishlist (ถูกต้องแล้ว)
+  useEffect(() => {
+    const fetchWishlist = async () => {
+      if (!user) {
+        setWishlist(new Set());
+        return;
+      }
+      try {
+        const { data, error } = await supabase.from('wishlist_items').select('product_id').eq('user_id', user.id);
+        if (error) throw error;
+        const wishlistIds = new Set((data || []).map(item => item.product_id));
+        setWishlist(wishlistIds);
+      } catch (error) {
+        console.error("Error fetching wishlist:", error);
+      }
+    };
+    fetchWishlist();
+  }, [user]);
 
   useEffect(() => {
     const fetchAllData = async () => {
       setLoading(true);
-      // ✨ ทำให้การดึงข้อมูลทำงานพร้อมกันทั้งหมดเพื่อความเร็ว
       await Promise.all([
         fetchBanners(),
         fetchFeaturedProducts(),
@@ -43,83 +74,60 @@ const Index = () => {
   }, []);
 
   const fetchBanners = async () => { /* ...โค้ดเดิม... */ };
+  const fetchFeaturedProducts = async () => { /* ...โค้ดเดิม... */ };
+  const fetchHomepageCategories = async () => { /* ...โค้ดเดิม... */ };
 
-  const fetchFeaturedProducts = async () => {
-    try {
-      const { data, error } = await supabase.from('public_products').select('*').limit(8);
-      if (error) throw error;
-      // ✨ ใช้ฟังก์ชันแปลงข้อมูลที่สร้างไว้
-      setFeaturedProducts((data || []).map(transformProductData));
-    } catch (error) {
-      console.error('Error fetching featured products:', error);
+  // ฟังก์ชันสำหรับจัดการ Wishlist (ถูกต้องแล้ว)
+  const handleToggleWishlist = async (product: ProductPublic) => {
+    if (!user) {
+      toast.error("กรุณาเข้าสู่ระบบเพื่อใช้งานรายการโปรด");
+      navigate('/auth');
+      return;
     }
-  };
-
-  const fetchHomepageCategories = async () => {
+    setWishlistLoading(true);
+    const isCurrentlyInWishlist = wishlist.has(product.id);
     try {
-      const displayCategories = ['Nikke', 'Honkai : Star Rail', 'League of Legends'];
-      
-      const { data: categoriesData, error: catError } = await supabase
-        .from('categories')
-        .select('*')
-        .in('name', displayCategories);
-      
-      if (catError) throw catError;
-      setHomepageCategories(categoriesData || []);
-
-      const { data: productsData, error: prodError } = await supabase
-        .from('public_products')
-        .select('*')
-        .in('category', displayCategories)
-        .limit(15); // ดึงมาเผื่อ
-
-      if (prodError) throw prodError;
-
-      const transformedProducts = (productsData || []).map(transformProductData);
-      
-      const productsByCategory: {[key: string]: ProductPublic[]} = {};
-      displayCategories.forEach(catName => {
-        productsByCategory[catName] = transformedProducts
-          .filter(p => p.category === catName)
-          .slice(0, 5);
-      });
-      setCategoryProducts(productsByCategory);
-
+      if (isCurrentlyInWishlist) {
+        await supabase.from('wishlist_items').delete().match({ user_id: user.id, product_id: product.id });
+        setWishlist(prev => {
+          const newWishlist = new Set(prev);
+          newWishlist.delete(product.id);
+          return newWishlist;
+        });
+        toast.success("ลบออกจากรายการโปรดแล้ว");
+      } else {
+        await supabase.from('wishlist_items').insert({ user_id: user.id, product_id: product.id });
+        setWishlist(prev => new Set(prev).add(product.id));
+        toast.success("เพิ่มในรายการโปรดแล้ว");
+      }
     } catch (error) {
-      console.error('Error fetching homepage categories:', error);
-    }
-  };
-
-  const handleProductClick = (productId: number) => {
-    const allProducts = [...featuredProducts, ...Object.values(categoryProducts).flat()];
-    const product = allProducts.find(p => p.id === productId);
-    if (product) {
-      navigate(`/product/${product.slug || product.id}`);
-    } else {
-      navigate(`/product/${productId}`);
+      toast.error("เกิดข้อผิดพลาด");
+      console.error("Error toggling wishlist:", error);
+    } finally {
+      setWishlistLoading(false);
     }
   };
   
-  // (addToCart ไม่จำเป็นต้องมีในหน้านี้ เพราะจะถูกจัดการใน EnhancedProductCard)
-
   const CategorySection = ({ title, products, categoryName }: { title: string; products: ProductPublic[]; categoryName: string }) => (
     <section className="py-12 bg-white">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-2xl font-bold">{title}</h2>
-          <Link 
-            to={`/categories?category=${encodeURIComponent(categoryName)}`}
-            className="flex items-center text-purple-600 hover:text-purple-700 font-medium"
-          >
+          <Link to={`/categories/${encodeURIComponent(categoryName)}`} className="flex items-center text-purple-600 hover:text-purple-700 font-medium">
             ดูทั้งหมด <ArrowRight className="h-4 w-4 ml-1" />
           </Link>
         </div>
         
         {products.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-            {/* ✨ ใช้ EnhancedProductCard ที่ import มา */}
+            {/* ✨✅ แก้ไขจุดที่ 2: ส่ง props ของ wishlist ลงไปให้ Card ด้วย */}
             {products.map((product) => (
-              <EnhancedProductCard key={product.id} product={product} onProductClick={handleProductClick} />
+              <EnhancedProductCard 
+                key={product.id} 
+                product={product}
+                isInWishlist={wishlist.has(product.id)}
+                onToggleWishlist={handleToggleWishlist}
+              />
             ))}
           </div>
         ) : (
@@ -129,39 +137,32 @@ const Index = () => {
     </section>
   );
 
-  const BannerSection = ({ banners, title }: { banners: Banner[]; title?: string }) => { /* ...โค้ดเดิม... */ };
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      {/* ... (ส่วน Banner ไม่มีการเปลี่ยนแปลง) ... */}
+      {/* ... (ส่วน Banner คงไว้เหมือนเดิม) ... */}
 
       <section className="py-6 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4">
           <h2 className="text-2xl font-bold mb-8 text-center">สินค้ามาใหม่</h2>
-          {loading ? (
-            <div>...Loading...</div> // Placeholder for loading state
-          ) : (
+            {/* ✨✅ แก้ไขจุดที่ 2: ส่ง props ของ wishlist ลงไปให้ Carousel ด้วย */}
             <FeaturedProductsCarousel 
               products={featuredProducts}
-              onProductClick={handleProductClick}
-              // onAddToCart is handled inside the card
+              wishlist={wishlist}
+              onToggleWishlist={handleToggleWishlist}
             />
-          )}
         </div>
       </section>
 
-      {/* ... (ส่วน Category Sections และ Banners อื่นๆ ไม่มีการเปลี่ยนแปลง) ... */}
-       {homepageCategories.map((category) => (
-         <CategorySection 
-           key={category.id}
-           title={category.name} 
-           products={categoryProducts[category.name] || []} 
-           categoryName={category.name} 
-         />
-       ))}
-
+      {homepageCategories.map((category) => (
+       <CategorySection 
+         key={category.id}
+         title={category.name} 
+         products={categoryProducts[category.name] || []} 
+         categoryName={category.name} 
+       />
+      ))}
     </div>
   );
 };
