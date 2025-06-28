@@ -4,134 +4,204 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@supabase/supabase-js';
 import Header from '@/components/Header';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Link } from 'react-router-dom';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FileText, LogIn } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Loader2, FileText, Eye, EyeOff, Login } from 'lucide-react';
 
-// เราจะใช้ Type ของ Order ที่เคยสร้างไว้ใน usePublineOrders
-// หรือจะประกาศใหม่ที่นี่ก็ได้ครับ
 interface Order {
   id: number;
-  status: string;
+  username: string;
+  item_json: string;
+  sku: string;
   total_price: number;
+  shipping_cost: number;
+  shipping_address: string;
+  status: string;
   created_at: string;
-  items: { sku: string, name: string, quantity: number, price: number }[];
 }
+
+interface Product {
+  sku: string;
+  name: string;
+  image: string;
+}
+
+const OrderHistoryCard = ({ order, product }: { order: Order, product?: Product }) => {
+  const [isDetailsVisible, setIsDetailsVisible] = useState(true);
+
+  // คำนวณราคาสินค้าหลัก = ยอดรวม - ค่าส่ง
+  const itemsTotal = order.total_price - (order.shipping_cost || 0);
+  const items = JSON.parse(order.item_json || '[]') as { name: string, sku: string, quantity: number, price: number }[];
+
+
+  return (
+    <Card className="p-6">
+      <div className="flex justify-between items-start">
+        <div>
+          <h3 className="font-bold text-lg"># {order.id}</h3>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm">{order.status || 'ไม่ระบุสถานะ'}</Button>
+          <Button variant="ghost" size="sm" onClick={() => setIsDetailsVisible(!isDetailsVisible)}>
+            {isDetailsVisible ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+            {isDetailsVisible ? 'ซ่อนรายละเอียด' : 'แสดงรายละเอียด'}
+          </Button>
+        </div>
+      </div>
+
+      {isDetailsVisible && (
+        <>
+          <div className="border-b my-4 pb-4 flex justify-between text-sm">
+            <div>
+              <p>จำนวนสินค้า: {items.length} รายการ</p>
+              <p className="text-gray-500">
+                <span className="mr-2">🗓️</span>
+                {order.created_at ? new Date(order.created_at).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric'}) : 'ไม่ระบุวันที่'}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-xl font-bold text-purple-700">฿{order.total_price?.toLocaleString()}</p>
+              <p className="text-gray-500">รวมค่าจัดส่ง: ฿{order.shipping_cost?.toLocaleString() || '0'}</p>
+            </div>
+          </div>
+
+          <div className="my-4">
+            <h4 className="font-semibold mb-2">รายการสินค้า:</h4>
+            {items.map((item, index) => (
+              <div key={index} className="flex items-center justify-between mb-2">
+                <div className="flex items-center">
+                  <img src={product?.image || 'https://via.placeholder.com/64'} alt={item.name} className="w-16 h-16 object-cover rounded-md mr-4 bg-gray-100"/>
+                  <div>
+                    <p className="font-semibold">{item.name}</p>
+                    <p className="text-sm text-gray-500">SKU: {item.sku}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="font-semibold">{item.quantity} x ฿{item.price?.toLocaleString()}</p>
+                  <p className="text-gray-600">฿{(item.quantity * item.price).toLocaleString()}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="my-4">
+            <h4 className="font-semibold mb-2">ที่อยู่จัดส่ง:</h4>
+            <div className="bg-gray-50 p-4 rounded-md text-gray-700">
+              {order.shipping_address || 'ไม่ระบุ'}
+            </div>
+          </div>
+        </>
+      )}
+    </Card>
+  );
+}
+
 
 const OrderHistory = () => {
   const [user, setUser] = useState<User | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [products, setProducts] = useState<Record<string, Product>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchUserAndOrders = async () => {
+    const fetchAllData = async () => {
       setLoading(true);
 
-      // 1. เช็คว่ามี user ล็อกอินอยู่หรือไม่
+      // 1. Get User
       const { data: { session } } = await supabase.auth.getSession();
       const currentUser = session?.user;
-      setUser(currentUser ?? null);
+      setUser(currentUser);
 
-      if (currentUser) {
-        // 2. ถ้ามี user, ให้ดึงออเดอร์เฉพาะของ user คนนั้น
-        try {
-          // ✨ สมมติว่าตาราง orders ของคุณมีคอลัมน์ user_id ที่ตรงกับ auth.users.id
-          const { data, error } = await supabase
-            .from('orders') 
-            .select('*')
-            .eq('user_id', currentUser.id)
-            .order('created_at', { ascending: false });
+      if (currentUser?.email) {
+        // 2. Fetch Orders for that user
+        const { data: orderData, error: orderError } = await supabase
+          .from('publice_orders')
+          .select('*')
+          .ilike('username', `%${currentUser.email}%`);
 
-          if (error) throw error;
-          setOrders(data || []);
-        } catch (error) {
-          console.error('Error fetching orders:', error);
+        if (orderError) {
+          console.error("Error fetching orders:", orderError);
+          setLoading(false);
+          return;
+        }
+        setOrders(orderData || []);
+
+        // 3. Get all unique SKUs from orders
+        if (orderData && orderData.length > 0) {
+          const skus = [...new Set(orderData.flatMap(o => {
+            try {
+              const items = JSON.parse(o.item_json || '[]');
+              return items.map((i: any) => i.sku);
+            } catch {
+              return [];
+            }
+          }))].filter(Boolean); // Filter out null/undefined SKUs
+
+          if (skus.length > 0) {
+            // 4. Fetch corresponding products
+            const { data: productData, error: productError } = await supabase
+              .from('products')
+              .select('sku, name, image')
+              .in('sku', skus);
+
+            if (productError) {
+              console.error("Error fetching products:", productError);
+            } else {
+              const productMap = (productData || []).reduce((acc, p) => {
+                acc[p.sku] = p;
+                return acc;
+              }, {} as Record<string, Product>);
+              setProducts(productMap);
+            }
+          }
         }
       }
-      
       setLoading(false);
     };
-
-    fetchUserAndOrders();
+    fetchAllData();
   }, []);
-
-  const getStatusColor = (status: string) => {
-    // ... ฟังก์ชัน getStatusColor เดิม ...
-    switch (status) {
-      case 'รอตรวจสอบ': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'ชำระเงินแล้ว': return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'กำลังจัดส่ง': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'จัดส่งแล้ว': return 'bg-green-100 text-green-800 border-green-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
+  
   const RenderContent = () => {
     if (loading) {
-      return <div className="text-center p-10">กำลังโหลด...</div>;
+      return <div className="text-center p-10"><Loader2 className="h-8 w-8 mx-auto animate-spin text-purple-600"/></div>;
     }
-    
-    // ถ้าไม่มี user ล็อกอิน
     if (!user) {
-      return (
-        <Card className="text-center p-8">
-          <LogIn className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-          <h3 className="text-xl font-semibold">กรุณาล็อกอิน</h3>
-          <p className="text-gray-500 mb-4">คุณต้องเข้าสู่ระบบเพื่อดูประวัติการสั่งซื้อ</p>
-          <Button asChild style={{ backgroundColor: '#956ec3' }}>
-            <Link to="/auth">ไปที่หน้าล็อกอิน</Link>
-          </Button>
-        </Card>
-      );
+      return <Card className="p-8 text-center"><p>กรุณาล็อกอินเพื่อดูประวัติการสั่งซื้อ</p></Card>;
     }
-    
-    // ถ้าล็อกอินแล้ว แต่ไม่มีออเดอร์
     if (orders.length === 0) {
       return (
-        <Card className="text-center p-8">
-          <FileText className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-          <h3 className="text-xl font-semibold">ยังไม่มีประวัติการสั่งซื้อ</h3>
-          <p className="text-gray-500 mb-4">ออเดอร์ทั้งหมดของคุณจะแสดงที่นี่</p>
-          <Button asChild style={{ backgroundColor: '#956ec3' }}>
-            <Link to="/">เลือกซื้อสินค้า</Link>
-          </Button>
+        <Card className="p-8 text-center">
+            <FileText className="h-12 w-12 mx-auto text-gray-300 mb-4"/>
+            <h3 className="text-xl font-bold">ยังไม่มีประวัติการสั่งซื้อ</h3>
+            <p className="text-gray-500">ออเดอร์ทั้งหมดของคุณจะแสดงที่นี่</p>
+            <Button asChild className="mt-4" style={{backgroundColor: '#956ec3'}}><Link to="/">เลือกซื้อสินค้า</Link></Button>
         </Card>
       );
     }
-
-    // ถ้าล็อกอินและมีออเดอร์
     return (
-      <div className="space-y-4">
-        {orders.map((order) => (
-          <Card key={order.id} className="hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">ออเดอร์ #{order.id}</CardTitle>
-              <Badge className={getStatusColor(order.status)}>{order.status}</Badge>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-500 mb-2">
-                วันที่สั่งซื้อ: {new Date(order.created_at).toLocaleDateString('th-TH')}
-              </p>
-              <p className="font-semibold mb-2">
-                ยอดรวม: ฿{order.total_price.toLocaleString()}
-              </p>
-              <Button asChild variant="outline" size="sm">
-                <Link to={`/order-details/${order.id}`}>ดูรายละเอียด</Link>
-              </Button>
-            </CardContent>
-          </Card>
+      <div className="space-y-6">
+        {orders.map(order => (
+          <OrderHistoryCard 
+            key={order.id} 
+            order={order} 
+            // หา product ที่ตรงกับ sku แรกใน json เพื่อแสดงรูปภาพหลัก
+            product={products[JSON.parse(order.item_json || '[]')[0]?.sku]} 
+          />
         ))}
       </div>
     );
-  };
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-100">
       <Header />
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-8">ประวัติการสั่งซื้อ</h1>
+      <div className="max-w-5xl mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold">ประวัติการสั่งซื้อ</h1>
+          {user && <p className="text-gray-600">{user.email}</p>}
+        </div>
         <RenderContent />
       </div>
     </div>
