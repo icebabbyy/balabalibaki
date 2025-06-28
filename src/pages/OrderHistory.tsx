@@ -20,7 +20,7 @@ interface OrderItem {
 interface ProcessedOrder {
   id: number;
   username: string;
-  items: OrderItem[]; // <--- ข้อมูล item ที่ผ่านการแปลงแล้ว
+  items: OrderItem[]; // ข้อมูล item ที่ผ่านการแปลงแล้ว
   total_price: number;
   shipping_cost: number;
   shipping_address: string;
@@ -35,13 +35,11 @@ interface Product {
 }
 
 // ============== OrderHistoryCard Component ==============
-// ย้าย Card มาเป็น Component ของตัวเองเพื่อความสะอาด
 const OrderHistoryCard = ({ order, productsMap }: { order: ProcessedOrder, productsMap: Record<string, Product> }) => {
   const [isDetailsVisible, setIsDetailsVisible] = useState(true);
 
   return (
     <Card className="p-4 sm:p-6 shadow-sm">
-      {/* Header ของ Card */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
         <h3 className="font-bold text-lg mb-2 sm:mb-0">ออเดอร์ # {order.id}</h3>
         <div className="flex items-center gap-2">
@@ -52,7 +50,6 @@ const OrderHistoryCard = ({ order, productsMap }: { order: ProcessedOrder, produ
         </div>
       </div>
 
-      {/* ส่วนรายละเอียดที่ซ่อน/แสดงได้ */}
       {isDetailsVisible && (
         <div className="mt-4">
           <div className="border-t pt-4 flex justify-between text-sm">
@@ -71,7 +68,7 @@ const OrderHistoryCard = ({ order, productsMap }: { order: ProcessedOrder, produ
           <div className="mt-4">
             <h4 className="font-semibold mb-2">รายการสินค้า:</h4>
             <div className="space-y-3">
-              {order.items.map((item) => (
+              {order.items.length > 0 ? order.items.map((item) => (
                 <div key={item.sku} className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <img
@@ -88,7 +85,7 @@ const OrderHistoryCard = ({ order, productsMap }: { order: ProcessedOrder, produ
                     <p className="font-semibold">{item.quantity} x ฿{item.price?.toLocaleString()}</p>
                   </div>
                 </div>
-              ))}
+              )) : <p className="text-sm text-gray-500">ไม่พบรายการสินค้าในออเดอร์นี้</p>}
             </div>
           </div>
           
@@ -104,7 +101,6 @@ const OrderHistoryCard = ({ order, productsMap }: { order: ProcessedOrder, produ
   );
 };
 
-
 // ============== OrderHistory Page Component ==============
 const OrderHistory = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -119,7 +115,6 @@ const OrderHistory = () => {
       setError(null);
 
       try {
-        // 1. Get User
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         if (sessionError) throw new Error(`Session Error: ${sessionError.message}`);
         
@@ -128,10 +123,9 @@ const OrderHistory = () => {
 
         if (!currentUser?.email) {
           setLoading(false);
-          return; // ไม่ต้องทำอะไรต่อถ้าไม่ล็อกอิน
+          return;
         }
 
-        // 2. Fetch Orders
         const { data: rawOrders, error: orderError } = await supabase
           .from('publice_orders')
           .select('*')
@@ -144,27 +138,33 @@ const OrderHistory = () => {
           return;
         }
 
-        // 3. Process Orders and get all unique SKUs (SAFE ZONE)
-        // **จุดสำคัญ: แปลง JSON ที่นี่ที่เดียว ภายใน try-catch**
         const processedOrders: ProcessedOrder[] = [];
         const allSkus = new Set<string>();
 
         for (const rawOrder of rawOrders) {
-          let items: OrderItem[] = [];
+          let parsedJson: any;
           try {
-            // ถ้า item_json เป็น null หรือ empty string ให้ใช้ []
-            items = JSON.parse(rawOrder.item_json || '[]');
+            parsedJson = JSON.parse(rawOrder.item_json || '[]');
           } catch (e) {
             console.error(`Invalid JSON in order #${rawOrder.id}:`, rawOrder.item_json);
-            // ถ้า JSON ผิดพลาด ก็ให้ items เป็น array ว่างๆไปเลย แต่ยังแสดงออเดอร์
+            parsedJson = []; // ถ้า JSON ผิดพลาด ให้เป็น array ว่าง
           }
+
+          // 🔥🔥 จุดแก้ไขสำคัญ 🔥🔥
+          // ตรวจสอบว่าข้อมูลที่ได้เป็น Array หรือไม่ ถ้าไม่ใช่ ให้จับมันใส่ Array
+          const items: OrderItem[] = Array.isArray(parsedJson) ? parsedJson : [parsedJson];
           
           processedOrders.push({ ...rawOrder, items });
-          items.forEach(item => allSkus.add(item.sku));
+
+          // วนลูปจาก `items` ที่การันตีแล้วว่าเป็น Array เสมอ
+          items.forEach(item => {
+            if (item && item.sku) { // เพิ่มการตรวจสอบเผื่อ item ไม่มี sku
+              allSkus.add(item.sku);
+            }
+          });
         }
         setOrders(processedOrders);
         
-        // 4. Fetch corresponding products if there are any SKUs
         if (allSkus.size > 0) {
           const { data: productData, error: productError } = await supabase
             .from('products')
@@ -183,7 +183,8 @@ const OrderHistory = () => {
         }
       } catch (e: any) {
         console.error("A critical error occurred:", e);
-        setError(e.message || 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ');
+        const errorMessage = e instanceof Error ? e.message : 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ';
+        setError(errorMessage.replace(/j\.forEach/g, 'items.forEach')); // ทำให้อ่านง่ายขึ้น
       } finally {
         setLoading(false);
       }
@@ -202,7 +203,7 @@ const OrderHistory = () => {
         <Card className="p-8 text-center bg-red-50 text-red-700">
             <AlertCircle className="h-12 w-12 mx-auto mb-4"/>
             <h3 className="text-xl font-bold">เกิดข้อผิดพลาด</h3>
-            <p className="text-sm mt-2">{error}</p>
+            <p className="text-sm mt-2 font-mono">{error}</p>
         </Card>
       );
     }
