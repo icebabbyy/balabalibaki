@@ -1,6 +1,6 @@
 // src/components/categories/ProductCard.tsx
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,56 +9,31 @@ import { ShoppingCart, CreditCard, Heart } from "lucide-react";
 import { ProductPublic } from "@/types/product";
 import { useCart } from "@/hooks/useCart";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth"; // นำ useAuth hook มาใช้
+import { Link } from "react-router-dom"; // เพิ่ม Link
 
-const ProductCard = ({ product }: { product: ProductPublic }) => {
+// รับ props เพิ่ม 2 ตัว
+interface ProductCardProps {
+  product: ProductPublic;
+  isInWishlist: boolean;
+  onToggleWishlist: (product: ProductPublic) => void;
+}
+
+const ProductCard = ({ product, isInWishlist, onToggleWishlist }: ProductCardProps) => {
   const navigate = useNavigate();
   const { addToCart } = useCart();
-  const { user } = useAuth(); // ดึงข้อมูล user จาก hook กลาง
 
   const mainImage = product.image || '/placeholder.svg';
+  // แก้ไข: ใช้ images_list ที่เราทำใน view
   const rolloverImage = product.images_list?.find(
     (img: any) => img && img.image_url !== mainImage
   )?.image_url;
 
   const [displayImage, setDisplayImage] = useState(mainImage);
-  const [isInWishlist, setIsInWishlist] = useState(false);
-  const [isWishlistLoading, setIsWishlistLoading] = useState(true);
 
-  // --- แก้ไข: useEffect สำหรับเช็คสถานะ wishlist ---
+  // ทำให้รูปภาพกลับเป็นรูปหลักเสมอเมื่อ product เปลี่ยนไป
   useEffect(() => {
-    // สร้างฟังก์ชันสำหรับเช็คโดยเฉพาะ
-    const checkWishlistStatus = async () => {
-      if (!user || !product.id) {
-        setIsInWishlist(false);
-        setIsWishlistLoading(false);
-        return;
-      }
-
-      setIsWishlistLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('wishlist_items')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('product_id', product.id)
-          .maybeSingle(); // ใช้ maybeSingle() ปลอดภัยกว่า
-
-        if (error) throw error;
-        
-        setIsInWishlist(!!data);
-      } catch (error) {
-        console.error("Error checking wishlist status:", error);
-        setIsInWishlist(false); // Reset to false on error
-      } finally {
-        setIsWishlistLoading(false);
-      }
-    };
-
-    checkWishlistStatus();
-  }, [user, product.id]); // <-- **จุดแก้ไขสำคัญ: ให้มันทำงานใหม่เมื่อ user หรือ product.id เปลี่ยน**
-
+    setDisplayImage(product.image || '/placeholder.svg');
+  }, [product.image]);
 
   const handleMouseEnter = () => {
     if (rolloverImage) setDisplayImage(rolloverImage);
@@ -72,55 +47,27 @@ const ProductCard = ({ product }: { product: ProductPublic }) => {
     const slug = product.slug || product.id.toString();
     navigate(`/product/${slug}`);
   };
-
-  const handleToggleWishlist = async (e: React.MouseEvent) => {
+  
+  const handleToggleWishlistClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!user) {
-      toast.error("กรุณาเข้าสู่ระบบเพื่อใช้งานรายการโปรด");
-      navigate('/auth');
-      return;
-    }
-
-    setIsWishlistLoading(true);
-    try {
-      if (isInWishlist) {
-        const { error } = await supabase.from('wishlist_items').delete().match({ user_id: user.id, product_id: product.id });
-        if (error) throw error;
-        setIsInWishlist(false);
-        toast.success("ลบออกจากรายการโปรดแล้ว");
-      } else {
-        const { error } = await supabase.from('wishlist_items').insert({ user_id: user.id, product_id: product.id });
-        if (error) throw error;
-        setIsInWishlist(true);
-        toast.success("เพิ่มในรายการโปรดแล้ว");
-      }
-    } catch (error) {
-      console.error("Error toggling wishlist:", error);
-      toast.error("เกิดข้อผิดพลาด");
-    } finally {
-      setIsWishlistLoading(false);
-    }
+    onToggleWishlist(product);
   };
-
 
   const handleAddToCartClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    addToCart(product);
+    addToCart(product, 1);
+    toast.success(`เพิ่ม "${product.name}" ลงตะกร้าแล้ว`);
   };
 
   const handleBuyNowClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    addToCart(product);
+    addToCart(product, 1);
     navigate('/cart');
   };
 
-  const handleTagClick = (e: React.MouseEvent, tag: any) => {
-    e.stopPropagation();
-    navigate(`/products/tag/${tag.slug || encodeURIComponent(tag.name)}`);
-  };
-
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden cursor-pointer group transform transition-transform duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col h-full"
+    <div
+      className="bg-white rounded-lg shadow-md overflow-hidden cursor-pointer group transform transition-transform duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col h-full"
       onClick={handleProductClick}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
@@ -128,14 +75,20 @@ const ProductCard = ({ product }: { product: ProductPublic }) => {
       <div className="relative w-full h-64 bg-gray-100">
         <img src={displayImage} alt={product.name} className="w-full h-full object-cover transition-opacity duration-300" />
         <div className="absolute top-2 left-2 z-10">
-          {product.product_status && (
-            <Badge className={ product.product_status?.trim() === 'พร้อมส่ง' ? 'bg-green-500 hover:bg-green-600 text-white border-transparent' : 'bg-purple-600 hover:bg-purple-700 text-white border-transparent' }>
-              {product.product_status}
-            </Badge>
-          )}
+          <Badge className={ product.product_status?.trim() === 'พร้อมส่ง' ? 'bg-green-500 hover:bg-green-600 text-white border-transparent' : 'bg-purple-600 hover:bg-purple-700 text-white border-transparent' }>
+            {product.product_status}
+          </Badge>
         </div>
-        <Button variant="ghost" size="icon" className="absolute top-2 right-2 z-10 bg-white/70 backdrop-blur-sm p-2 rounded-full text-gray-600 hover:text-red-500" onClick={handleToggleWishlist} disabled={isWishlistLoading}>
-          <Heart size={18} className={`transition-all duration-200 ${isInWishlist ? 'text-red-500 fill-red-500' : 'text-gray-500'}`} />
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="absolute top-2 right-2 z-10 bg-white/70 backdrop-blur-sm p-2 rounded-full text-gray-600 hover:text-red-500" 
+          onClick={handleToggleWishlistClick}
+        >
+          <Heart 
+            size={18} 
+            className={`transition-all duration-200 ${isInWishlist ? 'text-red-500 fill-red-500' : 'text-gray-500'}`}
+          />
         </Button>
       </div>
 
@@ -145,10 +98,12 @@ const ProductCard = ({ product }: { product: ProductPublic }) => {
         
         {product.tags && product.tags.length > 0 && (
           <div className="flex flex-wrap gap-1 mb-3">
-            {product.tags.map((tag: any) => (
-              <Badge key={tag.slug || tag.name} variant="outline" className="cursor-pointer hover:bg-amber-100 border-amber-300 text-amber-800" onClick={(e) => handleTagClick(e, tag)}>
-                #{tag.name}
-              </Badge>
+            {product.tags.map((tag: string) => ( //แก้ให้ tag เป็น string
+              <Link to={`/products/tag/${encodeURIComponent(tag)}`} key={tag} onClick={(e) => e.stopPropagation()}>
+                <Badge variant="outline" className="cursor-pointer hover:bg-amber-100 border-amber-300 text-amber-800">
+                  #{tag}
+                </Badge>
+              </Link>
             ))}
           </div>
         )}
