@@ -1,4 +1,4 @@
-// src/components/categories/EnhancedProductCard.tsx
+// src/components/EnhancedProductCard.tsx
 
 import { ProductPublic } from '@/types/product';
 import { Heart, ShoppingCart, CreditCard } from 'lucide-react';
@@ -18,7 +18,7 @@ const EnhancedProductCard = ({ product, onProductClick }: EnhancedProductCardPro
   const { addToCart } = useCart();
   const navigate = useNavigate();
 
-  // เราจะหา rolloverImage มาเตรียมไว้ แต่จะไม่ใช้ State หรือ useEffect แล้ว
+  // ✨ เราจะหา rolloverImage มาเตรียมไว้ แต่จะไม่ใช้ State หรือ useEffect แล้ว
   const mainImage = product.image || product.product_images?.[0]?.image_url || '/placeholder.svg';
   const rolloverImage = product.product_images?.find(img => img.image_url !== mainImage)?.image_url;
 
@@ -34,12 +34,12 @@ const EnhancedProductCard = ({ product, onProductClick }: EnhancedProductCardPro
   };
 
   return (
-    // ✨ จุดที่ 1: เพิ่ม className="group" ที่นี่
+    // ✨ 1. ตรวจสอบว่ามี className="group" ที่นี่ (โค้ดของคุณมีอยู่แล้ว เยี่ยมครับ!)
     <div
       className="bg-white rounded-lg shadow-md overflow-hidden cursor-pointer group transform transition-transform duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col h-full"
       onClick={() => onProductClick(product.id)}
     >
-      {/* ✨ จุดที่ 2: แก้ไขส่วนแสดงรูปภาพใหม่ทั้งหมด */}
+      {/* ✨ 2. แก้ไขส่วนแสดงรูปภาพใหม่ทั้งหมด */}
       <div className="relative w-full h-64 bg-gray-100">
         {/* รูปภาพหลัก (แสดงตลอดเวลา) */}
         <img
@@ -52,7 +52,7 @@ const EnhancedProductCard = ({ product, onProductClick }: EnhancedProductCardPro
           <img
             src={rolloverImage}
             alt={`${product.name} (hover)`}
-            // ปกติจะซ่อนไว้ (opacity-0) และจะแสดงขึ้นมาเมื่อ hover (group-hover:opacity-100)
+            // 3. ปกติจะซ่อนไว้ (opacity-0) และจะแสดงขึ้นมาเมื่อ hover (group-hover:opacity-100)
             className="w-full h-full object-cover absolute inset-0 transition-opacity duration-300 opacity-0 group-hover:opacity-100"
           />
         )}
@@ -76,7 +76,7 @@ const EnhancedProductCard = ({ product, onProductClick }: EnhancedProductCardPro
 
       {/* ส่วนเนื้อหาของการ์ด (ไม่มีการเปลี่ยนแปลง) */}
       <div className="p-4 flex flex-col flex-grow">
-        <h3 className="font-semibold mb-2 line-clamp-2">{product.name}</h3>
+        <h3 className="font-semibold mb-2 line-clamp-2 h-12">{product.name}</h3>
         
         <p className="text-xl font-bold text-purple-600 mb-3">
           ฿{product.selling_price.toLocaleString()}
