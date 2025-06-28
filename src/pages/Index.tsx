@@ -68,7 +68,7 @@ const Index = () => {
 
         // Process data
         setBanners(bannerRes.data || []);
-        setFeaturedProducts((featuredRes.data || []).map(mapProduct));
+        setFeaturedProducts((featuredRes.(data || []).filter(Boolean).map(mapProduct)
         setAllCategories(categoryRes.data || []);
         
         const mappedHomepageProducts = (homepageProdRes.data || []).map(mapProduct);
