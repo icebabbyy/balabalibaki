@@ -4,7 +4,7 @@ import { ProductPublic } from '@/types/product';
 import { Heart, ShoppingCart, CreditCard } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from "@/components/ui/card"; // ✨ นำ Card กลับมา
+import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '@/hooks/useCart';
 
@@ -19,19 +19,15 @@ const EnhancedProductCard = ({ product, onProductClick }: EnhancedProductCardPro
   const { addToCart } = useCart();
   const navigate = useNavigate();
 
-  // Logic สำหรับ Swap Image ยังคงใช้แบบ CSS เพื่อความเสถียร
   const mainImage = product.image || product.product_images?.[0]?.image_url || '/placeholder.svg';
   const rolloverImage = product.product_images?.find(img => img.image_url !== mainImage)?.image_url;
 
-  const handleAddToCartClick = (e: React.MouseEvent) => {
+  const handleActionClick = (e: React.MouseEvent, action: 'addToCart' | 'buyNow') => {
     e.stopPropagation();
     addToCart(product);
-  };
-
-  const handleBuyNowClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    addToCart(product);
-    navigate('/cart');
+    if (action === 'buyNow') {
+      navigate('/cart');
+    }
   };
   
   const handleTagClick = (e: React.MouseEvent, tag: string) => {
@@ -40,34 +36,19 @@ const EnhancedProductCard = ({ product, onProductClick }: EnhancedProductCardPro
   };
 
   return (
-    // ✨ FIX: ใช้ Card และเอา flex, h-full ออกเพื่อให้ความสูงเป็นอิสระ
     <Card
-      className="overflow-hidden cursor-pointer group transform transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+      className="overflow-hidden cursor-pointer group transform transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col h-full"
       onClick={() => onProductClick(product.id)}
     >
-      <CardContent className="p-0">
+      <CardContent className="p-0 flex flex-col flex-grow">
         <div className="relative w-full aspect-[4/5] bg-gray-100">
-          {/* รูปภาพหลัก */}
-          <img
-            src={mainImage}
-            alt={product.name}
-            className="w-full h-full object-cover absolute inset-0 transition-opacity duration-300"
-          />
-          {/* รูปภาพตอน hover */}
+          <img src={mainImage} alt={product.name} className="w-full h-full object-cover absolute inset-0 transition-opacity duration-300"/>
           {rolloverImage && (
-            <img
-              src={rolloverImage}
-              alt={`${product.name} (hover)`}
-              className="w-full h-full object-cover absolute inset-0 transition-opacity duration-300 opacity-0 group-hover:opacity-100"
-            />
+            <img src={rolloverImage} alt={`${product.name} (hover)`} className="w-full h-full object-cover absolute inset-0 transition-opacity duration-300 opacity-0 group-hover:opacity-100"/>
           )}
           <div className="absolute top-2 left-2 z-10">
             {product.product_status && (
-              <Badge className={`text-white border-transparent ${
-                product.product_status === 'พร้อมส่ง' 
-                  ? 'bg-green-500' 
-                  : 'bg-purple-600'
-              }`}>
+              <Badge className={`text-white border-transparent ${product.product_status === 'พร้อมส่ง' ? 'bg-green-500' : 'bg-purple-600'}`}>
                 {product.product_status}
               </Badge>
             )}
@@ -77,49 +58,30 @@ const EnhancedProductCard = ({ product, onProductClick }: EnhancedProductCardPro
           </Button>
         </div>
 
-        <div className="p-4">
+        <div className="p-4 flex flex-col flex-grow">
           <h3 className="font-semibold mb-2 line-clamp-2 text-sm h-10">{product.name}</h3>
           
-          <p className="text-lg font-bold text-purple-600 mb-3">
-            ฿{product.selling_price.toLocaleString()}
-          </p>
+          <div className="flex-grow"> {/* เพิ่ม div นี้เพื่อให้ราคากับ tag อยู่ด้วยกัน */}
+            <p className="text-lg font-bold text-purple-600">
+              ฿{product.selling_price.toLocaleString()}
+            </p>
+            {product.tags && product.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {product.tags.map((tag) => (
+                  <Badge key={tag} variant="outline" className="cursor-pointer text-xs" onClick={(e) => handleTagClick(e, tag)}>
+                    #{tag}
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
 
-          {/* ส่วนแสดง Tags */}
-          {product.tags && product.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1 mb-3">
-              {product.tags.map((tag) => (
-                <Badge
-                  key={tag}
-                  variant="outline"
-                  className="cursor-pointer hover:bg-amber-100 border-amber-300 text-amber-800"
-                  onClick={(e) => handleTagClick(e, tag)}
-                >
-                  #{tag}
-                </Badge>
-              ))}
-            </div>
-          )}
-
-          {/* ✨ FIX: นำปุ่มแบบเดิมกลับมา */}
-          <div className="space-y-2 pt-2">
-            <Button
-              onClick={handleBuyNowClick}
-              className="w-full"
-              size="sm"
-              disabled={product.product_status === 'สินค้าหมด'}
-            >
-              <CreditCard className="h-4 w-4 mr-2" />
-              ซื้อเดี๋ยวนี้
+          <div className="space-y-2 mt-4">
+            <Button onClick={(e) => handleActionClick(e, 'buyNow')} size="sm" className="w-full">
+              <CreditCard className="h-4 w-4 mr-2" /> ซื้อเดี๋ยวนี้
             </Button>
-            <Button
-              onClick={handleAddToCartClick}
-              variant="outline"
-              size="sm"
-              className="w-full"
-              disabled={product.product_status === 'สินค้าหมด'}
-            >
-              <ShoppingCart className="h-4 w-4 mr-2" />
-              เพิ่มลงตะกร้า
+            <Button onClick={(e) => handleActionClick(e, 'addToCart')} variant="outline" size="sm" className="w-full">
+              <ShoppingCart className="h-4 w-4 mr-2" /> เพิ่มลงตะกร้า
             </Button>
           </div>
         </div>
