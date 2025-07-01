@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react"; // 1. Import useMemo
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -90,7 +89,10 @@ const Cart = () => {
     toast.success("ลบสินค้าแล้ว");
   };
 
-  const totalPrice = cartItems.reduce((s, i) => s + i.price * i.quantity, 0);
+  // 2. แก้ไข totalPrice ให้ใช้ useMemo
+  const totalPrice = useMemo(() => {
+    return cartItems.reduce((s, i) => s + i.price * i.quantity, 0);
+  }, [cartItems]);
 
   const handleCheckout = async () => {
     if (!customerInfo.name || !customerInfo.phone || !customerInfo.address) {
@@ -98,7 +100,6 @@ const Cart = () => {
     }
     if (cartItems.length === 0) return toast.error("ตะกร้าว่าง");
 
-    // อัปเดตโปรไฟล์ถ้าเลือก
     if (updateProfile && profileId) {
       await supabase
         .from("profiles")
@@ -181,7 +182,6 @@ const Cart = () => {
             <Card>
               <CardContent className="p-6 space-y-4">
                 <h2 className="text-xl font-bold mb-4">ข้อมูลจัดส่ง</h2>
-
                 <Input
                   placeholder="ชื่อ-นามสกุล"
                   value={customerInfo.name}
@@ -202,7 +202,6 @@ const Cart = () => {
                   value={customerInfo.note}
                   onChange={(e) => setCustomerInfo({ ...customerInfo, note: e.target.value })}
                 />
-
                 {isLoggedIn && profileId && (
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <div className="flex items-center space-x-2 mb-2">
@@ -221,7 +220,6 @@ const Cart = () => {
                     </p>
                   </div>
                 )}
-
                 <Button onClick={handleCheckout} className="w-full py-3 text-lg" style={{ backgroundColor: "#956ec3", color: "#fff" }}>
                   ดำเนินการชำระเงิน
                 </Button>
