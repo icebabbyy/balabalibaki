@@ -60,7 +60,7 @@ const EnhancedProductCard = ({ product, onProductClick }: EnhancedProductCardPro
 
         <div className="p-4 flex flex-col flex-grow">
           {/* ✨ FIX 2: เอา h-10 ออก ทำให้ความสูงยืดหยุ่น */}
-          <h3 className="font-semibold mb-2 line-clamp-2 text-sm">{product.name}</h3>
+          <h3 className="font-semibold mb-2 truncate text-sm">{product.name}</h3>
           
           <div className="flex-grow">
             <p className="text-lg font-bold text-purple-600">

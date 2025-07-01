@@ -10,22 +10,35 @@ import { ArrowRight } from "lucide-react";
 import Autoplay from "embla-carousel-autoplay";
 import EnhancedProductCard from "@/components/categories/EnhancedProductCard";
 
-// Interfaces
 interface Banner { id: string; image_url: string; link_url?: string; position: number; title?: string }
-interface Category { id: number; name: string; image?: string; display_on_homepage?: boolean }
+interface Category { id: number; name: string; image?: string; }
 
 // Helper function to map data safely
 const mapProduct = (item: any): ProductPublic | null => {
   if (!item) return null;
   return {
-    id: item.id || 0, name: item.name || "", selling_price: item.selling_price,
-    category: item.category || "", image: item.image || "",
-    product_status: item.product_status || "พรีออเดอร์", slug: item.slug || String(item.id),
+    // ---- ข้อมูลเดิม ----
+    id: item.id || 0,
+    name: item.name || "",
+    selling_price: item.selling_price || 0,
+    category: item.category || "",
+    image: item.image || "",
+    product_status: item.product_status || "พรีออเดอร์",
+    slug: item.slug || String(item.id),
     product_images: Array.isArray(item.product_images) ? item.product_images.filter(img => img && img.image_url) : [],
     tags: Array.isArray(item.tags) ? item.tags.filter(Boolean) : [],
+    
+    // ---- เพิ่ม property ที่ขาดไป ----
+    description: item.description || "",
+    sku: item.sku || "",
+    quantity: item.quantity || 0,
+    shipment_date: item.shipment_date || null,
+     options: item.options || [],
+    product_type: item.product_type || 'standard',
+    created_at: item.created_at || null,
+    updated_at: item.updated_at || null,
   };
 };
-
 const Index = () => {
   const navigate = useNavigate();
   const [banners, setBanners] = useState<Banner[]>([]);
@@ -103,36 +116,43 @@ const Index = () => {
       {isPageLoading ? (
         <div className="flex justify-center items-center h-screen"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div></div>
       ) : (
-        <>
-          <BannerSection banners={banners.filter(b => b.position === 1)} aspectRatio="1400/400" autoPlay />
-          <CategoryGridSection categories={allCategories} />
-          <FeaturedProductsSection products={featuredProducts} onProductClick={handleProductClick} />
-          <CategorySection title="Honkai : Star Rail" products={homepageCategoryProducts['Honkai : Star Rail']} onProductClick={handleProductClick} />
-          <CategorySection title="Nikke" products={homepageCategoryProducts['Nikke']} onProductClick={handleProductClick} />
-          <BannerSection banners={banners.filter(b => b.position === 2)} />
-          <BannerSection banners={banners.filter(b => b.position === 3)} small autoPlay aspectRatio="1400/300" />
-          <CategorySection title="League of Legends" products={homepageCategoryProducts['League of Legends']} onProductClick={handleProductClick} />
-          <CategorySection title="Valorant" products={homepageCategoryProducts['Valorant']} onProductClick={handleProductClick} />
-          <BannerSection banners={banners.filter(b => b.position === 4)} small aspectRatio="1400/400" />
-          <CategorySection title="Zenless Zone Zero" products={homepageCategoryProducts['Zenless Zone Zero']} onProductClick={handleProductClick} />
-        </>
-      )}
-    </div>
-  );
+       // ... โค้ดส่วนบนของไฟล์ ...
+      <>
+        <BannerSection banners={banners.filter(b => b.position === 1)} aspectRatio="1400/400" autoPlay />
+        <CategoryGridSection categories={allCategories} />
+        <FeaturedProductsSection products={featuredProducts} onProductClick={handleProductClick} />
+        <CategorySection title="Honkai : Star Rail" products={homepageCategoryProducts['Honkai : Star Rail']} onProductClick={handleProductClick} />
+        <CategorySection title="Nikke" products={homepageCategoryProducts['Nikke']} onProductClick={handleProductClick} />
+        
+        {/* === จุดที่แก้ไข === */}
+        <BannerSection banners={banners.filter(b => b.position === 2)} small aspectRatio="1400/400" />
+        <BannerSection banners={banners.filter(b => b.position === 3)} small autoPlay aspectRatio="1400/400" />
+        {/* ================= */}
+        
+        <CategorySection title="League of Legends" products={homepageCategoryProducts['League of Legends']} onProductClick={handleProductClick} />
+        <CategorySection title="Valorant" products={homepageCategoryProducts['Valorant']} onProductClick={handleProductClick} />
+        <BannerSection banners={banners.filter(b => b.position === 4)} small aspectRatio="1400/400" />
+        <CategorySection title="Zenless Zone Zero" products={homepageCategoryProducts['Zenless Zone Zero']} onProductClick={handleProductClick} />
+      </>
+    )}
+  </div>
+);
 };
 
 // --- Helper Components ---
+// ในคอมโพเนนต์ BannerSection
 const BannerSection = ({ banners, small, autoPlay, aspectRatio }: { banners: Banner[], small?: boolean, autoPlay?: boolean, aspectRatio?: string}) => {
   if (!banners || banners.length === 0) return null;
   const plugins = autoPlay ? [Autoplay({ delay: 4000, stopOnInteraction: true })] : [];
   return (
    <section className="py-8"><div className={`mx-auto px-4 ${small ? 'max-w-6xl' : 'max-w-7xl'}`}>
-       <Carousel plugins={plugins} opts={{ loop: true }}>
-          <CarouselContent>
-            {banners.map(banner => (<CarouselItem key={banner.id}><Link to={banner.link_url || '#'}><img src={banner.image_url} alt={banner.title || 'Banner'} className="w-full h-auto object-cover rounded-lg" style={{aspectRatio}}/></Link></CarouselItem>))}
-          </CarouselContent>
-        </Carousel>
-      </div></section>
+       {/* เพิ่ม as any ตรงนี้ */}
+       <Carousel plugins={plugins as any} opts={{ loop: true }}>
+         <CarouselContent>
+           {banners.map(banner => (<CarouselItem key={banner.id}><Link to={banner.link_url || '#'}><img src={banner.image_url} alt={banner.title || 'Banner'} className="w-full h-auto object-cover rounded-lg" style={{aspectRatio}}/></Link></CarouselItem>))}
+         </CarouselContent>
+       </Carousel>
+     </div></section>
   );
 };
 const CategoryGridSection = ({ categories }: { categories: Category[] }) => {
@@ -153,12 +173,14 @@ const CategoryGridSection = ({ categories }: { categories: Category[] }) => {
      </div></section>
  );
 };
+// ในคอมโพเนนต์ FeaturedProductsSection
 const FeaturedProductsSection = ({ products, onProductClick }: { products: ProductPublic[], onProductClick: (id: number) => void }) => {
- if (!products || products.length === 0) return null;
- return (
+  if (!products || products.length === 0) return null;
+  return (
    <section className="py-6 bg-gray-50"><div className="max-w-7xl mx-auto px-4">
        <h2 className="text-2xl font-bold mb-8 text-center">สินค้ามาใหม่</h2>
-       <Carousel opts={{ align: "start", loop: true }} plugins={[Autoplay({ delay: 3000, stopOnInteraction: true })]}>
+       {/* เพิ่ม as any ตรงนี้ */}
+       <Carousel opts={{ align: "start", loop: true }} plugins={[Autoplay({ delay: 3000, stopOnInteraction: true })] as any}>
          <CarouselContent className="-ml-4">
            {products.map((product) => (
              <CarouselItem key={product.id} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5">
@@ -170,7 +192,7 @@ const FeaturedProductsSection = ({ products, onProductClick }: { products: Produ
          <CarouselNext className="right-2 hidden md:flex" />
        </Carousel>
      </div></section>
- );
+  );
 };
 const CategorySection = ({ title, products, onProductClick }: { title: string; products: ProductPublic[]; onProductClick: (id: number) => void; }) => {
   if (!products || products.length === 0) return null;

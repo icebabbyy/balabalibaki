@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ProductPublic } from "@/types/product";
 import { User } from "@supabase/supabase-js";
+import { marked } from "marked"; // ด้านบนสุด
 
 // UI Components
 import Header from "@/components/Header";
@@ -12,7 +13,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProductImageGallery from "@/components/ProductImageGallery";
 import ProductVariantSelector from "@/components/ProductVariantSelector";
 import ProductBreadcrumb from "@/components/ProductBreadcrumb";
-import { ArrowLeft, ShoppingCart, CreditCard, Heart, Tag, Package, Clock } from "lucide-react";
+import {
+  ArrowLeft,
+  ShoppingCart,
+  CreditCard,
+  Heart,
+  Tag,
+  Package,
+  Clock,
+  Calendar,
+} from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { toast } from "sonner";
 
@@ -21,7 +31,6 @@ const ProductDetail = () => {
   const navigate = useNavigate();
   const { addToCart } = useCart();
 
-  // --- State Management ---
   const [product, setProduct] = useState<ProductPublic | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedVariant, setSelectedVariant] = useState<any | null>(null);
@@ -30,26 +39,25 @@ const ProductDetail = () => {
   const [isInWishlist, setIsInWishlist] = useState(false);
   const [isWishlistLoading, setIsWishlistLoading] = useState(true);
 
-  // --- Data Fetching ---
   useEffect(() => {
     const fetchProductData = async () => {
       if (!slug) return;
       setLoading(true);
       try {
-        // ใช้ View 'public_products' เพื่อดึงข้อมูลทั้งหมดในครั้งเดียว
         const { data, error } = await supabase
-          .from('public_products')
-          .select('*')
-          .eq('slug', slug)
+          .from("public_products")
+          .select("*")
+          .eq("slug", slug)
           .single();
 
         if (error) throw error;
-        
+
         const productData = data as ProductPublic;
         setProduct(productData);
 
-        // หลังจากได้ข้อมูลสินค้าแล้ว ค่อยเช็คสถานะ user และ wishlist
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         const currentUser = session?.user;
         setUser(currentUser ?? null);
         if (currentUser && productData) {
@@ -57,10 +65,9 @@ const ProductDetail = () => {
         } else {
           setIsWishlistLoading(false);
         }
-
       } catch (error) {
         console.error("Error fetching product detail:", error);
-        navigate('/404'); // หากไม่พบสินค้า ให้ไปที่หน้า 404
+        navigate("/404");
       } finally {
         setLoading(false);
       }
@@ -68,15 +75,19 @@ const ProductDetail = () => {
     fetchProductData();
   }, [slug, navigate]);
 
-  // --- Wishlist Functions ---
   const checkWishlistStatus = async (userId: string, productId: number) => {
     setIsWishlistLoading(true);
     try {
-      const { data, error } = await supabase.from('wishlist_items').select('id').eq('user_id', userId).eq('product_id', productId).maybeSingle();
-      if (error && error.code !== 'PGRST116') throw error;
+      const { data, error } = await supabase
+        .from("wishlist_items")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("product_id", productId)
+        .maybeSingle();
+      if (error && error.code !== "PGRST116") throw error;
       setIsInWishlist(!!data);
     } catch (error) {
-      console.error('Error checking wishlist status:', error);
+      console.error("Error checking wishlist status:", error);
     } finally {
       setIsWishlistLoading(false);
     }
@@ -85,17 +96,22 @@ const ProductDetail = () => {
   const toggleWishlist = async () => {
     if (!user || !product) {
       toast.info("กรุณาล็อกอินเพื่อใช้ฟังก์ชัน Wishlist");
-      if (!user) navigate('/auth');
+      if (!user) navigate("/auth");
       return;
     }
     setIsWishlistLoading(true);
     try {
       if (isInWishlist) {
-        await supabase.from('wishlist_items').delete().match({ user_id: user.id, product_id: product.id });
+        await supabase
+          .from("wishlist_items")
+          .delete()
+          .match({ user_id: user.id, product_id: product.id });
         setIsInWishlist(false);
         toast.success(`ลบ "${product.name}" ออกจาก Wishlist แล้ว`);
       } else {
-        await supabase.from('wishlist_items').insert({ user_id: user.id, product_id: product.id });
+        await supabase
+          .from("wishlist_items")
+          .insert({ user_id: user.id, product_id: product.id });
         setIsInWishlist(true);
         toast.success(`เพิ่ม "${product.name}" เข้าสู่ Wishlist แล้ว`);
       }
@@ -105,9 +121,9 @@ const ProductDetail = () => {
       setIsWishlistLoading(false);
     }
   };
-  
-  // --- Other Functions ---
-  const handleTagClick = (tagName: string) => navigate(`/products/tag/${encodeURIComponent(tagName)}`);
+
+  const handleTagClick = (tagName: string) =>
+    navigate(`/products/tag/${encodeURIComponent(tagName)}`);
 
   const handleAddToCart = () => {
     if (!product) return;
@@ -117,7 +133,7 @@ const ProductDetail = () => {
 
   const handleBuyNow = () => {
     handleAddToCart();
-    navigate('/cart');
+    navigate("/cart");
   };
 
   const handleVariantChange = (variant: any) => {
@@ -128,11 +144,18 @@ const ProductDetail = () => {
     }
   };
 
-  // --- Render Logic ---
-  if (loading) return <div className="flex justify-center items-center h-screen">กำลังโหลด...</div>;
-  if (!product) return <div className="flex justify-center items-center h-screen">ไม่พบสินค้า</div>;
+  if (loading)
+    return (
+      <div className="flex justify-center items-center h-screen">กำลังโหลด...</div>
+    );
+  if (!product)
+    return (
+      <div className="flex justify-center items-center h-screen">ไม่พบสินค้า</div>
+    );
 
-  const variantImage = selectedVariant ? product.product_images?.find(img => img.variant_name === selectedVariant.name)?.image_url : null;
+  const variantImage = selectedVariant
+    ? product.product_images?.[0]?.image_url
+    : null;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -146,35 +169,86 @@ const ProductDetail = () => {
           </Button>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-            <ProductImageGallery 
+            <ProductImageGallery
               mainImage={variantImage || product.image}
-              additionalImages={product.product_images?.map(img => img.image_url) || []}
+              additionalImages={product.product_images?.map((img) => img.image_url) || []}
               productName={product.name}
             />
 
             <div className="flex flex-col space-y-6">
               <div className="flex items-start justify-between">
                 <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
-                <Button variant="ghost" size="icon" onClick={toggleWishlist} disabled={isWishlistLoading}>
-                  <Heart className={`h-7 w-7 transition-all ${isInWishlist ? 'text-red-500 fill-red-500' : 'text-gray-400'}`} />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleWishlist}
+                  disabled={isWishlistLoading}
+                >
+                  <Heart
+                    className={`h-7 w-7 transition-all ${
+                      isInWishlist ? "text-red-500 fill-red-500" : "text-gray-400"
+                    }`}
+                  />
                 </Button>
               </div>
-              
+
               <div className="border bg-white rounded-lg p-4 space-y-3">
-                <div className="flex items-center space-x-3"><Package className="h-4 w-4 text-purple-600" /><span className="text-sm">SKU:</span> <Badge variant="secondary">{product.sku}</Badge></div>
-                <div className="flex items-center space-x-3 pt-3 border-t"><Clock className="h-4 w-4 text-orange-500" /><span className="text-sm">สถานะ:</span> <Badge className="bg-orange-100 text-orange-800">{product.product_status}</Badge></div>
+                <div className="flex items-center space-x-3">
+                  <Package className="h-4 w-4 text-purple-600" />
+                  <span className="text-sm">SKU:</span>
+                  <Badge variant="secondary">{product.sku}</Badge>
+                </div>
+
+                <div className="flex items-center space-x-3 pt-3 border-t">
+                  <Clock className="h-4 w-4 text-orange-500" />
+                  <span className="text-sm">สถานะ:</span>
+                  <Badge className="bg-orange-100 text-orange-800">
+                    {product.product_status}
+                  </Badge>
+                </div>
+
+                {[
+                  "พร้อมส่ง",
+                  "พรีออเดอร์",
+                  "pre-sale",
+                ].includes(product.product_status) && (
+                  <div className="flex items-center space-x-3 pt-3 border-t">
+                    <Calendar className="h-4 w-4 text-green-600" />
+                    <span className="text-sm text-gray-800">
+                      {product.product_status === "พร้อมส่ง" && "จัดส่งภายใน 1-3 วัน"}
+                      {product.product_status === "พรีออเดอร์" &&
+                        "ระยะเวลา 10-17 วัน ขึ้นอยู่กับการจัดส่งของ Official"}
+                      {product.product_status === "pre-sale" && product.shipment_date && (
+                        <>
+                          กำหนดส่ง (โดยประมาณ):{" "}
+                          <span className="underline">{product.shipment_date}</span>
+                        </>
+                      )}
+                    </span>
+                  </div>
+                )}
+
                 {product.tags && product.tags.length > 0 && (
                   <div className="flex flex-wrap items-center gap-2 pt-3 border-t">
                     <Tag className="h-4 w-4 text-gray-500 mr-1" />
                     {product.tags.map((tag: string) => (
-                      <Badge key={tag} variant="outline" className="cursor-pointer" onClick={() => handleTagClick(tag)}>#{tag}</Badge>
+                      <Badge
+                        key={tag}
+                        variant="outline"
+                        className="cursor-pointer"
+                        onClick={() => handleTagClick(tag)}
+                      >
+                        #{tag}
+                      </Badge>
                     ))}
                   </div>
                 )}
               </div>
 
-              <p className="text-4xl font-bold text-purple-600">฿{product.selling_price?.toLocaleString()}</p>
-              
+              <p className="text-4xl font-bold text-purple-600">
+                ฿{product.selling_price?.toLocaleString()}
+              </p>
+
               {product.options && product.options.length > 0 && (
                 <ProductVariantSelector
                   options={product.options}
@@ -185,18 +259,36 @@ const ProductDetail = () => {
 
               <div className="flex items-center space-x-3 pt-2">
                 <label className="text-sm font-medium">จำนวน:</label>
-                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setQuantity(Math.max(1, quantity - 1))}>-</Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                >
+                  -
+                </Button>
                 <span className="font-semibold px-4">{quantity}</span>
-                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setQuantity(quantity + 1)}>+</Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setQuantity(quantity + 1)}
+                >
+                  +
+                </Button>
               </div>
 
               <div className="grid grid-cols-2 gap-4 pt-4">
-                <Button onClick={handleBuyNow} size="lg" style={{backgroundColor: '#956ec3'}}><CreditCard className="mr-2 h-5 w-5" /> ซื้อเดี๋ยวนี้</Button>
-                <Button onClick={handleAddToCart} size="lg" variant="outline"><ShoppingCart className="mr-2 h-5 w-5" /> เพิ่มลงตะกร้า</Button>
+                <Button onClick={handleBuyNow} size="lg" style={{ backgroundColor: "#956ec3" }}>
+                  <CreditCard className="mr-2 h-5 w-5" /> ซื้อเดี๋ยวนี้
+                </Button>
+                <Button onClick={handleAddToCart} size="lg" variant="outline">
+                  <ShoppingCart className="mr-2 h-5 w-5" /> เพิ่มลงตะกร้า
+                </Button>
               </div>
             </div>
           </div>
-          
+
           <div className="mt-12">
             <div className="border-2 border-purple-200 rounded-lg bg-white">
               <Tabs defaultValue="description" className="w-full">
@@ -204,9 +296,16 @@ const ProductDetail = () => {
                   <TabsTrigger value="description">DESCRIPTION</TabsTrigger>
                   <TabsTrigger value="return">RETURN POLICY</TabsTrigger>
                 </TabsList>
-                <TabsContent value="description" className="p-6 text-sm text-gray-800 prose max-w-none">
-                  <div dangerouslySetInnerHTML={{ __html: product.description || '' }} />
-                </TabsContent>
+                <TabsContent
+  value="description"
+  className="p-6 text-sm text-gray-800 prose max-w-none prose-img:rounded-lg prose-img:shadow-lg prose-img:mx-auto prose-img:block"
+>
+  <div
+    dangerouslySetInnerHTML={{
+      __html: marked.parse(product.description || ""),
+    }}
+  />
+</TabsContent>
                 <TabsContent value="return" className="p-6 text-sm text-gray-800">
                   <p>นโยบายการคืนสินค้า...</p>
                 </TabsContent>
@@ -220,3 +319,5 @@ const ProductDetail = () => {
 };
 
 export default ProductDetail;
+// Note: Ensure that the necessary CSS styles for the UI components are imported in your main CSS file or through a CSS-in-JS solution.
+// This code assumes that you have a supabase client set up and the necessary UI components are available.
