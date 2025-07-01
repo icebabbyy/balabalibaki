@@ -1,5 +1,5 @@
 import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react"
+import react from "@vitejs/plugin-react"; // แนะนำให้ใช้ตัวนี้แทน @vitejs/plugin-react-swc เพื่อความเสถียรของ Path Alias
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
@@ -18,5 +18,9 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+  },
+  // --- ส่วนนี้ถูกต้องแล้ว ---
+  build: {
+    sourcemap: false,
   },
 }));
