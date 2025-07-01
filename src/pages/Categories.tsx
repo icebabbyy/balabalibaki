@@ -41,6 +41,11 @@ const Categories = () => {
     // แยก fetchTagInfo ออกมาเพื่อให้แน่ใจว่ามันทำงานก่อน fetchProducts
     const initPage = async () => {
       setLoading(true);
+      
+      const urlSearchTerm = searchParams.get('search') || '';
+      if (urlSearchTerm) {
+        setSearchTerm(urlSearchTerm);
+      }
       await fetchCategories();
       let productIds: number[] | null = null;
       if (tagSlug) {
@@ -59,7 +64,7 @@ const Categories = () => {
     };
 
     initPage();
-  }, [tagSlug]);
+  }, [tagSlug, searchParams]); // เพิ่ม dependency เป็น searchParams เพื่อให้แน่ใจว่า URL เปลี่ยนแปลงจะทำให้ useEffect ทำงานใหม่
 
   useEffect(() => {
     if (initialCategoryFromUrl) {

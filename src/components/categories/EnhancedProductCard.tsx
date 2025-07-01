@@ -1,3 +1,5 @@
+// src/components/categories/EnhancedProductCard.tsx
+
 import { ProductPublic } from '@/types/product';
 import { Heart, ShoppingCart, CreditCard } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -5,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '@/hooks/useCart';
+import { useWishlist } from '@/context/WishlistContext'; // << แก้ Path import
 
 interface EnhancedProductCardProps {
   product: ProductPublic;
@@ -14,8 +17,11 @@ interface EnhancedProductCardProps {
 const EnhancedProductCard = ({ product, onProductClick }: EnhancedProductCardProps) => {
   if (!product) { return null; }
 
-  const { addToCart } = useCart();
   const navigate = useNavigate();
+  const { addToCart } = useCart();
+  const { toggleWishlist, isInWishlist } = useWishlist();
+
+  const isWishlisted = isInWishlist(product.id);
 
   const mainImage = product.image || product.product_images?.[0]?.image_url || '/placeholder.svg';
   const rolloverImage = product.product_images?.find(img => img.image_url !== mainImage)?.image_url;
@@ -46,27 +52,28 @@ const EnhancedProductCard = ({ product, onProductClick }: EnhancedProductCardPro
               </Badge>
             )}
           </div>
-          {/* ✨ FIX 3: เพิ่ม aria-label ให้ปุ่ม Wishlist */}
+          
           <Button 
             variant="ghost" 
             size="icon" 
             aria-label="Add to wishlist"
             className="absolute top-2 right-2 z-10 bg-white/70 backdrop-blur-sm p-2 rounded-full text-gray-600 hover:text-red-500" 
-            onClick={(e) => { e.stopPropagation(); /* Wishlist logic here */ }}
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleWishlist(product);
+            }}
           >
-            <Heart size={18} />
+            <Heart size={18} fill={isWishlisted ? 'currentColor' : 'none'} className={isWishlisted ? 'text-red-500' : 'text-gray-600'}/>
           </Button>
         </div>
 
         <div className="p-4 flex flex-col flex-grow">
-          {/* ✨ FIX 2: เอา h-10 ออก ทำให้ความสูงยืดหยุ่น */}
           <h3 className="font-semibold mb-2 truncate text-sm">{product.name}</h3>
           
           <div className="flex-grow">
             <p className="text-lg font-bold text-purple-600">
               ฿{product.selling_price?.toLocaleString()}
             </p>
-            {/* ✨ FIX 1: ลบส่วนแสดง Tags ออกไป */}
           </div>
 
           <div className="space-y-2 mt-4">

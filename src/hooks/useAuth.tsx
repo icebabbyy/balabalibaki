@@ -1,59 +1,61 @@
+// src/hooks/useAuth.ts
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { User, Session } from '@supabase/supabase-js';
-import { toast } from 'sonner';
+import { Session, User } from '@supabase/supabase-js';
 
-export const useAuth = () => {
-  const [user, setUser] = useState<User | null>(null);
+interface AuthContextType {
+  session: Session | null;
+  user: User | null;
+  loading: boolean;
+  signOut: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const hasShownSignInToast = useRef(false);
 
   useEffect(() => {
-    // Get initial session
     const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-      setUser(session?.user ?? null);
+      const { data } = await supabase.auth.getSession();
+      setSession(data.session);
+      setUser(data.session?.user ?? null);
       setLoading(false);
     };
-
+    
     getSession();
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+    });
 
-        if (event === 'SIGNED_IN' && !hasShownSignInToast.current) {
-          toast.success('เข้าสู่ระบบสำเร็จ');
-          hasShownSignInToast.current = true;
-        } else if (event === 'SIGNED_OUT') {
-          toast.success('ออกจากระบบสำเร็จ');
-          hasShownSignInToast.current = false;
-        }
-      }
-    );
-
-    return () => subscription.unsubscribe();
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {
-    try {
-      await supabase.auth.signOut();
-    } catch (error) {
-      console.error('Error signing out:', error);
-      toast.error('เกิดข้อผิดพลาดในการออกจากระบบ');
-    }
+    await supabase.auth.signOut();
   };
 
-  return {
-    user,
+  const value = {
     session,
+    user,
     loading,
-    signOut
+    signOut,
   };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 };
