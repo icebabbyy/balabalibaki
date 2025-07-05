@@ -1,5 +1,3 @@
-// src/hooks/useCart.ts
-
 import { useState, useEffect, createContext, useContext, ReactNode, useMemo } from 'react';
 import { toast } from 'sonner';
 import { ProductPublic } from '@/types/product';
@@ -25,7 +23,6 @@ const CART_STORAGE_KEY = 'cart';
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
-  // Load cart from localStorage on initial render
   useEffect(() => {
     try {
       const savedCart = localStorage.getItem(CART_STORAGE_KEY);
@@ -38,10 +35,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  // Save cart to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
-    // Dispatch custom event for Header to update count
     window.dispatchEvent(new Event('cartUpdated'));
   }, [cartItems]);
 
@@ -107,3 +102,5 @@ export const useCart = () => {
   }
   return context;
 };
+// Exporting CartItem type for use in other components
+export type { CartItem };

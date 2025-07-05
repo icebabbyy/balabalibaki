@@ -1,5 +1,3 @@
-// src/hooks/useAuth.ts
-
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
@@ -49,6 +47,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     signOut,
   };
 
+  // ไม่ต้องรอ loading ก็ได้เพื่อให้ UI แสดงผลเร็วขึ้น
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
@@ -58,4 +57,8 @@ export const useAuth = () => {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
+};
+export const useUser = () => {
+  const { user, loading } = useAuth();
+  return { user, loading };
 };
