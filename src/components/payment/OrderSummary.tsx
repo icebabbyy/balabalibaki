@@ -1,16 +1,10 @@
-
 import { Card, CardContent } from "@/components/ui/card";
+import { ProductPublic } from "@/types/product"; // Import ProductPublic for better type safety
 
+// --- 1. แก้ไข Interface ให้ตรงกับข้อมูลจริง ---
 interface OrderSummaryProps {
   orderData: {
-    items: Array<{
-      id: number;
-      name: string;
-      price: number;
-      quantity: number;
-      image: string;
-      product_type?: string;
-    }>;
+    items: Array<ProductPublic & { quantity: number }>; // ใช้ Type ที่ถูกต้อง
     customerInfo: {
       name: string;
       address: string;
@@ -22,7 +16,8 @@ interface OrderSummaryProps {
 }
 
 const OrderSummary = ({ orderData }: OrderSummaryProps) => {
-  const subtotal = orderData.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  // 2. คำนวณ subtotal โดยใช้ 'selling_price'
+  const subtotal = orderData.items.reduce((sum, item) => sum + (item.selling_price * item.quantity), 0);
   const shippingCost = orderData.shippingCost || 0;
 
   return (
@@ -42,8 +37,8 @@ const OrderSummary = ({ orderData }: OrderSummaryProps) => {
 
         {/* Items */}
         <div className="space-y-4 mb-6">
-          {orderData.items.map((item, index) => (
-            <div key={index} className="flex items-center space-x-4 p-3 border rounded-lg">
+          {orderData.items.map((item) => (
+            <div key={item.id} className="flex items-center space-x-4 p-3 border rounded-lg">
               <img 
                 src={item.image || '/placeholder.svg'} 
                 alt={item.name}
@@ -55,12 +50,14 @@ const OrderSummary = ({ orderData }: OrderSummaryProps) => {
                   ประเภท: {item.product_type || 'ETC'}
                 </p>
                 <p className="text-sm text-gray-600">
-                  จำนวน: {item.quantity} × ฿{item.price.toLocaleString()}
+                  {/* 3. แก้ไขจาก item.price เป็น item.selling_price */}
+                  จำนวน: {item.quantity} × ฿{item.selling_price.toLocaleString()}
                 </p>
               </div>
               <div className="text-right">
                 <p className="font-semibold">
-                  ฿{(item.price * item.quantity).toLocaleString()}
+                  {/* 4. แก้ไขจาก item.price เป็น item.selling_price */}
+                  ฿{(item.selling_price * item.quantity).toLocaleString()}
                 </p>
               </div>
             </div>
@@ -88,3 +85,5 @@ const OrderSummary = ({ orderData }: OrderSummaryProps) => {
 };
 
 export default OrderSummary;
+// This component displays the order summary including customer information, items ordered, and total price.
+// It uses the ProductPublic type for better type safety and ensures that the data structure matches the

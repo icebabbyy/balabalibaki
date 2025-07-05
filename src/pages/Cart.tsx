@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react"; // 1. Import useMemo
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,25 +8,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Trash2, Plus, Minus } from "lucide-react";
 import { toast } from "sonner";
 import Header from "@/components/Header";
-
-interface CartItem {
-  id: number;
-  name: string;
-  price: number;
-  quantity: number;
-  image: string;
-  sku: string;
-  variant?: string | null;
-}
+import { useCart } from "@/hooks/useCart"; // << 1. Import useCart เข้ามา
 
 const Cart = () => {
   const navigate = useNavigate();
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  // 2. เรียกใช้ state และ function ทั้งหมดจาก useCart
+  const { cartItems, updateQty, removeItem, totalPrice, clearCart } = useCart();
+  
+  // State สำหรับข้อมูลลูกค้ายังคงเดิม
   const [customerInfo, setCustomerInfo] = useState({ name: "", phone: "", address: "", note: "" });
   const [updateProfile, setUpdateProfile] = useState(false);
   const [profileId, setProfileId] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
+  // useEffect สำหรับดึงข้อมูล Profile ยังทำงานเหมือนเดิม
   useEffect(() => {
     const loadUserProfile = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -54,45 +49,7 @@ const Cart = () => {
     };
     
     loadUserProfile();
-    loadCartFromStorage();
   }, []);
-
-  const loadCartFromStorage = () => {
-    try {
-      const saved = localStorage.getItem("cart");
-      if (saved) {
-        const arr = JSON.parse(saved).filter((i: any) => i?.id && i?.price && i.quantity > 0);
-        setCartItems(arr);
-      }
-    } catch {
-      setCartItems([]);
-      localStorage.removeItem("cart");
-    }
-  };
-
-  const updateStorage = (items: CartItem[]) => {
-    localStorage.setItem("cart", JSON.stringify(items));
-  };
-
-  const updateQty = (id: number, qty: number) => {
-    if (qty <= 0) return removeItem(id);
-    const arr = cartItems.map(i => i.id === id ? { ...i, quantity: qty } : i);
-    setCartItems(arr);
-    updateStorage(arr);
-    toast.success("อัพเดตจำนวนแล้ว");
-  };
-
-  const removeItem = (id: number) => {
-    const arr = cartItems.filter(i => i.id !== id);
-    setCartItems(arr);
-    updateStorage(arr);
-    toast.success("ลบสินค้าแล้ว");
-  };
-
-  // 2. แก้ไข totalPrice ให้ใช้ useMemo
-  const totalPrice = useMemo(() => {
-    return cartItems.reduce((s, i) => s + i.price * i.quantity, 0);
-  }, [cartItems]);
 
   const handleCheckout = async () => {
     if (!customerInfo.name || !customerInfo.phone || !customerInfo.address) {
@@ -119,6 +76,10 @@ const Cart = () => {
       totalPrice,
       orderDate: new Date().toISOString()
     };
+    
+    // เราจะล้างตะกร้าหลังจากสร้างข้อมูลออเดอร์แล้ว
+    clearCart(); 
+    
     localStorage.setItem("pendingOrder", JSON.stringify(orderData));
     navigate("/payment");
   };
@@ -163,7 +124,7 @@ const Cart = () => {
                       </div>
                     </div>
                     <div>
-                      <p className="text-lg font-bold text-purple-600">฿{(item.price * item.quantity).toLocaleString()}</p>
+                      <p className="text-lg font-bold text-purple-600">฿{(item.selling_price * item.quantity).toLocaleString()}</p>
                       <Button size="icon" variant="outline" onClick={() => removeItem(item.id)}>
                         <Trash2 className="text-red-500" />
                       </Button>
@@ -233,3 +194,5 @@ const Cart = () => {
 };
 
 export default Cart;
+// This file is the Cart page where users can view their cart items, update quantities, remove items, and proceed to checkout.
+// It integrates with the useCart hook to manage cart state and operations.
