@@ -1,2 +1,0 @@
-thanakan
-git+https://github.com/supabase/supabase-py-edge-runtime.git
