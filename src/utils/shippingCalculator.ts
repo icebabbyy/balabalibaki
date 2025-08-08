@@ -1,7 +1,11 @@
+interface ShippingItem {
+  product_type?: string;
+  quantity?: number | string;
+}
 
-export const calculateShipping = (items: any[]): number => {
+export const calculateShipping = (items: ShippingItem[]): number => {
   let totalShipping = 0;
-  
+
   for (const item of items) {
     const productType = item.product_type || 'ETC';
     let shippingCost = 0;
@@ -41,7 +45,9 @@ export const calculateShipping = (items: any[]): number => {
         break;
     }
     
-    totalShipping += shippingCost * item.quantity;
+    // Ensure quantity is a valid non-negative number to avoid NaN in totals
+    const quantity = Number(item.quantity);
+    totalShipping += shippingCost * (isNaN(quantity) ? 1 : Math.max(0, quantity));
   }
   
   return totalShipping;
