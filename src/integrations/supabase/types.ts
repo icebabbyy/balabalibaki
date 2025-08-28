@@ -171,6 +171,7 @@ export type Database = {
           payment_slip: string | null
           payment_slip_url: string | null
           profit: number | null
+          payment_method: string | null
           qr_code_generated: boolean | null
           shipping_cost: number | null
           status: string | null

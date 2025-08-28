@@ -1,129 +1,125 @@
-import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Upload, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
-import Header from '@/components/Header';
-import OrderSummary from '@/components/payment/OrderSummary';
-import jsQR from 'jsqr'; // Library สำหรับอ่าน QR Code
+import React, { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Upload,
+  CheckCircle,
+  Loader2,
+  CreditCard,
+  DollarSign,
+  AlertTriangle,
+  ArrowLeft,
+} from "lucide-react";
+import { toast } from "sonner";
+import Header from "@/components/Header";
+import OrderSummary from "@/components/payment/OrderSummary";
+import type { ProductPublic } from "@/types/product";
+import { useCart } from "@/hooks/useCart";
 
-const Payment = () => {
+type PaymentMethod = "kshop" | "truemoney";
+
+type PendingOrder = {
+  id: number;
+  items: Array<ProductPublic & { quantity: number }>;
+  customerInfo: { name: string; phone: string; address: string; note?: string };
+  totalPrice: number;
+  shippingCost?: number;
+};
+
+const Payment: React.FC = () => {
   const navigate = useNavigate();
-  const [orderData, setOrderData] = useState<any>(null);
+  const { clearCart } = useCart();
+
+  const [orderData, setOrderData] = useState<PendingOrder | null>(null);
   const [slipImage, setSlipImage] = useState<File | null>(null);
   const [slipImageUrl, setSlipImageUrl] = useState<string | null>(null);
-  const [qrData, setQrData] = useState<string | null>(null);
-  const [isVerifying, setIsVerifying] = useState(false);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>("kshop");
 
+  // โหลดออเดอร์ที่เพิ่งสร้างมาจาก localStorage
   useEffect(() => {
-    // โหลดข้อมูลออเดอร์ที่รอชำระเงินจาก localStorage
-    const pendingOrder = localStorage.getItem('pendingOrder');
-    if (pendingOrder) {
-      setOrderData(JSON.parse(pendingOrder));
-    } else {
-      // ถ้าไม่เจอ ให้กลับไปหน้าแรก
+    const raw = localStorage.getItem("pendingOrder");
+    if (!raw) {
       toast.error("ไม่พบข้อมูลออเดอร์ที่จะชำระเงิน");
-      navigate('/');
+      navigate("/cart");
+      return;
+    }
+    try {
+      const parsed: PendingOrder = JSON.parse(raw);
+      if (!parsed?.id) throw new Error("pendingOrder ไม่มี id");
+      setOrderData(parsed);
+    } catch {
+      toast.error("รูปแบบข้อมูลออเดอร์ไม่ถูกต้อง");
+      navigate("/cart");
     }
   }, [navigate]);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setQrData(null); // รีเซ็ตข้อมูล QR เก่าทุกครั้งที่เลือกรูปใหม่
-      setSlipImage(file);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const imageUrl = e.target?.result as string;
-        setSlipImageUrl(imageUrl);
-        // เมื่อรูปโหลดเสร็จ ให้ทำการสแกน QR Code
-        scanQrCode(imageUrl);
-      };
-      reader.readAsDataURL(file);
-    }
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    if (!file) return;
+    setSlipImage(file);
+    setSlipImageUrl(URL.createObjectURL(file));
   };
 
-  const scanQrCode = (imageUrl: string) => {
-    const canvas = canvasRef.current;
-    const context = canvas?.getContext('2d', { willReadFrequently: true });
-    if (!canvas || !context) return;
+  const handleConfirmSlipUpload = async () => {
+    if (!orderData) return toast.error("ไม่พบข้อมูลออเดอร์");
+    if (!slipImage) return toast.error("กรุณาอัปโหลดสลิปก่อน");
 
-    const img = new Image();
-    img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      context.drawImage(img, 0, 0, img.width, img.height);
-      const imageData = context.getImageData(0, 0, img.width, img.height);
-      const code = jsQR(imageData.data, imageData.width, imageData.height);
-
-      if (code && code.data) {
-        setQrData(code.data);
-        toast.success("สแกน QR Code สำเร็จ!");
-      } else {
-        setQrData(null);
-        toast.error("ไม่พบ QR Code ในรูปภาพนี้ กรุณาลองใหม่อีกครั้ง");
-      }
-    };
-    img.src = imageUrl;
-  };
-  
-  const handleConfirmPayment = async () => {
-    if (!qrData) {
-      return toast.error("ไม่สามารถยืนยันได้เนื่องจากไม่พบข้อมูล QR Code");
-    }
-    if (!orderData) {
-        return toast.error("ไม่พบข้อมูลออเดอร์");
-    }
-
-    setIsVerifying(true);
-
+    setIsProcessing(true);
     try {
-        // แยกข้อมูลจาก QR Code (ตัวอย่างสำหรับ KBank)
-        const transRef = qrData.substring(0, 15);
-        const sendingBank = "004"; // รหัสธนาคารกสิกรไทย
+      // 1) อัปโหลดสลิปขึ้น bucket
+      const ext = slipImage.name.split(".").pop() || "jpg";
+      const fileName = `order-${orderData.id}-${Date.now()}.${ext}`;
+      const filePath = `public/${fileName}`;
 
-        // เรียกใช้ Supabase Function ที่เราสร้างไว้
-        const { data: verificationResult, error } = await supabase.functions.invoke('verify-slip', {
-            body: { qrData, sendingBank, transRef },
+      const { error: uploadError } = await supabase.storage
+        .from("payment-slips")
+        .upload(filePath, slipImage, {
+          contentType: slipImage.type || "image/jpeg",
+          upsert: false,
         });
 
-        if (error) throw error;
+      if (uploadError) {
+        console.error(uploadError);
+        throw new Error("อัปโหลดสลิปไม่สำเร็จ");
+      }
 
-        // ตรวจสอบผลลัพธ์จาก KBank
-        if (verificationResult.data?.state === 'SUCCESS') {
-            const amountFromSlip = parseFloat(verificationResult.data.amount);
-            if(amountFromSlip === orderData.totalPrice) {
-                toast.success("ตรวจสอบสลิปสำเร็จ! ยอดชำระถูกต้อง");
-                
-                // *** ส่วนสำคัญ: สร้างออเดอร์จริงในฐานข้อมูล ***
-                const { error: createOrderError } = await supabase.functions.invoke('create_order', {
-                    body: orderData
-                });
+      const { data: urlData } = supabase.storage
+        .from("payment-slips")
+        .getPublicUrl(filePath);
+      const publicUrl = urlData.publicUrl;
 
-                if (createOrderError) throw createOrderError;
+      // 2) UPDATE orders (เฉพาะฟิลด์ที่เกี่ยวกับการชำระเงิน)
+      const { error: updateError } = await supabase
+        .from("orders")
+        .update({
+          payment_slip_url: publicUrl,
+          payment_method: selectedMethod,
+          status: "รอตรวจสอบ",
+        })
+        .eq("id", orderData.id);
 
-                toast.success("สร้างออเดอร์ของคุณเรียบร้อยแล้ว!");
-                localStorage.removeItem('pendingOrder');
-                navigate('/order-history');
+      if (updateError) {
+        console.error(updateError);
+        // ถ้าเจอ 401/42501 ส่วนใหญ่เป็น RLS block → ให้ดู SQL policy ด้านบน
+        throw new Error(
+          "บันทึกข้อมูลชำระเงินไม่สำเร็จ (ตรวจสิทธิ์ RLS หรือฟิลด์ที่อนุญาต)"
+        );
+      }
 
-            } else {
-                toast.error(`ยอดชำระไม่ถูกต้อง! ยอดในสลิป: ${amountFromSlip} ยอดที่ต้องชำระ: ${orderData.totalPrice}`);
-            }
-        } else {
-            toast.error(`การตรวจสอบสลิปไม่สำเร็จ: ${verificationResult.data?.state || 'ไม่ทราบสาเหตุ'}`);
-        }
-
-    } catch (error: any) {
-        console.error("Verification error:", error);
-        toast.error(`เกิดข้อผิดพลาด: ${error.message}`);
+      // 3) เคลียร์ตะกร้า + ล้าง pendingOrder แล้วพาไปหน้า history
+      clearCart();
+      localStorage.removeItem("pendingOrder");
+      toast.success("ส่งสลิปเรียบร้อยแล้ว");
+      navigate("/order-history");
+    } catch (e: any) {
+      toast.error(e?.message || "เกิดข้อผิดพลาดระหว่างยืนยันการชำระเงิน");
     } finally {
-        setIsVerifying(false);
+      setIsProcessing(false);
     }
   };
-
 
   if (!orderData) {
     return (
@@ -136,24 +132,83 @@ const Payment = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      {/* Canvas นี้จำเป็นสำหรับการอ่าน QR Code แต่จะถูกซ่อนไว้ */}
-      <canvas ref={canvasRef} style={{ display: 'none' }}></canvas>
-      
       <div className="container mx-auto max-w-4xl px-4 py-8">
-        <h1 className="text-3xl font-bold text-center mb-2">ยืนยันการชำระเงิน</h1>
-        <p className="text-center text-gray-500 mb-8">กรุณาอัปโหลดสลิปการโอนเงินเพื่อตรวจสอบ</p>
+        <div className="mb-4">
+          <Button variant="outline" onClick={() => navigate("/cart")}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            กลับไปตะกร้า
+          </Button>
+        </div>
+
+        <h1 className="text-3xl font-bold text-center mb-8">
+          เลือกช่องทางการชำระเงิน
+        </h1>
 
         <div className="grid md:grid-cols-2 gap-8">
-          {/* Left Side: Order Summary */}
-          <OrderSummary orderData={orderData} />
+          {/* สรุปออเดอร์ */}
+          <OrderSummary
+            orderData={{
+              items: orderData.items,
+              customerInfo: orderData.customerInfo,
+              totalPrice: orderData.totalPrice,
+              shippingCost: orderData.shippingCost ?? 0,
+            }}
+          />
 
-          {/* Right Side: Slip Upload & Verification */}
+          {/* ช่องทางการชำระเงิน */}
           <Card>
             <CardHeader>
-              <CardTitle>อัปโหลดสลิป</CardTitle>
+              <CardTitle>ช่องทางการชำระเงิน</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
+              <div className="flex items-start gap-3 p-3 text-sm text-red-800 bg-red-50 border border-red-200 rounded-lg">
+                <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                <p>
+                  <strong>ข้อควรระวัง:</strong> กรุณาพิมพ์ "Wishyoulucky"
+                  ลงในช่องบันทึก ก่อนกดโอนเงินทุกครั้ง เพื่อป้องกันมิจฉาชีพ
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Button
+                  variant={selectedMethod === "kshop" ? "default" : "outline"}
+                  onClick={() => setSelectedMethod("kshop")}
+                  className="py-6"
+                >
+                  <CreditCard className="mr-2 h-5 w-5" /> QR Code (K SHOP)
+                </Button>
+                <Button
+                  variant={selectedMethod === "truemoney" ? "default" : "outline"}
+                  onClick={() => setSelectedMethod("truemoney")}
+                  className="py-6"
+                >
+                  <DollarSign className="mr-2 h-5 w-5" /> TrueMoney Wallet
+                </Button>
+              </div>
+
+              <div className="text-center p-4 bg-purple-50 rounded-lg">
+                <p className="font-semibold mb-2">
+                  1. สแกน QR Code เพื่อชำระเงิน
+                </p>
+                <div className="w-full max-w-[280px] mx-auto">
+                  {selectedMethod === "kshop" ? (
+                    <img
+                      src="https://tfwmvpvxilosiyewqjtk.supabase.co/storage/v1/object/public/public-assets/kbank.jpg"
+                      alt="Kbank QR Code"
+                      className="w-full h-auto object-contain border rounded-lg p-2 bg-white"
+                    />
+                  ) : (
+                    <img
+                      src="https://tfwmvpvxilosiyewqjtk.supabase.co/storage/v1/object/public/public-assets/true.jpg"
+                      alt="TrueMoney QR Code"
+                      className="w-full h-auto object-contain border rounded-lg p-2 bg-white"
+                    />
+                  )}
+                </div>
+              </div>
+
               <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-8 text-center">
+                <p className="font-semibold mb-4 -mt-2">2. อัปโหลดสลิปที่นี่</p>
                 <input
                   type="file"
                   id="slipUpload"
@@ -166,39 +221,35 @@ const Payment = () => {
                   className="cursor-pointer flex flex-col items-center"
                 >
                   {slipImageUrl ? (
-                    <img src={slipImageUrl} alt="ตัวอย่างสลิป" className="max-h-64 rounded-md object-contain" />
+                    <img
+                      src={slipImageUrl}
+                      alt="ตัวอย่างสลิป"
+                      className="max-h-64 rounded-md object-contain"
+                    />
                   ) : (
                     <>
                       <Upload className="h-12 w-12 text-gray-400 mb-2" />
-                      <span className="font-medium text-purple-600">คลิกเพื่ออัปโหลด</span>
+                      <span className="font-medium text-purple-600">
+                        คลิกเพื่ออัปโหลด
+                      </span>
                       <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF</p>
                     </>
                   )}
                 </label>
               </div>
 
-              {qrData && (
-                 <div className="p-3 bg-green-50 text-green-800 rounded-md flex items-center gap-3">
-                    <CheckCircle className="h-5 w-5"/>
-                    <p className="text-sm font-medium">สแกน QR Code สำเร็จ</p>
-                 </div>
-              )}
-              
-              <Button 
-                onClick={handleConfirmPayment}
-                className="w-full text-lg py-6" 
-                disabled={!slipImage || !qrData || isVerifying}
+              <Button
+                onClick={handleConfirmSlipUpload}
+                className="w-full text-lg py-6"
+                disabled={!slipImage || isProcessing}
               >
-                {isVerifying ? (
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                {isProcessing ? (
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                 ) : (
-                    <CheckCircle className="mr-2 h-5 w-5" />
+                  <CheckCircle className="mr-2 h-5 w-5" />
                 )}
-                {isVerifying ? 'กำลังตรวจสอบ...' : 'ยืนยันการชำระเงิน'}
+                {isProcessing ? "กำลังส่งข้อมูล..." : "ยืนยันการชำระเงิน"}
               </Button>
-              <p className="text-xs text-center text-gray-500">
-                หลังจากยืนยันการชำระเงิน เจ้าหน้าที่จะตรวจสอบและติดต่อกลับภายใน 24 ชั่วโมง
-              </p>
             </CardContent>
           </Card>
         </div>
@@ -208,5 +259,3 @@ const Payment = () => {
 };
 
 export default Payment;
-// Note: The code above is a React component for a payment page that allows users to upload a slip image, scans the QR code from the image, and verifies the payment using Supabase Functions. It includes error handling and user feedback through toast notifications. The component also uses a canvas to read the QR code from the uploaded image.
-// The `jsQR` library is used to decode the QR code from the image data.

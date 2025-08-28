@@ -1,5 +1,3 @@
-// src/pages/Categories.tsx
-
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom"; 
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +20,19 @@ interface Tag {
   slug: string;
 }
 
+// helper รวมรูป
+const collectAllImages = (p: any): string[] => {
+  const uniq = (arr: (string | undefined | null)[]) =>
+    Array.from(new Set(arr.filter(Boolean))) as string[];
+
+  return uniq([
+    p.main_image_url,
+    ...(Array.isArray(p.product_images) ? p.product_images.map((im: any) => im?.image_url) : []),
+    p.image_url,
+    p.image,
+  ]);
+};
+
 const Categories = () => {
   const { tagSlug } = useParams();
   const [searchParams] = useSearchParams(); 
@@ -38,20 +49,18 @@ const Categories = () => {
   const initialCategoryFromUrl = searchParams.get('category');
 
   useEffect(() => {
-    // แยก fetchTagInfo ออกมาเพื่อให้แน่ใจว่ามันทำงานก่อน fetchProducts
     const initPage = async () => {
       setLoading(true);
       
       const urlSearchTerm = searchParams.get('search') || '';
-      if (urlSearchTerm) {
-        setSearchTerm(urlSearchTerm);
-      }
+      if (urlSearchTerm) setSearchTerm(urlSearchTerm);
+
       await fetchCategories();
       let productIds: number[] | null = null;
+
       if (tagSlug) {
         await fetchTagInfo(tagSlug);
         productIds = await getProductIdsByTag(tagSlug);
-        // ✨ FIX: ถ้ามี tag แต่ไม่มีสินค้า ให้แสดงผลว่าไม่พบสินค้าทันที
         if (productIds.length === 0) {
           setProducts([]);
           setFilteredProducts([]);
@@ -59,18 +68,19 @@ const Categories = () => {
           return;
         }
       }
+
       await fetchProducts(productIds);
       setLoading(false);
     };
 
     initPage();
-  }, [tagSlug, searchParams]); // เพิ่ม dependency เป็น searchParams เพื่อให้แน่ใจว่า URL เปลี่ยนแปลงจะทำให้ useEffect ทำงานใหม่
+  }, [tagSlug, searchParams]);
 
   useEffect(() => {
     if (initialCategoryFromUrl) {
       setSelectedCategories([initialCategoryFromUrl]);
     }
-  }, [categories]); // เปลี่ยน dependency เป็น categories เพื่อให้แน่ใจว่า categories โหลดเสร็จก่อน
+  }, [categories]);
 
   const fetchCategories = async () => {
     try {
@@ -103,27 +113,71 @@ const Categories = () => {
     return data || [];
   };
 
-  const transformProductData = (rawData: any[]): ProductPublic[] => {
-    return rawData.map((item: any) => ({
+  // --- REPLACE THIS FUNCTION in src/pages/Categories.tsx ---
+const transformProductData = (rawData: any[]): ProductPublic[] => {
+  return rawData.map((item: any) => {
+    // รวม URL จากทุกแหล่ง (รองรับทั้ง view เก่า/ใหม่)
+    const uniq = (arr: (string | null | undefined)[]) =>
+      Array.from(new Set(arr.filter(Boolean))) as string[];
+
+    const fromImages =
+      Array.isArray(item.images) ? item.images.map((im: any) => im?.image_url || im) : [];
+
+    const fromProductImages =
+      Array.isArray(item.product_images)
+        ? item.product_images.map((im: any) => im?.image_url || im)
+        : [];
+
+    const allImageUrls = uniq([
+      item.main_image_url,
+      ...fromProductImages,
+      ...fromImages,
+      item.image_url,
+      item.image,
+    ]);
+
+    const primary = allImageUrls[0] || "/placeholder.svg";
+
+    const structuredImages = allImageUrls.map((url: string, idx: number) => ({
+      id: idx,
+      image_url: url,
+      order: idx,
+    }));
+
+    return {
       id: Number(item.id) || 0,
-      name: String(item.name) || '',
+      name: String(item.name) || "",
       selling_price: Number(item.selling_price) || 0,
-      category: String(item.category) || '',
-      description: String(item.description) || '',
-      image: String(item.image) || '',
-      product_status: String(item.product_status) || 'พรีออเดอร์',
-      sku: String(item.sku) || '',
-      quantity: Number(item.quantity) || 0,
-      shipment_date: String(item.shipment_date) || '',
-      options: item.options || null,
-      product_type: String(item.product_type) || 'ETC',
-      created_at: String(item.created_at) || '',
-      updated_at: String(item.updated_at) || '',
-      slug: String(item.slug) || '',
+      category: String(item.category || item.category_name || ""),
+      description: String(item.description) || "",
+
+      // ให้การ์ด/รายละเอียดมี “รูปหลัก” เสมอ
+      image: primary,
+      image_url: item.image_url ?? undefined,
+      main_image_url: item.main_image_url ?? undefined,
+
+      product_status: String(item.product_status || "พรีออเดอร์"),
+      sku: String(item.sku || ""),
+      quantity: Number(item.quantity || 0),
+      shipment_date: item.shipment_date ?? null,
+      options: item.options ?? [],
+      product_type: String(item.product_type || "ETC"),
+      created_at: item.created_at ?? null,
+      updated_at: item.updated_at ?? null,
+
+      // slug อาจว่าง → ให้ fallback เป็น id
+      slug: item.slug && String(item.slug).trim() !== "" ? String(item.slug) : String(item.id),
+
+      // tags อาจเป็น string[] หรือ object[] → ส่งดิบไป เดี๋ยวไปแปลงใน ProductDetail
       tags: Array.isArray(item.tags) ? item.tags.filter(Boolean) : [],
-      product_images: Array.isArray(item.product_images) ? item.product_images.filter(img => img && img.image_url) : []
-    } as ProductPublic));
-  };
+
+      product_images: structuredImages,
+      images: structuredImages,
+      all_images: structuredImages,
+    } as ProductPublic;
+  });
+};
+
 
   const fetchProducts = async (productIds: number[] | null) => {
     try {
@@ -135,7 +189,7 @@ const Categories = () => {
       if (error) throw error;
       const transformed = transformProductData(data || []);
       setProducts(transformed);
-      setFilteredProducts(transformed); // ตั้งค่าเริ่มต้นให้ filteredProducts
+      setFilteredProducts(transformed);
     } catch (error) {
       console.error('Error fetching products:', error);
     }

@@ -1,211 +1,510 @@
-import { useState, useEffect, useCallback } from "react";
+// src/pages/Index.tsx
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { ProductPublic } from "@/types/product";
+import type { ProductPublic } from "@/types/product";
+import { toDisplaySrc } from "@/lib/imageUrl";
 
 import Header from "@/components/Header";
-import { Card, CardContent } from "@/components/ui/card";
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 import { ArrowRight } from "lucide-react";
 import Autoplay from "embla-carousel-autoplay";
 import EnhancedProductCard from "@/components/categories/EnhancedProductCard";
 
-interface Banner { id: string; image_url: string; link_url?: string; position: number; title?: string }
-interface Category { id: number; name: string; image?: string; }
+interface Banner {
+  id: string;
+  image_url: string;
+  link_url?: string;
+  position: number;
+  title?: string;
+}
+interface Category {
+  id: number;
+  name: string;
+  image?: string;
+}
 
-// Helper function to map data safely
+/** map แถวจาก view public_products → ProductPublic (ไม่ใช้ placeholder และไม่ทับ images เดิม) */
 const mapProduct = (item: any): ProductPublic | null => {
   if (!item) return null;
+
+  // รูปจาก product_images [{ image_url | url }]
+  const fromProductImages =
+    Array.isArray(item.product_images) && item.product_images.length > 0
+      ? item.product_images
+          .map((img: any) => img?.image_url || img?.url)
+          .filter((u: any) => typeof u === "string" && u.trim())
+      : [];
+
+  // รูปจาก images (string[] หรือ object[])
+  const fromImagesField = Array.isArray(item.images)
+    ? item.images
+        .map((im: any) => (typeof im === "string" ? im : im?.image_url || im?.url))
+        .filter((u: any) => typeof u === "string" && u.trim())
+    : [];
+
+  // ผู้สมัครตำแหน่ง main
+  const primaryCandidate =
+    (typeof item.main_image_url === "string" && item.main_image_url.trim()) ||
+    (typeof item.main_image === "string" && item.main_image.trim()) ||
+    (fromProductImages[0] as string | undefined) ||
+    (fromImagesField[0] as string | undefined) ||
+    (typeof item.image_url === "string" && item.image_url.trim()) ||
+    (typeof item.imageUrl === "string" && item.imageUrl.trim()) ||
+    (typeof item.image === "string" && item.image.trim()) ||
+    (typeof item.thumbnail_url === "string" && item.thumbnail_url.trim()) ||
+    (typeof item.thumbnail === "string" && item.thumbnail.trim()) ||
+    undefined;
+
+  // รวมรูปทั้งหมด (unique, รักษาลำดับ)
+  const allRaw: string[] = [
+    primaryCandidate,
+    ...fromProductImages,
+    ...fromImagesField,
+    item.image_url,
+    item.imageUrl,
+    item.image,
+    item.main_image_url,
+    item.main_image,
+    item.thumbnail_url,
+    item.thumbnail,
+  ]
+    .filter((u: any) => typeof u === "string" && u.trim()) as string[];
+
+  const unique = Array.from(new Set(allRaw));
+
+  const all_images = unique.map((u, idx) => ({
+    id: idx,
+    image_url: u,
+    order: idx,
+  }));
+
   return {
-    // ---- ข้อมูลเดิม ----
-    id: item.id || 0,
-    name: item.name || "",
-    selling_price: item.selling_price || 0,
-    category: item.category || "",
-    image: item.image || "",
-    product_status: item.product_status || "พรีออเดอร์",
-    slug: item.slug || String(item.id),
-    product_images: Array.isArray(item.product_images) ? item.product_images.filter(img => img && img.image_url) : [],
-    tags: Array.isArray(item.tags) ? item.tags.filter(Boolean) : [],
-    
-    // ---- เพิ่ม property ที่ขาดไป ----
-    description: item.description || "",
-    sku: item.sku || "",
-    quantity: item.quantity || 0,
-    shipment_date: item.shipment_date || null,
-     options: item.options || [],
-    product_type: item.product_type || 'standard',
-    created_at: item.created_at || null,
-    updated_at: item.updated_at || null,
+    id: Number(item.id ?? 0),
+    name: String(item.name ?? ""),
+    selling_price: Number(item.selling_price ?? item.sellingPrice ?? 0),
+    description: String(item.description ?? ""),
+    image: primaryCandidate,
+    image_url: item.image_url ?? item.imageUrl ?? undefined,
+    main_image_url: item.main_image_url ?? item.main_image ?? undefined,
+    product_status: String(item.product_status ?? item.status ?? "พรีออเดอร์"),
+    sku: String(item.sku ?? ""),
+    quantity: Number(item.quantity ?? 0),
+    shipment_date: item.shipment_date ?? null,
+    options: item.options ?? [],
+    product_type: String(item.product_type ?? "standard"),
+    created_at: item.created_at ?? null,
+    updated_at: item.updated_at ?? null,
+    slug: item.slug ?? String(item.id),
+    category: String(item.category ?? ""),
+    category_name: item.category_name ?? "",
+    tags: Array.isArray(item.tags) ? item.tags : [],
+    // เก็บทั้งสองแหล่งไว้
+    product_images: all_images,
+    images: all_images,
+    all_images,
   };
 };
+
 const Index = () => {
   const navigate = useNavigate();
+
   const [banners, setBanners] = useState<Banner[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<ProductPublic[]>([]);
   const [allCategories, setAllCategories] = useState<Category[]>([]);
-  const [homepageCategoryProducts, setHomepageCategoryProducts] = useState<Record<string, ProductPublic[]>>({});
-  const [loading, setLoading] = useState({ banners: true, featured: true, categories: true, homepageProducts: true });
+  const [homepageCategoryProducts, setHomepageCategoryProducts] = useState<
+    Record<string, ProductPublic[]>
+  >({});
 
-  const stopLoading = (part: keyof typeof loading) => {
-    setLoading(prev => ({...prev, [part]: false}));
-  };
+  const [loading, setLoading] = useState({
+    banners: true,
+    featured: true,
+    categories: true,
+    homepageProducts: true,
+  });
+  const stopLoading = (part: keyof typeof loading) =>
+    setLoading((prev) => ({ ...prev, [part]: false }));
 
-  // 1. แยก useEffect สำหรับ Banners
   useEffect(() => {
-    supabase.from('banners').select('*').eq('active', true).order('position')
+    supabase
+      .from("banners")
+      .select("*")
+      .eq("active", true)
+      .order("position")
       .then(({ data, error }) => {
-        if (error) console.error('Error fetching banners:', error);
+        if (error) console.error("Error fetching banners:", error);
         else setBanners(data || []);
-        stopLoading('banners');
+        stopLoading("banners");
       });
   }, []);
 
-  // 2. แยก useEffect สำหรับ Featured Products
   useEffect(() => {
-    supabase.from('public_products').select('*').limit(12).order('created_at', { ascending: false })
+    supabase
+      .from("public_products")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(12)
       .then(({ data, error }) => {
-        if (error) console.error('Error fetching featured products:', error);
-        else setFeaturedProducts(data?.filter(Boolean).map(mapProduct).filter(Boolean) as ProductPublic[] || []);
-        stopLoading('featured');
+        if (error) {
+          console.error("Error fetching featured products:", error);
+          setFeaturedProducts([]);
+        } else {
+          const mapped = (data || [])
+            .map(mapProduct)
+            .filter(Boolean) as ProductPublic[];
+          setFeaturedProducts(mapped);
+        }
+        stopLoading("featured");
       });
   }, []);
-  
-  // 3. แยก useEffect สำหรับ Categories Grid
+
   useEffect(() => {
-    supabase.from("categories").select('*').eq('display_on_homepage', true).order('homepage_order')
+    supabase
+      .from("categories")
+      .select("*")
+      .eq("display_on_homepage", true)
+      .order("homepage_order")
       .then(({ data, error }) => {
-        if (error) console.error('Error fetching all categories:', error);
+        if (error) console.error("Error fetching all categories:", error);
         else setAllCategories(data || []);
-        stopLoading('categories');
+        stopLoading("categories");
       });
   }, []);
 
-  // 4. แยก useEffect สำหรับสินค้าในหมวดหมู่หน้าแรก
+  const nameToId = useMemo(
+    () => new Map(allCategories.map((c) => [c.name, c.id])),
+    [allCategories]
+  );
+
   useEffect(() => {
+    let cancelled = false;
+
+    const displayCategoryNames = [
+      "Honkai : Star Rail",
+      "Nikke",
+      "League of Legends",
+      "Valorant",
+      "Zenless Zone Zero",
+    ];
+
     const fetchHomepageProducts = async () => {
-      const displayCategoryNames = ['Nikke', 'Honkai : Star Rail', 'League of Legends', 'Valorant', 'Zenless Zone Zero'];
-      const { data, error } = await supabase.from('public_products').select('*').in('category', displayCategoryNames);
-      
-      if (error) {
-        console.error('Error fetching products for categories:', error);
-      } else {
-        const mappedProducts = (data || []).filter(Boolean).map(mapProduct).filter(Boolean) as ProductPublic[];
-        const productMap: Record<string, ProductPublic[]> = {};
-        displayCategoryNames.forEach(catName => {
-          productMap[catName] = mappedProducts.filter(p => p.category === catName).slice(0, 5);
+      try {
+        const results = await Promise.all(
+          displayCategoryNames.map(async (cat) => {
+            const base = supabase
+              .from("public_products")
+              .select("*")
+              .eq("category", cat)
+              .order("created_at", { ascending: false })
+              .limit(12);
+
+            const r1 = await base;
+            if (!r1.error) return { cat, res: r1 };
+
+            if (r1.error?.code === "42703") {
+              const catId = nameToId.get(cat);
+              if (catId) {
+                const r2 = await supabase
+                  .from("public_products")
+                  .select("*")
+                  .eq("category_id", catId)
+                  .order("created_at", { ascending: false })
+                  .limit(12);
+                return { cat, res: r2 };
+              }
+            }
+            return { cat, res: r1 };
+          })
+        );
+
+        if (cancelled) return;
+
+        const map: Record<string, ProductPublic[]> = {};
+        results.forEach(({ cat, res }) => {
+          if (res.error) {
+            console.error("Error fetching products for category:", cat, res.error);
+            map[cat] = [];
+            return;
+          }
+          map[cat] = ((res.data || [])
+            .map(mapProduct)
+            .filter(Boolean) as ProductPublic[]).slice(0, 5);
         });
-        setHomepageCategoryProducts(productMap);
+
+        setHomepageCategoryProducts(map);
+      } finally {
+        if (!cancelled) stopLoading("homepageProducts");
       }
-      stopLoading('homepageProducts');
     };
-    fetchHomepageProducts();
-  }, []);
+
+    if (loading.categories === false) fetchHomepageProducts();
+    return () => {
+      cancelled = true;
+    };
+  }, [loading.categories, nameToId]);
 
   const handleProductClick = (productId: number) => {
-    const allProducts = [...featuredProducts, ...Object.values(homepageCategoryProducts).flat()];
+    const allProducts = [
+      ...featuredProducts,
+      ...Object.values(homepageCategoryProducts).flat(),
+    ];
     const product = allProducts.find((p) => p && p.id === productId);
     if (product) navigate(`/product/${product.slug || product.id}`);
   };
 
-  const isPageLoading = Object.values(loading).some(status => status === true);
+  const isPageLoading = Object.values(loading).some((s) => s);
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
       {isPageLoading ? (
-        <div className="flex justify-center items-center h-screen"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div></div>
+        <div className="flex justify-center items-center h-screen">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600" />
+        </div>
       ) : (
-       // ... โค้ดส่วนบนของไฟล์ ...
-      <>
-        <BannerSection banners={banners.filter(b => b.position === 1)} aspectRatio="1400/400" autoPlay />
-        <CategoryGridSection categories={allCategories} />
-        <FeaturedProductsSection products={featuredProducts} onProductClick={handleProductClick} />
-        <CategorySection title="Honkai : Star Rail" products={homepageCategoryProducts['Honkai : Star Rail']} onProductClick={handleProductClick} />
-        <CategorySection title="Nikke" products={homepageCategoryProducts['Nikke']} onProductClick={handleProductClick} />
-        
-        {/* === จุดที่แก้ไข === */}
-        <BannerSection banners={banners.filter(b => b.position === 2)} small aspectRatio="1400/400" />
-        <BannerSection banners={banners.filter(b => b.position === 3)} small autoPlay aspectRatio="1400/400" />
-        {/* ================= */}
-        
-        <CategorySection title="League of Legends" products={homepageCategoryProducts['League of Legends']} onProductClick={handleProductClick} />
-        <CategorySection title="Valorant" products={homepageCategoryProducts['Valorant']} onProductClick={handleProductClick} />
-        <BannerSection banners={banners.filter(b => b.position === 4)} small aspectRatio="1400/400" />
-        <CategorySection title="Zenless Zone Zero" products={homepageCategoryProducts['Zenless Zone Zero']} onProductClick={handleProductClick} />
-      </>
-    )}
-  </div>
-);
+        <>
+          <BannerSection
+            banners={banners.filter((b) => b.position === 1)}
+            aspectRatio="1400/400"
+            autoPlay
+          />
+
+          <CategoryGridSection categories={allCategories} />
+
+          <FeaturedProductsSection
+            products={featuredProducts}
+            onProductClick={handleProductClick}
+          />
+
+          <CategorySection
+            title="Honkai : Star Rail"
+            products={homepageCategoryProducts["Honkai : Star Rail"]}
+            onProductClick={handleProductClick}
+          />
+          <CategorySection
+            title="Nikke"
+            products={homepageCategoryProducts["Nikke"]}
+            onProductClick={handleProductClick}
+          />
+
+          <BannerSection
+            banners={banners.filter((b) => b.position === 2)}
+            small
+            aspectRatio="1400/400"
+          />
+          <BannerSection
+            banners={banners.filter((b) => b.position === 3)}
+            small
+            autoPlay
+            aspectRatio="1400/400"
+          />
+
+          <CategorySection
+            title="League of Legends"
+            products={homepageCategoryProducts["League of Legends"]}
+            onProductClick={handleProductClick}
+          />
+          <CategorySection
+            title="Valorant"
+            products={homepageCategoryProducts["Valorant"]}
+            onProductClick={handleProductClick}
+          />
+
+          <BannerSection
+            banners={banners.filter((b) => b.position === 4)}
+            small
+            aspectRatio="1400/400"
+          />
+
+          <CategorySection
+            title="Zenless Zone Zero"
+            products={homepageCategoryProducts["Zenless Zone Zero"]}
+            onProductClick={handleProductClick}
+          />
+        </>
+      )}
+    </div>
+  );
 };
 
-// --- Helper Components ---
-// ในคอมโพเนนต์ BannerSection
-const BannerSection = ({ banners, small, autoPlay, aspectRatio }: { banners: Banner[], small?: boolean, autoPlay?: boolean, aspectRatio?: string}) => {
+// ---------- helper components (Banner/CategoryGrid/Featured/CategorySection) เหมือนเดิม ไม่เปลี่ยน ----------
+const BannerSection = ({
+  banners,
+  small,
+  autoPlay,
+  aspectRatio,
+}: {
+  banners: Banner[];
+  small?: boolean;
+  autoPlay?: boolean;
+  aspectRatio?: string;
+}) => {
   if (!banners || banners.length === 0) return null;
   const plugins = autoPlay ? [Autoplay({ delay: 4000, stopOnInteraction: true })] : [];
   return (
-   <section className="py-8"><div className={`mx-auto px-4 ${small ? 'max-w-6xl' : 'max-w-7xl'}`}>
-       {/* เพิ่ม as any ตรงนี้ */}
-       <Carousel plugins={plugins as any} opts={{ loop: true }}>
-         <CarouselContent>
-           {banners.map(banner => (<CarouselItem key={banner.id}><Link to={banner.link_url || '#'}><img src={banner.image_url} alt={banner.title || 'Banner'} className="w-full h-auto object-cover rounded-lg" style={{aspectRatio}}/></Link></CarouselItem>))}
-         </CarouselContent>
-       </Carousel>
-     </div></section>
+    <section className="py-8">
+      <div className={`mx-auto px-4 ${small ? "max-w-6xl" : "max-w-7xl"}`}>
+        <Carousel plugins={plugins as any} opts={{ loop: true }}>
+          <CarouselContent>
+            {banners.map((banner) => {
+              const fromProxy = banner.image_url
+                ? toDisplaySrc(banner.image_url, { w: 1400, q: 85 })
+                : "";
+              const src = fromProxy || banner.image_url || undefined;
+
+              return (
+                <CarouselItem key={banner.id}>
+                  {src ? (
+                    <Link to={banner.link_url || "#"} rel="noopener noreferrer">
+                      <img
+                        src={src}
+                        alt={banner.title || "Banner"}
+                        className="w-full h-auto object-cover rounded-lg"
+                        style={{ aspectRatio }}
+                        onError={(e) => {
+                          const raw = banner.image_url;
+                          if (raw && e.currentTarget.src !== raw) {
+                            e.currentTarget.src = raw;
+                          } else {
+                            (e.currentTarget as HTMLImageElement).style.display = "none";
+                          }
+                        }}
+                      />
+                    </Link>
+                  ) : (
+                    <div className="w-full rounded-lg bg-gray-200" style={{ aspectRatio }} />
+                  )}
+                </CarouselItem>
+              );
+            })}
+          </CarouselContent>
+          <CarouselPrevious className="left-2 hidden md:flex" />
+          <CarouselNext className="right-2 hidden md:flex" />
+        </Carousel>
+      </div>
+    </section>
   );
 };
+
 const CategoryGridSection = ({ categories }: { categories: Category[] }) => {
- if (!categories || categories.length === 0) return null;
- return (
-   <section className="py-12 bg-white"><div className="max-w-7xl mx-auto px-4">
-       <h2 className="text-2xl font-bold mb-8 text-center">หมวดหมู่สินค้า</h2>
-       <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-7 lg:grid-cols-8 gap-4">
-         {categories.map((category) => (
-           <Link key={category.id} to={`/categories?category=${encodeURIComponent(category.name)}`} className="group">
-             <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden border-2 border-transparent group-hover:border-purple-200 transition-all">
-               <img src={category.image || '/placeholder.svg'} alt={category.name} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"/>
-             </div>
-             <h3 className="font-medium text-xs text-center mt-2 group-hover:text-purple-600 truncate">{category.name}</h3>
-           </Link>
-         ))}
-       </div>
-     </div></section>
- );
-};
-// ในคอมโพเนนต์ FeaturedProductsSection
-const FeaturedProductsSection = ({ products, onProductClick }: { products: ProductPublic[], onProductClick: (id: number) => void }) => {
-  if (!products || products.length === 0) return null;
+  if (!categories || categories.length === 0) return null;
   return (
-   <section className="py-6 bg-gray-50"><div className="max-w-7xl mx-auto px-4">
-       <h2 className="text-2xl font-bold mb-8 text-center">สินค้ามาใหม่</h2>
-       {/* เพิ่ม as any ตรงนี้ */}
-       <Carousel opts={{ align: "start", loop: true }} plugins={[Autoplay({ delay: 3000, stopOnInteraction: true })] as any}>
-         <CarouselContent className="-ml-4">
-           {products.map((product) => (
-             <CarouselItem key={product.id} className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5">
-               <EnhancedProductCard product={product} onProductClick={onProductClick} />
-             </CarouselItem>
-           ))}
-         </CarouselContent>
-         <CarouselPrevious className="left-2 hidden md:flex" />
-         <CarouselNext className="right-2 hidden md:flex" />
-       </Carousel>
-     </div></section>
+    <section className="py-12 bg-white">
+      <div className="max-w-7xl mx-auto px-4">
+        <h2 className="text-2xl font-bold mb-8 text-center">หมวดหมู่สินค้า</h2>
+        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-7 lg:grid-cols-8 gap-4">
+          {categories.map((category) => {
+            const fromProxy = category.image
+              ? toDisplaySrc(category.image, { w: 300, q: 85 })
+              : "";
+            const src = fromProxy || category.image || undefined;
+
+            return (
+              <Link
+                key={category.id}
+                to={`/categories?category=${encodeURIComponent(category.name)}`}
+                className="group"
+              >
+                <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden border-2 border-transparent group-hover:border-purple-200 transition-all flex items-center justify-center">
+                  {src ? (
+                    <img
+                      src={src}
+                      alt={category.name}
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                      onError={(e) => {
+                        const raw = category.image;
+                        if (raw && e.currentTarget.src !== raw) {
+                          e.currentTarget.src = raw;
+                        } else {
+                          (e.currentTarget as HTMLImageElement).style.display = "none";
+                        }
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gray-200" />
+                  )}
+                </div>
+                <h3 className="font-medium text-xs text-center mt-2 group-hover:text-purple-600 truncate">
+                  {category.name}
+                </h3>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+    </section>
   );
 };
-const CategorySection = ({ title, products, onProductClick }: { title: string; products: ProductPublic[]; onProductClick: (id: number) => void; }) => {
+
+const FeaturedProductsSection = ({
+  products,
+  onProductClick,
+}: {
+  products: ProductPublic[];
+  onProductClick: (id: number) => void;
+}) => {
   if (!products || products.length === 0) return null;
   return (
-    <section className="py-12 bg-white"><div className="max-w-7xl mx-auto px-4">
+    <section className="py-6 bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4">
+        <h2 className="text-2xl font-bold mb-8 text-center">สินค้ามาใหม่</h2>
+        <Carousel
+          opts={{ align: "start", loop: true }}
+          plugins={[Autoplay({ delay: 3000, stopOnInteraction: true })] as any}
+        >
+          <CarouselContent className="-ml-4">
+            {products.map((product) => (
+              <CarouselItem
+                key={product.id}
+                className="pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5"
+              >
+                <EnhancedProductCard product={product} onProductClick={onProductClick} />
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <CarouselPrevious className="left-2 hidden md:flex" />
+          <CarouselNext className="right-2 hidden md:flex" />
+        </Carousel>
+      </div>
+    </section>
+  );
+};
+
+const CategorySection = ({
+  title,
+  products,
+  onProductClick,
+}: {
+  title: string;
+  products: ProductPublic[];
+  onProductClick: (id: number) => void;
+}) => {
+  if (!products || products.length === 0) return null;
+  return (
+    <section className="py-12 bg-white">
+      <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-2xl font-bold">{title}</h2>
-          <Link to={`/categories?category=${encodeURIComponent(title)}`} className="flex items-center text-purple-600">ดูทั้งหมด <ArrowRight size={16} className="ml-1" /></Link>
+          <Link
+            to={`/categories?category=${encodeURIComponent(title)}`}
+            className="flex items-center text-purple-600"
+          >
+            ดูทั้งหมด <ArrowRight size={16} className="ml-1" />
+          </Link>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-          {products.map((p) => <EnhancedProductCard key={p.id} product={p} onProductClick={onProductClick} />)}
+          {products.map((p) => (
+            <EnhancedProductCard key={p.id} product={p} onProductClick={onProductClick} />
+          ))}
         </div>
-      </div></section>
+      </div>
+    </section>
   );
 };
 

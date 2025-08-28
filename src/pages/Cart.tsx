@@ -8,24 +8,31 @@ import { Textarea } from "@/components/ui/textarea";
 import { Trash2, Plus, Minus } from "lucide-react";
 import { toast } from "sonner";
 import Header from "@/components/Header";
-import { useCart } from "@/hooks/useCart"; // << 1. Import useCart เข้ามา
+import { useCart } from "@/hooks/useCart";
+import type { ProductPublic } from "@/types/product";
+
+type CartItem = ProductPublic & { quantity: number };
 
 const Cart = () => {
   const navigate = useNavigate();
-  // 2. เรียกใช้ state และ function ทั้งหมดจาก useCart
   const { cartItems, updateQty, removeItem, totalPrice, clearCart } = useCart();
-  
-  // State สำหรับข้อมูลลูกค้ายังคงเดิม
-  const [customerInfo, setCustomerInfo] = useState({ name: "", phone: "", address: "", note: "" });
-  const [updateProfile, setUpdateProfile] = useState(false);
+
+  const [customerInfo, setCustomerInfo] = useState({
+    name: "",
+    phone: "",
+    address: "",
+    note: "",
+  });
+
   const [profileId, setProfileId] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [updateProfile, setUpdateProfile] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  // useEffect สำหรับดึงข้อมูล Profile ยังทำงานเหมือนเดิม
   useEffect(() => {
     const loadUserProfile = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (session?.user) {
         setIsLoggedIn(true);
         const { data, error } = await supabase
@@ -40,48 +47,98 @@ const Cart = () => {
             name: data.username || "",
             phone: data.phone || "",
             address: data.address || "",
-            note: ""
+            note: "",
           });
         }
       } else {
         setIsLoggedIn(false);
       }
     };
-    
+
     loadUserProfile();
   }, []);
 
+  const validatePhone = (phone: string) => /^[0-9]{10}$/.test(phone);
+
   const handleCheckout = async () => {
+    if (cartItems.length === 0) {
+      toast.error("ตะกร้าว่าง");
+      return;
+    }
     if (!customerInfo.name || !customerInfo.phone || !customerInfo.address) {
-      return toast.error("กรุณากรอกข้อมูลให้ครบ");
+      toast.error("กรุณากรอกข้อมูลให้ครบ");
+      return;
     }
-    if (cartItems.length === 0) return toast.error("ตะกร้าว่าง");
+    if (!validatePhone(customerInfo.phone)) {
+      toast.error("เบอร์โทรต้องเป็นตัวเลข 10 หลัก");
+      return;
+    }
 
-    if (updateProfile && profileId) {
-      await supabase
-        .from("profiles")
-        .update({
-          username: customerInfo.name,
-          phone: customerInfo.phone,
-          address: customerInfo.address
+    setSubmitting(true);
+
+    try {
+      // อัปเดตโปรไฟล์ (ถ้าเลือก)
+      if (updateProfile && profileId) {
+        const { error: upErr } = await supabase
+          .from("profiles")
+          .update({
+            username: customerInfo.name,
+            phone: customerInfo.phone,
+            address: customerInfo.address,
+          })
+          .eq("id", profileId);
+        if (upErr) throw upErr;
+      }
+
+      // เตรียม payload ใส่ลง orders
+      const itemsPayload = cartItems.map((it: CartItem) => ({
+        id: it.id,
+        sku: it.sku,
+        name: it.name,
+        image: it.image,
+        quantity: it.quantity,
+        selling_price: it.selling_price,
+        product_type: it.product_type,
+      }));
+
+      const { data: inserted, error: insErr } = await supabase
+        .from("orders")
+        .insert({
+          customer_name: customerInfo.name,
+          customer_phone: customerInfo.phone,
+          customer_address: customerInfo.address,
+          customer_note: customerInfo.note || null,
+          subtotal: totalPrice,
+          shipping_cost: 0,
+          total_price: totalPrice,
+          status: "pending_payment",
+          items: itemsPayload,          // jsonb
+          order_date: new Date().toISOString(),
         })
-        .eq("id", profileId);
-      
-      toast.success("อัปเดตข้อมูลโปรไฟล์แล้ว");
-    }
+        .select("id")
+        .single();
 
-    const orderData = {
-      items: cartItems,
-      customerInfo,
-      totalPrice,
-      orderDate: new Date().toISOString()
-    };
-    
-    // เราจะล้างตะกร้าหลังจากสร้างข้อมูลออเดอร์แล้ว
-    clearCart(); 
-    
-    localStorage.setItem("pendingOrder", JSON.stringify(orderData));
-    navigate("/payment");
+      if (insErr) throw insErr;
+
+      // เก็บข้อมูลสำหรับหน้าชำระเงิน
+      const pendingOrder = {
+        id: inserted.id,
+        items: itemsPayload,
+        customerInfo,
+        totalPrice,
+        shippingCost: 0,
+      };
+      localStorage.setItem("pendingOrder", JSON.stringify(pendingOrder));
+
+      // เคลียร์ตะกร้าแล้วพาไปชำระเงิน
+      clearCart();
+      navigate("/payment");
+    } catch (e: any) {
+      console.error("Insert order error:", e);
+      toast.error("สร้างออเดอร์ไม่สำเร็จ");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (cartItems.length === 0) {
@@ -110,22 +167,29 @@ const Cart = () => {
           <div className="lg:col-span-2">
             <Card>
               <CardContent className="p-6 space-y-4">
-                {cartItems.map(item => (
+                {cartItems.map((item) => (
                   <div key={item.id} className="flex justify-between items-center border-b pb-4">
                     <div className="flex items-center space-x-4">
-                      <img src={item.image} alt={item.name} className="w-16 h-16 rounded" />
+                      <img src={item.image} alt={item.name} className="w-16 h-16 rounded object-cover" />
                       <div>
                         <h3 className="font-medium text-gray-800">{item.name}</h3>
                         <div className="flex items-center space-x-2 mt-1">
-                          <Button size="icon" onClick={() => updateQty(item.id, item.quantity - 1)}><Minus /></Button>
+                          <Button size="icon" variant="outline" onClick={() => updateQty(item.id, Math.max(1, item.quantity - 1))}><Minus /></Button>
                           <span>{item.quantity}</span>
-                          <Button size="icon" onClick={() => updateQty(item.id, item.quantity + 1)}><Plus /></Button>
+                          <Button size="icon" variant="outline" onClick={() => updateQty(item.id, item.quantity + 1)}><Plus /></Button>
                         </div>
                       </div>
                     </div>
-                    <div>
-                      <p className="text-lg font-bold text-purple-600">฿{(item.selling_price * item.quantity).toLocaleString()}</p>
-                      <Button size="icon" variant="outline" onClick={() => removeItem(item.id)}>
+                    <div className="text-right">
+                      <p className="text-lg font-bold text-purple-600">
+                        ฿{(item.selling_price * item.quantity).toLocaleString()}
+                      </p>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        onClick={() => removeItem(item.id)}
+                        className="mt-2"
+                      >
                         <Trash2 className="text-red-500" />
                       </Button>
                     </div>
@@ -149,9 +213,12 @@ const Cart = () => {
                   onChange={(e) => setCustomerInfo({ ...customerInfo, name: e.target.value })}
                 />
                 <Input
-                  placeholder="เบอร์โทรศัพท์"
+                  placeholder="เบอร์โทรศัพท์ (10 หลัก)"
                   value={customerInfo.phone}
-                  onChange={(e) => setCustomerInfo({ ...customerInfo, phone: e.target.value })}
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/\D/g, "").slice(0, 10);
+                    setCustomerInfo({ ...customerInfo, phone: v });
+                  }}
                 />
                 <Textarea
                   placeholder="ที่อยู่จัดส่ง"
@@ -166,11 +233,11 @@ const Cart = () => {
                 {isLoggedIn && profileId && (
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <div className="flex items-center space-x-2 mb-2">
-                      <input 
-                        id="updateProfile" 
-                        type="checkbox" 
-                        checked={updateProfile} 
-                        onChange={() => setUpdateProfile(!updateProfile)} 
+                      <input
+                        id="updateProfile"
+                        type="checkbox"
+                        checked={updateProfile}
+                        onChange={() => setUpdateProfile(!updateProfile)}
                       />
                       <label htmlFor="updateProfile" className="text-sm font-medium">
                         อัปเดตข้อมูลในโปรไฟล์ถาวร
@@ -181,8 +248,13 @@ const Cart = () => {
                     </p>
                   </div>
                 )}
-                <Button onClick={handleCheckout} className="w-full py-3 text-lg" style={{ backgroundColor: "#956ec3", color: "#fff" }}>
-                  ดำเนินการชำระเงิน
+                <Button
+                  onClick={handleCheckout}
+                  className="w-full py-3 text-lg"
+                  style={{ backgroundColor: "#956ec3", color: "#fff" }}
+                  disabled={submitting}
+                >
+                  {submitting ? "กำลังสร้างออเดอร์..." : "ดำเนินการชำระเงิน"}
                 </Button>
               </CardContent>
             </Card>
@@ -194,5 +266,3 @@ const Cart = () => {
 };
 
 export default Cart;
-// This file is the Cart page where users can view their cart items, update quantities, remove items, and proceed to checkout.
-// It integrates with the useCart hook to manage cart state and operations.

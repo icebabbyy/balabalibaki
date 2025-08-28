@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 
-const SUPABASE_URL = "https://tfwmvpvxilosiyewqjtk.supabase.co";
+const SUPABASE_URL = "https://qiyywaouaqpvojqeqxnv.supabase.co";
 // แก้ไข Key ในบรรทัดนี้ให้เป็นตัวที่ถูกต้องจากเว็บ Supabase
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRmd212cHZ4aWxvc2l5ZXdxanRrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE2OTEzNzYsImV4cCI6MjA2NzI2NzM3Nn0.TdTxG2HfylzTtEJum5DUjdSDEkiH927kE2QMAk3hMEg";
+const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpeXl3YW91YXFwdm9qcWVxeG52Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI2NTk4NzcsImV4cCI6MjA2ODIzNTg3N30.EVeuMswYZeK4g8kqwJuH4ANsTyOPAqoFpTH_AD9CCIU";
 
 // ตรวจสอบว่ามีค่าครบถ้วนหรือไม่
 if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
