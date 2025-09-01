@@ -259,8 +259,8 @@ const Header = () => {
                         รายละเอียดและค่าบริการจัดส่ง
                       </HelpListItem>
                       <HelpListItem
-                        to="/returns"
-                        title="การคืนสินค้า"
+                        to="/Warranty"
+                        title="ประกันสินค้า"
                         icon={<Undo2 size={20} />}
                       >
                         นโยบายการคืนสินค้าและเงื่อนไข

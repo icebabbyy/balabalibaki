@@ -1,6 +1,8 @@
 [build]
-  command = "pnpm run build"
+[build]
+  command = "npm run build"
   publish = "dist"
 
 [build.environment]
-  NODE_VERSION = "22"
+  VITE_SUPABASE_URL = "https://qiyywaouaqpvojqeqxnv.supabase.co"
+  VITE_SUPABASE_ANON_KEY = "<eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFpeXl3YW91YXFwdm9qcWVxeG52Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI2NTk4NzcsImV4cCI6MjA2ODIzNTg3N30.EVeuMswYZeK4g8kqwJuH4ANsTyOPAqoFpTH_AD9CCIU>"

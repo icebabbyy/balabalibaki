@@ -61,7 +61,7 @@ const Footer = () => {
               </li>
               <li>
                 <Link to="/returns" className="text-gray-300 hover:text-white transition-colors text-sm">
-                  การคืนสินค้า
+                  ประกันสินค้า
                 </Link>
               </li>
             </ul>
@@ -71,7 +71,7 @@ const Footer = () => {
           <div>
             <h3 className="text-lg font-semibold mb-4">ติดต่อเรา</h3>
             <div className="space-y-2 text-sm text-gray-300">
-              <p>รับข้อมูลสาธารณะโปรโมชั่นใน Lucky Shop พิเศษ</p>
+              <p>รับข้อมูลสาธารณะโปรโมชั่นใน Wishyoulucky's Shop พิเศษ</p>
               <div className="flex space-x-4 mt-4">
                 <a href="#" className="text-gray-300 hover:text-white transition-colors">
                   Facebook
@@ -89,7 +89,7 @@ const Footer = () => {
 
         <div className="border-t border-purple-700 mt-8 pt-6 text-center">
           <p className="text-gray-400 text-sm">
-            © 2024 Lucky Shop. สงวนลิขสิทธิ์ทั้งหมด.
+            © 2025 Wishyoulucky's Shop. สงวนลิขสิทธิ์ทั้งหมด
           </p>
         </div>
       </div>

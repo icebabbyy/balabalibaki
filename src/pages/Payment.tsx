@@ -1,17 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Upload,
-  CheckCircle,
-  Loader2,
-  CreditCard,
-  DollarSign,
-  AlertTriangle,
-  ArrowLeft,
-} from "lucide-react";
+import { Upload, CheckCircle, Loader2, CreditCard, DollarSign, AlertTriangle, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import Header from "@/components/Header";
 import OrderSummary from "@/components/payment/OrderSummary";
@@ -23,7 +15,7 @@ type PaymentMethod = "kshop" | "truemoney";
 type PendingOrder = {
   id: number;
   items: Array<ProductPublic & { quantity: number }>;
-  customerInfo: { name: string; phone: string; address: string; note?: string };
+  customerInfo: { name: string; phone: string; address: string; note?: string; email?: string; wantsEmail?: boolean };
   totalPrice: number;
   shippingCost?: number;
 };
@@ -38,7 +30,6 @@ const Payment: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>("kshop");
 
-  // โหลดออเดอร์ที่เพิ่งสร้างมาจาก localStorage
   useEffect(() => {
     const raw = localStorage.getItem("pendingOrder");
     if (!raw) {
@@ -69,7 +60,6 @@ const Payment: React.FC = () => {
 
     setIsProcessing(true);
     try {
-      // 1) อัปโหลดสลิปขึ้น bucket
       const ext = slipImage.name.split(".").pop() || "jpg";
       const fileName = `order-${orderData.id}-${Date.now()}.${ext}`;
       const filePath = `public/${fileName}`;
@@ -81,17 +71,11 @@ const Payment: React.FC = () => {
           upsert: false,
         });
 
-      if (uploadError) {
-        console.error(uploadError);
-        throw new Error("อัปโหลดสลิปไม่สำเร็จ");
-      }
+      if (uploadError) throw new Error("อัปโหลดสลิปไม่สำเร็จ");
 
-      const { data: urlData } = supabase.storage
-        .from("payment-slips")
-        .getPublicUrl(filePath);
+      const { data: urlData } = supabase.storage.from("payment-slips").getPublicUrl(filePath);
       const publicUrl = urlData.publicUrl;
 
-      // 2) UPDATE orders (เฉพาะฟิลด์ที่เกี่ยวกับการชำระเงิน)
       const { error: updateError } = await supabase
         .from("orders")
         .update({
@@ -102,14 +86,10 @@ const Payment: React.FC = () => {
         .eq("id", orderData.id);
 
       if (updateError) {
-        console.error(updateError);
-        // ถ้าเจอ 401/42501 ส่วนใหญ่เป็น RLS block → ให้ดู SQL policy ด้านบน
-        throw new Error(
-          "บันทึกข้อมูลชำระเงินไม่สำเร็จ (ตรวจสิทธิ์ RLS หรือฟิลด์ที่อนุญาต)"
-        );
+        throw new Error("บันทึกข้อมูลชำระเงินไม่สำเร็จ");
       }
 
-      // 3) เคลียร์ตะกร้า + ล้าง pendingOrder แล้วพาไปหน้า history
+      // เคลียร์ตะกร้า + ล้าง pendingOrder แล้วพาไปหน้า history
       clearCart();
       localStorage.removeItem("pendingOrder");
       toast.success("ส่งสลิปเรียบร้อยแล้ว");
@@ -140,12 +120,9 @@ const Payment: React.FC = () => {
           </Button>
         </div>
 
-        <h1 className="text-3xl font-bold text-center mb-8">
-          เลือกช่องทางการชำระเงิน
-        </h1>
+        <h1 className="text-3xl font-bold text-center mb-8">เลือกช่องทางการชำระเงิน</h1>
 
         <div className="grid md:grid-cols-2 gap-8">
-          {/* สรุปออเดอร์ */}
           <OrderSummary
             orderData={{
               items: orderData.items,
@@ -155,7 +132,6 @@ const Payment: React.FC = () => {
             }}
           />
 
-          {/* ช่องทางการชำระเงิน */}
           <Card>
             <CardHeader>
               <CardTitle>ช่องทางการชำระเงิน</CardTitle>
@@ -187,9 +163,7 @@ const Payment: React.FC = () => {
               </div>
 
               <div className="text-center p-4 bg-purple-50 rounded-lg">
-                <p className="font-semibold mb-2">
-                  1. สแกน QR Code เพื่อชำระเงิน
-                </p>
+                <p className="font-semibold mb-2">1. สแกน QR Code เพื่อชำระเงิน</p>
                 <div className="w-full max-w-[280px] mx-auto">
                   {selectedMethod === "kshop" ? (
                     <img
@@ -209,45 +183,22 @@ const Payment: React.FC = () => {
 
               <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-8 text-center">
                 <p className="font-semibold mb-4 -mt-2">2. อัปโหลดสลิปที่นี่</p>
-                <input
-                  type="file"
-                  id="slipUpload"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleFileChange}
-                />
-                <label
-                  htmlFor="slipUpload"
-                  className="cursor-pointer flex flex-col items-center"
-                >
+                <input type="file" id="slipUpload" accept="image/*" className="hidden" onChange={handleFileChange} />
+                <label htmlFor="slipUpload" className="cursor-pointer flex flex-col items-center">
                   {slipImageUrl ? (
-                    <img
-                      src={slipImageUrl}
-                      alt="ตัวอย่างสลิป"
-                      className="max-h-64 rounded-md object-contain"
-                    />
+                    <img src={slipImageUrl} alt="ตัวอย่างสลิป" className="max-h-64 rounded-md object-contain" />
                   ) : (
                     <>
                       <Upload className="h-12 w-12 text-gray-400 mb-2" />
-                      <span className="font-medium text-purple-600">
-                        คลิกเพื่ออัปโหลด
-                      </span>
+                      <span className="font-medium text-purple-600">คลิกเพื่ออัปโหลด</span>
                       <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF</p>
                     </>
                   )}
                 </label>
               </div>
 
-              <Button
-                onClick={handleConfirmSlipUpload}
-                className="w-full text-lg py-6"
-                disabled={!slipImage || isProcessing}
-              >
-                {isProcessing ? (
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                ) : (
-                  <CheckCircle className="mr-2 h-5 w-5" />
-                )}
+              <Button onClick={handleConfirmSlipUpload} className="w-full text-lg py-6" disabled={!slipImage || isProcessing}>
+                {isProcessing ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <CheckCircle className="mr-2 h-5 w-5" />}
                 {isProcessing ? "กำลังส่งข้อมูล..." : "ยืนยันการชำระเงิน"}
               </Button>
             </CardContent>

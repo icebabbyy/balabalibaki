@@ -3,11 +3,14 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"; // 👈 เพิ่ม Navigate
 import { AuthProvider } from "./hooks/useAuth";
 import { CartProvider } from "./hooks/useCart";
 import { WishlistProvider } from "./context/WishlistContext";
 import Footer from "./components/Footer";
+
+// ❌ ลบบรรทัดนี้
+// import Warranty from './pages/Warranty';
 
 // Lazy load pages
 const Index = lazy(() => import("./pages/Index"));
@@ -20,14 +23,13 @@ const Profile = lazy(() => import("./pages/Profile"));
 const OrderHistory = lazy(() => import("./pages/OrderHistory"));
 const Payment = lazy(() => import("./pages/Payment"));
 const ProductsByTag = lazy(() => import("./pages/ProductsByTag"));
-const TagProductPage = lazy(() => import("./pages/TagProductPage"));
 const QA = lazy(() => import("./pages/QA"));
 const Reviews = lazy(() => import("./pages/Reviews"));
 const OrderStatus = lazy(() => import("./pages/OrderStatus"));
 const Auth = lazy(() => import("./pages/Auth"));
 const HowToOrder = lazy(() => import("./pages/HowToOrder"));
 const Shipping = lazy(() => import("./pages/Shipping"));
-const Returns = lazy(() => import("./pages/Returns"));
+const Warranty = lazy(() => import("./pages/Warranty")); // ✅ ใช้อันนี้อันเดียว
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -53,7 +55,7 @@ const App = () => (
                       <Route path="/products/tag/:tagName" element={<ProductsByTag />} />
                       <Route path="/categories" element={<Categories />} />
                       <Route path="/product/:slug" element={<ProductDetail />} />
-                      <Route path="/tag/:tag" element={<TagProductPage />} />
+                      <Route path="/tag/:tag" element={<ProductsByTag />} />
                       <Route path="/qa" element={<QA />} />
                       <Route path="/reviews" element={<Reviews />} />
                       <Route path="/order-status" element={<OrderStatus />} />
@@ -64,7 +66,13 @@ const App = () => (
                       <Route path="/payment" element={<Payment />} />
                       <Route path="/how-to-order" element={<HowToOrder />} />
                       <Route path="/shipping" element={<Shipping />} />
-                      <Route path="/returns" element={<Returns />} />
+
+                      {/* ✅ ใช้ path ตัวเล็ก และใส่ redirect จากลิงก์เก่า/ตัวใหญ่ */}
+                      <Route path="/warranty" element={<Warranty />} />
+                      <Route path="/returns" element={<Navigate to="/warranty" replace />} />
+                      <Route path="/Return" element={<Navigate to="/warranty" replace />} />
+                      <Route path="/Warranty" element={<Navigate to="/warranty" replace />} />
+
                       <Route path="/wishlist" element={<Wishlist />} />
                       <Route path="/order-history" element={<OrderHistory />} />
                       <Route path="*" element={<NotFound />} />

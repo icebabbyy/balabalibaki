@@ -325,9 +325,6 @@ const OrderStatus = () => {
                 <div className="p-6">
                   <div className="flex justify-between items-start">
                     <h2 className="text-lg font-bold">Order Detail</h2>
-                    <DialogTrigger asChild>
-                      <button aria-label="close"><X className="h-5 w-5" /></button>
-                    </DialogTrigger>
                   </div>
 
                   <div className="mt-3 flex items-center gap-4">

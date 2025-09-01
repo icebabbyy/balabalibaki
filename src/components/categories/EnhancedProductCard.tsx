@@ -1,4 +1,3 @@
-// src/components/categories/EnhancedProductCard.tsx
 import type { ProductPublic } from "@/types/product";
 import { Heart, ShoppingCart, CreditCard } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -8,13 +7,21 @@ import { useNavigate } from "react-router-dom";
 import { useCart } from "@/hooks/useCart";
 import { useWishlist } from "@/context/WishlistContext";
 import { toDisplaySrc } from "@/lib/imageUrl";
+import React from "react";
 
 interface EnhancedProductCardProps {
   product: ProductPublic;
   onProductClick: (productId: number) => void;
 }
 
-/** ดึง URL รูปจากหลายฟิลด์ให้ครอบคลุม (รองรับ key แปลก ๆ) */
+/** helper ทำ URL รูปตามขนาด (พยายามใช้ proxy/transform ก่อน แล้วค่อย fallback เป็น raw) */
+const srcW = (raw?: string, w = 700, q = 85) => {
+  if (!raw) return "";
+  const out = toDisplaySrc(raw, { w, q });
+  return out || raw;
+};
+
+/** รวม URL รูปจากหลายฟิลด์ให้ครอบคลุม */
 function collectImagesFlexible(p: any): string[] {
   const out: string[] = [];
   const push = (u?: string | null) => {
@@ -45,14 +52,7 @@ function collectImagesFlexible(p: any): string[] {
   return out;
 }
 
-/** สร้าง src ที่ “ต้องได้รูป” : proxy → raw → ว่าง */
-const buildSrc = (raw?: string) => {
-  if (!raw) return "";
-  const proxied = toDisplaySrc(raw, { w: 700, q: 85 });
-  return proxied || raw;
-};
-
-const EnhancedProductCard = ({ product, onProductClick }: EnhancedProductCardProps) => {
+const EnhancedProductCard: React.FC<EnhancedProductCardProps> = ({ product, onProductClick }) => {
   if (!product) return null;
 
   const navigate = useNavigate();
@@ -63,11 +63,8 @@ const EnhancedProductCard = ({ product, onProductClick }: EnhancedProductCardPro
 
   // main
   const mainRaw = images[0];
-  const mainSrc = buildSrc(mainRaw);
-
   // rollover (รูปถัดไปถ้ามี)
   const rolloverRaw = images.find((u) => u && u !== mainRaw);
-  const rolloverSrc = buildSrc(rolloverRaw);
 
   const wishlisted = isInWishlist((product as any).id);
 
@@ -95,49 +92,50 @@ const EnhancedProductCard = ({ product, onProductClick }: EnhancedProductCardPro
     >
       <CardContent className="p-0 flex flex-col flex-grow">
         <div className="relative w-full aspect-square bg-gray-100">
+
           {/* main image */}
           {mainRaw && (
             <img
-              src={mainSrc}
+              src={srcW(mainRaw, 700)}
+              srcSet={`${srcW(mainRaw, 350)} 350w, ${srcW(mainRaw, 700)} 700w, ${srcW(mainRaw, 1000)} 1000w`}
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               alt={(product as any).name ?? "product"}
               className="w-full h-full object-cover absolute inset-0 transition-opacity duration-300"
               referrerPolicy="no-referrer"
               crossOrigin="anonymous"
-              onError={(e) => {
-                const raw = mainRaw;
-                if (raw && e.currentTarget.src !== raw) {
-                  e.currentTarget.src = raw;
-                } else {
-                  (e.currentTarget as HTMLImageElement).style.display = "none";
-                }
-              }}
               loading="lazy"
               decoding="async"
+              fetchPriority="low"
+              onError={(e) => {
+                const raw = mainRaw;
+                if (raw && e.currentTarget.src !== raw) e.currentTarget.src = raw;
+                else (e.currentTarget as HTMLImageElement).style.display = "none";
+              }}
             />
           )}
 
           {/* rollover image */}
           {rolloverRaw && (
             <img
-              src={rolloverSrc}
+              src={srcW(rolloverRaw, 700)}
+              srcSet={`${srcW(rolloverRaw, 350)} 350w, ${srcW(rolloverRaw, 700)} 700w, ${srcW(rolloverRaw, 1000)} 1000w`}
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               alt={`${(product as any).name ?? "product"} (hover)`}
               className="w-full h-full object-cover absolute inset-0 transition-opacity duration-300 opacity-0 group-hover:opacity-100"
               referrerPolicy="no-referrer"
               crossOrigin="anonymous"
-              onError={(e) => {
-                const raw = rolloverRaw;
-                if (raw && e.currentTarget.src !== raw) {
-                  e.currentTarget.src = raw;
-                } else {
-                  (e.currentTarget as HTMLImageElement).style.display = "none";
-                }
-              }}
               loading="lazy"
               decoding="async"
+              fetchPriority="low"
+              onError={(e) => {
+                const raw = rolloverRaw;
+                if (raw && e.currentTarget.src !== raw) e.currentTarget.src = raw;
+                else (e.currentTarget as HTMLImageElement).style.display = "none";
+              }}
             />
           )}
 
-          {/* สถานะ */}
+          {/* สถานะสินค้า */}
           {status && (
             <div className="absolute top-2 left-2 z-10">
               <Badge
