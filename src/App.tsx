@@ -8,6 +8,7 @@ import { AuthProvider } from "./hooks/useAuth";
 import { CartProvider } from "./hooks/useCart";
 import { WishlistProvider } from "./context/WishlistContext";
 import Footer from "./components/Footer";
+import ThankYou from './pages/ThankYou';
 
 // ❌ ลบบรรทัดนี้
 // import Warranty from './pages/Warranty';
@@ -64,15 +65,17 @@ const App = () => (
                       <Route path="/profile" element={<Profile />} />
                       <Route path="/cart" element={<Cart />} />
                       <Route path="/payment" element={<Payment />} />
+                      <Route path="/ThankYou" element={<ThankYou />} />
                       <Route path="/how-to-order" element={<HowToOrder />} />
                       <Route path="/shipping" element={<Shipping />} />
-
+                      <Route path="/thank-you" element={<ThankYou />} />
+                      <Route path="/ThankYou" element={<Navigate to="/thank-you" replace />} />
                       {/* ✅ ใช้ path ตัวเล็ก และใส่ redirect จากลิงก์เก่า/ตัวใหญ่ */}
                       <Route path="/warranty" element={<Warranty />} />
                       <Route path="/returns" element={<Navigate to="/warranty" replace />} />
                       <Route path="/Return" element={<Navigate to="/warranty" replace />} />
                       <Route path="/Warranty" element={<Navigate to="/warranty" replace />} />
-
+                      <Route path="/ThankYou" element={<Navigate to="/thank-you" replace />} />
                       <Route path="/wishlist" element={<Wishlist />} />
                       <Route path="/order-history" element={<OrderHistory />} />
                       <Route path="*" element={<NotFound />} />

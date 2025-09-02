@@ -1,3 +1,4 @@
+// src/pages/Cart.tsx
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,9 +24,19 @@ type CustomerInfo = {
 };
 
 const genOrderNumber = () => {
-  // ตัวอย่าง: PPP-<timestamp>-<5 ตัวอักษรสุ่ม>
-  const rand = Math.random().toString(36).slice(2, 7);
-  return `PPP-${Date.now()}-${rand}`;
+  const now = new Date(); // ถ้าอยากล็อกเป็นเวลาไทย: new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }))
+  const yy = String(now.getFullYear()).slice(-2);
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+
+  // ชุดอักขระอ่านง่าย (ตัด O/0, I/1 ออก)
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let rand = "";
+  for (let i = 0; i < 4; i++) {
+    rand += chars[Math.floor(Math.random() * chars.length)];
+  }
+
+  return `WLK-${yy}${mm}${dd}${rand}`;
 };
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -33,7 +44,7 @@ const validatePhone = (phone: string) => /^[0-9]{10}$/.test(phone);
 
 const Cart = () => {
   const navigate = useNavigate();
-  const { cartItems, updateQty, removeItem, totalPrice, clearCart } = useCart();
+  const { cartItems, updateQty, removeItem, totalPrice } = useCart();
 
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>({
     name: "",
@@ -52,17 +63,18 @@ const Cart = () => {
   // Prefill จาก session (ชื่อ/ที่อยู่จาก profiles ถ้ามี, อีเมลจาก auth)
   useEffect(() => {
     (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+        error: sessErr,
+      } = await supabase.auth.getSession();
+      if (sessErr) console.warn("[auth.getSession] error:", sessErr);
 
       const initial: Partial<CustomerInfo> = {};
 
       if (session?.user) {
         setIsLoggedIn(true);
-        if (session.user.email) {
-          initial.email = session.user.email;
-        }
+        if (session.user.email) initial.email = session.user.email;
 
-        // ตาราง profiles ของโปรเจ็กต์นี้มีคอลัมน์ username/phone/address
         const { data, error } = await supabase
           .from("profiles")
           .select("id,username,phone,address")
@@ -74,6 +86,8 @@ const Cart = () => {
           initial.name = data.username || "";
           initial.phone = data.phone || "";
           initial.address = data.address || "";
+        } else if (error) {
+          console.warn("[profiles.prefill] error:", error);
         }
       } else {
         setIsLoggedIn(false);
@@ -104,8 +118,14 @@ const Cart = () => {
     setSubmitting(true);
 
     try {
-      // อัปเดตโปรไฟล์ถาวร (ถ้าเลือก)
-      if (updateProfile && profileId) {
+      // เอา session/uid มาใช้ครั้งเดียว
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const userId = session?.user?.id ?? null;
+
+      // อัปเดตโปรไฟล์ถาวร (เฉพาะตอนล็อกอินและติ๊ก checkbox)
+      if (updateProfile && profileId && userId) {
         const { error: upErr } = await supabase
           .from("profiles")
           .update({
@@ -119,48 +139,62 @@ const Cart = () => {
 
       // เตรียม payload ใส่ลง orders
       const itemsPayload = cartItems.map((it: CartItem) => ({
-        product_id: it.id,          // ⬅️ เน้นให้มี product_id
+        product_id: it.id,
         sku: it.sku ?? null,
         name: it.name,
-        image: it.image ?? it.image_url ?? null,
+        image: (it as any).image ?? (it as any).image_url ?? null,
         quantity: it.quantity,
         selling_price: it.selling_price,
-        product_type: it.product_type ?? null,
+        product_type: (it as any).product_type ?? null,
       }));
 
-      // ฝั่ง DB บังคับ NOT NULL → generate ที่ฝั่งหน้า
       const orderNumber = genOrderNumber();
 
-      // user_id (ถ้ามี), customer_email, order_number
+      // ประกอบแถวที่จะ insert — ใส่ user_id เฉพาะตอนล็อกอิน
+      const row: any = {
+        order_number: orderNumber,
+        customer_name: customerInfo.name,
+        customer_phone: customerInfo.phone,
+        customer_address: customerInfo.address,
+        customer_note: customerInfo.note || null,
+        customer_email: customerInfo.email,
+        subtotal: totalPrice,
+        shipping_cost: 0,
+        total_price: totalPrice,
+        status: "pending_payment",
+        items: itemsPayload,
+        order_date: new Date().toISOString(),
+      };
+      if (userId) row.user_id = userId; // สำคัญ: guest จะไม่ส่ง user_id
+
       const { data: inserted, error: insErr } = await supabase
         .from("orders")
-        .insert({
-          user_id: isLoggedIn ? (await supabase.auth.getUser()).data.user?.id ?? null : null,
-          order_number: orderNumber,                 // ⬅️ สำคัญ
-          customer_name: customerInfo.name,
-          customer_phone: customerInfo.phone,
-          customer_address: customerInfo.address,
-          customer_note: customerInfo.note || null,
-          customer_email: customerInfo.email,        // ⬅️ บันทึกอีเมลลูกค้า
-          subtotal: totalPrice,
-          shipping_cost: 0,
-          total_price: totalPrice,
-          status: "pending_payment",
-          items: itemsPayload,                       // jsonb
-          order_date: new Date().toISOString(),
-        })
+        .insert(row)
         .select("id")
         .single();
 
       if (insErr) {
-        console.error("Insert order error:", insErr);
-        throw new Error("สร้างออเดอร์ไม่สำเร็จ");
+        // แยกข้อความ error ให้เข้าใจง่ายขึ้น
+        const code = (insErr as any).code;
+        const details = (insErr as any).details || "";
+        const hint = (insErr as any).hint || "";
+        console.error("[orders.insert] error:", insErr);
+
+        if (code === "42501") {
+          // RLS บล็อก
+          toast.error("สร้างออเดอร์ไม่สำเร็จ: ถูกบล็อกโดยนโยบายความปลอดภัย (RLS)");
+        } else if ((insErr as any).status === 401) {
+          toast.error("ไม่ผ่านการอนุญาต (401) — ตรวจค่า VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY");
+        } else {
+          toast.error(`สร้างออเดอร์ไม่สำเร็จ: ${details || insErr.message || "unknown error"}`);
+        }
+        return;
       }
 
       // เก็บข้อมูลสำหรับหน้าชำระเงิน
       const pendingOrder = {
         id: inserted!.id,
-        items: cartItems.map((it) => ({ ...it })), // ใช้ของเดิมสำหรับสรุปหน้าชำระเงิน
+        items: cartItems.map((it) => ({ ...it })),
         customerInfo: {
           name: customerInfo.name,
           phone: customerInfo.phone,
@@ -174,10 +208,9 @@ const Cart = () => {
       };
       localStorage.setItem("pendingOrder", JSON.stringify(pendingOrder));
 
-      // ยังไม่เคลียร์ตะกร้าจนกว่าจะอัปโหลดสลิปสำเร็จ (หรือคงเดิมก็ได้ตามที่คุณชอบ)
       navigate("/payment");
     } catch (e: any) {
-      console.error("Insert order error:", e);
+      console.error("[handleCheckout] catch:", e);
       toast.error(e?.message || "สร้างออเดอร์ไม่สำเร็จ");
     } finally {
       setSubmitting(false);
@@ -213,13 +246,29 @@ const Cart = () => {
                 {cartItems.map((item) => (
                   <div key={item.id} className="flex justify-between items-center border-b pb-4">
                     <div className="flex items-center space-x-4">
-                      <img src={item.image ?? item.image_url ?? ""} alt={item.name} className="w-16 h-16 rounded object-cover" />
+                      <img
+                        src={(item as any).image ?? (item as any).image_url ?? ""}
+                        alt={item.name}
+                        className="w-16 h-16 rounded object-cover"
+                      />
                       <div>
                         <h3 className="font-medium text-gray-800">{item.name}</h3>
                         <div className="flex items-center space-x-2 mt-1">
-                          <Button size="icon" variant="outline" onClick={() => updateQty(item.id, Math.max(1, item.quantity - 1))}><Minus /></Button>
+                          <Button
+                            size="icon"
+                            variant="outline"
+                            onClick={() => updateQty(item.id, Math.max(1, item.quantity - 1))}
+                          >
+                            <Minus />
+                          </Button>
                           <span>{item.quantity}</span>
-                          <Button size="icon" variant="outline" onClick={() => updateQty(item.id, item.quantity + 1)}><Plus /></Button>
+                          <Button
+                            size="icon"
+                            variant="outline"
+                            onClick={() => updateQty(item.id, item.quantity + 1)}
+                          >
+                            <Plus />
+                          </Button>
                         </div>
                       </div>
                     </div>
@@ -254,14 +303,18 @@ const Cart = () => {
                 <Input
                   placeholder="อีเมล (สำหรับแจ้งเตือนสถานะ/อัพเดต)"
                   value={customerInfo.email}
-                  onChange={(e) => setCustomerInfo({ ...customerInfo, email: e.target.value.trim() })}
+                  onChange={(e) =>
+                    setCustomerInfo({ ...customerInfo, email: e.target.value.trim() })
+                  }
                 />
                 <div className="flex items-center gap-2 text-sm">
                   <input
                     id="wantsEmail"
                     type="checkbox"
                     checked={customerInfo.wantsEmail}
-                    onChange={(e) => setCustomerInfo({ ...customerInfo, wantsEmail: e.target.checked })}
+                    onChange={(e) =>
+                      setCustomerInfo({ ...customerInfo, wantsEmail: e.target.checked })
+                    }
                   />
                   <label htmlFor="wantsEmail">รับอัพเดตสถานะ/แจ้งเตือนทางอีเมล</label>
                 </div>
