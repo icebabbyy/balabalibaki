@@ -1,6 +1,8 @@
 // netlify/functions/send-order-received.ts
+// ใช้ CommonJS สำหรับ runtime (แก้ error: Cannot use import statement outside a module)
 import type { Handler } from "@netlify/functions";
-import { Resend } from "resend";
+/* eslint-disable @typescript-eslint/no-var-requires */
+const { Resend } = require("resend");
 
 type Item = {
   name: string;
@@ -19,15 +21,15 @@ type Payload = {
   to: string;
   order_id: number;
   order_number: string;
-  total_price: number;      // ราคารวม
-  deposit?: number | null;  // ถ้าไม่มี = ชำระเต็ม
-  paid_amount: number;      // ยอดที่ลูกค้าจ่ายรอบนี้
+  total_price: number;
+  deposit?: number | null;
+  paid_amount: number;
   payment_method: "kshop" | "truemoney";
   customer: Customer;
   items: Item[];
 };
 
-const resend = new Resend(process.env.RESEND_API_KEY!);
+const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = process.env.RESEND_FROM || "Wishyoulucky <notify@wishyoulucky.page>";
 const ORDER_STATUS_URL =
   process.env.ORDER_STATUS_URL || "https://wishyoulucky.page/order-status";
@@ -81,8 +83,7 @@ const buildItemsHTML = (items: Item[]) =>
 
 const htmlTemplate = (p: Payload) => {
   const balance = Math.max(Number(p.total_price) - Number(p.paid_amount || 0), 0);
-  const subject =
-    "Wishyoulucky's Shop Order Received (สรุปคำสั่งซื้อ) 🍀";
+  const subject = "Wishyoulucky's Shop Order Received (สรุปคำสั่งซื้อ) 🍀";
   const link = `${ORDER_STATUS_URL}?order=${encodeURIComponent(
     p.order_number
   )}&email=${encodeURIComponent(p.to)}`;
@@ -177,11 +178,7 @@ export const handler: Handler = async (event) => {
     return { statusCode: 200, headers: cors(event.headers.origin) };
   }
   if (event.httpMethod !== "POST") {
-    return {
-      statusCode: 405,
-      headers: cors(event.headers.origin),
-      body: "Method Not Allowed",
-    };
+    return { statusCode: 405, headers: cors(event.headers.origin), body: "Method Not Allowed" };
   }
 
   try {
@@ -196,7 +193,6 @@ export const handler: Handler = async (event) => {
     }
 
     const mail = htmlTemplate(payload);
-
     const sent = await resend.emails.send({
       from: FROM,
       to: [payload.to],
@@ -205,26 +201,14 @@ export const handler: Handler = async (event) => {
       text: mail.text,
     });
 
-    if (sent.error) {
-      console.error("Resend error:", sent.error);
-      return {
-        statusCode: 500,
-        headers: cors(event.headers.origin),
-        body: "Failed to send email",
-      };
+    if ((sent as any)?.error) {
+      console.error("Resend error:", (sent as any).error);
+      return { statusCode: 500, headers: cors(event.headers.origin), body: "Failed to send email" };
     }
 
-    return {
-      statusCode: 200,
-      headers: cors(event.headers.origin),
-      body: JSON.stringify({ ok: true }),
-    };
+    return { statusCode: 200, headers: cors(event.headers.origin), body: JSON.stringify({ ok: true }) };
   } catch (e: any) {
     console.error(e);
-    return {
-      statusCode: 500,
-      headers: cors(event.headers.origin),
-      body: e?.message || "Internal Error",
-    };
+    return { statusCode: 500, headers: cors(event.headers.origin), body: e?.message || "Internal Error" };
   }
 };
