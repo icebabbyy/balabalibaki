@@ -1,19 +1,15 @@
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"; // 👈 เพิ่ม Navigate
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./hooks/useAuth";
 import { CartProvider } from "./hooks/useCart";
 import { WishlistProvider } from "./context/WishlistContext";
 import Footer from "./components/Footer";
-import ThankYou from './pages/ThankYou';
 
-// ❌ ลบบรรทัดนี้
-// import Warranty from './pages/Warranty';
-
-// Lazy load pages
+// 🔽 lazy imports ทั้งหมด (ใช้ไฟล์ relative)
 const Index = lazy(() => import("./pages/Index"));
 const Categories = lazy(() => import("./pages/Categories"));
 const ProductDetail = lazy(() => import("./pages/ProductDetail"));
@@ -30,7 +26,9 @@ const OrderStatus = lazy(() => import("./pages/OrderStatus"));
 const Auth = lazy(() => import("./pages/Auth"));
 const HowToOrder = lazy(() => import("./pages/HowToOrder"));
 const Shipping = lazy(() => import("./pages/Shipping"));
-const Warranty = lazy(() => import("./pages/Warranty")); // ✅ ใช้อันนี้อันเดียว
+const Warranty = lazy(() => import("./pages/Warranty"));
+const ThankYou = lazy(() => import("./pages/ThankYou"));
+const Privilege = lazy(() => import("./pages/privilege")); // ✅ สำคัญ
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -41,57 +39,57 @@ const PageLoader = () => (
   </div>
 );
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <BrowserRouter>
-        <AuthProvider>
-          <CartProvider>
-            <WishlistProvider>
-              <div className="min-h-screen flex flex-col">
-                <div className="flex-grow">
-                  <Suspense fallback={<PageLoader />}>
-                    <Routes>
-                      <Route path="/" element={<Index />} />
-                      <Route path="/products/tag/:tag" element={<ProductsByTag />} />
-                      <Route path="/categories" element={<Categories />} />
-                      <Route path="/product/:slug" element={<ProductDetail />} />
-                      <Route path="/tag/:tag" element={<ProductsByTag />} />
-                      <Route path="/qa" element={<QA />} />
-                      <Route path="/reviews" element={<Reviews />} />
-                      <Route path="/order-status" element={<OrderStatus />} />
-                      <Route path="/admin/*" element={<Admin />} />
-                      <Route path="/auth" element={<Auth />} />
-                      <Route path="/profile" element={<Profile />} />
-                      <Route path="/cart" element={<Cart />} />
-                      <Route path="/payment" element={<Payment />} />
-                      <Route path="/ThankYou" element={<ThankYou />} />
-                      <Route path="/how-to-order" element={<HowToOrder />} />
-                      <Route path="/shipping" element={<Shipping />} />
-                      <Route path="/thank-you" element={<ThankYou />} />
-                      <Route path="/ThankYou" element={<Navigate to="/thank-you" replace />} />
-                      {/* ✅ ใช้ path ตัวเล็ก และใส่ redirect จากลิงก์เก่า/ตัวใหญ่ */}
-                      <Route path="/warranty" element={<Warranty />} />
-                      <Route path="/returns" element={<Navigate to="/warranty" replace />} />
-                      <Route path="/Return" element={<Navigate to="/warranty" replace />} />
-                      <Route path="/Warranty" element={<Navigate to="/warranty" replace />} />
-                      <Route path="/ThankYou" element={<Navigate to="/thank-you" replace />} />
-                      <Route path="/wishlist" element={<Wishlist />} />
-                      <Route path="/order-history" element={<OrderHistory />} />
-                      <Route path="*" element={<NotFound />} />
-                    </Routes>
-                  </Suspense>
+export default function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <BrowserRouter>
+          <AuthProvider>
+            <CartProvider>
+              <WishlistProvider>
+                <div className="min-h-screen flex flex-col">
+                  <div className="flex-grow">
+                    <Suspense fallback={<PageLoader />}>
+                      <Routes>
+                        <Route path="/" element={<Index />} />
+                        <Route path="/products/tag/:tag" element={<ProductsByTag />} />
+                        <Route path="/categories" element={<Categories />} />
+                        <Route path="/product/:slug" element={<ProductDetail />} />
+                        <Route path="/tag/:tag" element={<ProductsByTag />} />
+                        <Route path="/qa" element={<QA />} />
+                        <Route path="/reviews" element={<Reviews />} />
+                        <Route path="/order-status" element={<OrderStatus />} />
+                        <Route path="/admin/*" element={<Admin />} />
+                        <Route path="/auth" element={<Auth />} />
+                        <Route path="/profile" element={<Profile />} />
+                        <Route path="/cart" element={<Cart />} />
+                        <Route path="/payment" element={<Payment />} />
+                        <Route path="/privilege" element={<Privilege />} />
+                        <Route path="/how-to-order" element={<HowToOrder />} />
+                        <Route path="/shipping" element={<Shipping />} />
+                        <Route path="/warranty" element={<Warranty />} />
+                        <Route path="/thank-you" element={<ThankYou />} />
+                        {/* redirect ตัวใหญ่ -> ตัวเล็ก */}
+                        <Route path="/ThankYou" element={<Navigate to="/thank-you" replace />} />
+                        {/* returns -> warranty */}
+                        <Route path="/returns" element={<Navigate to="/warranty" replace />} />
+                        <Route path="/Return" element={<Navigate to="/warranty" replace />} />
+                        <Route path="/Warranty" element={<Navigate to="/warranty" replace />} />
+                        <Route path="/wishlist" element={<Wishlist />} />
+                        <Route path="/order-history" element={<OrderHistory />} />
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </Suspense>
+                  </div>
+                  <Footer />
                 </div>
-                <Footer />
-              </div>
-              <Toaster />
-              <Sonner />
-            </WishlistProvider>
-          </CartProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
-
-export default App;
+                <Toaster />
+                <Sonner />
+              </WishlistProvider>
+            </CartProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+}

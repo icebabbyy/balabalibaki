@@ -81,36 +81,67 @@ const Payment: React.FC = () => {
     setSlipImageUrl(URL.createObjectURL(file));
   };
 
-  /** base URL สำหรับ Netlify Functions (dev -> netlify.app, prod -> path ตรง) */
+  /** base URL สำหรับ Netlify Functions
+   * - ถ้ารันบน netlify.app / wishyoulucky.page -> เรียก relative path ได้เลย
+   * - ถ้ารัน dev domain อื่น ๆ -> ยิงไปโปรดักชันของ netlify
+   */
   const getFnBase = () => {
     const h = window.location.hostname;
     if (h.endsWith("netlify.app") || h.endsWith("wishyoulucky.page")) return "";
     return "https://wishyoulucky.netlify.app";
   };
 
+  /** endpoint สำหรับส่งเมล (อนุญาต override ผ่าน env) */
+  const EMAIL_ENDPOINT =
+    (import.meta as any).env?.VITE_EMAIL_ENDPOINT ||
+    `${getFnBase()}/.netlify/functions/send-order-received`;
+
+  /** รวมยอดสินค้า (subtotal) จาก items ฝั่งหน้าเว็บ */
+  const calcItemsSubtotal = (items: PendingOrder["items"]) =>
+    items.reduce((sum, it) => sum + Number(it.selling_price || 0) * Number(it.quantity || 0), 0);
+
   /** ส่งอีเมลสรุปคำสั่งซื้อผ่าน Netlify Function */
   const sendOrderMail = async (
     ord: OrderForMail,
     items: PendingOrder["items"],
-    method: PaymentMethod
+    method: PaymentMethod,
+    shippingFee: number
   ) => {
     try {
       const paidAmount =
         typeof ord.deposit === "number" && ord.deposit > 0 && ord.total_price
-          ? Math.min(ord.deposit, ord.total_price)
+          ? Math.min(ord.deposit, Number(ord.total_price))
           : Number(ord.total_price ?? 0);
 
-      const resp = await fetch(`${getFnBase()}/.netlify/functions/send-order-received`, {
+      const subtotal = calcItemsSubtotal(items);
+      const tax = 0; // ถ้ายังไม่มีภาษี ใส่ 0 ไปก่อน
+      const toEmail =
+        ord.customer_email ||
+        orderData?.customerInfo.email ||
+        ""; // เผื่อในคำสั่งซื้อไม่บันทึกอีเมล ให้ fallback จาก pendingOrder
+
+      if (!toEmail) return; // ไม่มีอีเมล ไม่ต้องส่ง
+
+      const resp = await fetch(EMAIL_ENDPOINT, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        mode: "cors",
+        headers: {
+          "Content-Type": "application/json",
+          // กันกดย้ำแล้วส่งซ้ำ
+          "X-Idempotency-Key": String(ord.order_number || ord.id),
+        },
         body: JSON.stringify({
-          to: ord.customer_email,
+          to: toEmail,
           order_id: ord.id,
           order_number: ord.order_number,
-          total_price: Number(ord.total_price ?? 0),
+          subtotal,
+          shipping_fee: shippingFee,
+          tax,
+          total_price: Number(ord.total_price ?? subtotal + shippingFee + tax),
           deposit: ord.deposit,
           paid_amount: paidAmount,
           payment_method: method,
+          shipping_title: method === "kshop" ? "K SHOP QR" : "TrueMoney Wallet",
           customer: {
             name: ord.customer_name,
             phone: ord.customer_phone,
@@ -122,13 +153,18 @@ const Payment: React.FC = () => {
             quantity: it.quantity,
             price: it.selling_price,
             sku: (it as any).sku ?? null,
-            image: (it as any).image ?? (it as any).image_url ?? null,
+            image:
+              (it as any).image ??
+              (it as any).image_url ??
+              (Array.isArray((it as any).images) ? (it as any).images[0]?.url : null) ??
+              null,
           })),
         }),
       });
 
       if (!resp.ok) {
-        console.warn("[send-order-received] non-200:", await resp.text());
+        const t = await resp.text().catch(() => "");
+        console.warn("[send-order-received] non-200:", t || resp.status);
       }
     } catch (err) {
       console.warn("[send-order-received] failed:", err);
@@ -179,7 +215,12 @@ const Payment: React.FC = () => {
       // 3) ส่งอีเมล (ถ้ามีอีเมล)
       const emailTo = updated.customer_email || orderData.customerInfo.email || "";
       if (emailTo) {
-        await sendOrderMail({ ...updated, customer_email: emailTo }, orderData.items, selectedMethod);
+        await sendOrderMail(
+          { ...updated, customer_email: emailTo },
+          orderData.items,
+          selectedMethod,
+          orderData.shippingCost ?? 0
+        );
       }
 
       // 4) เคลียร์ + เด้งไปหน้าขอบคุณ

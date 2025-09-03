@@ -4,21 +4,20 @@ const Footer = () => {
   return (
     <footer className="relative bg-[#512B81] text-white mt-24 border-t border-white/10">
       {/* โลโก้ลอยเหนือฟุตเตอร์ */}
-     <div className="max-w-6xl mx-auto px-4 relative">
-  {/* โลโก้ลอยเหนือคอลัมน์แรก */}
-<img
-  src="https://qiyywaouaqpvojqeqxnv.supabase.co/storage/v1/object/public/public-images/logo%20wish%20you%20lucky%20090667-02.png"
-  alt="Wishyoulucky's Shop"
-  className="
-   absolute
-      -top-[72px]       /* สูงแค่ไหน ลองจูนได้ */
-      left-0            /* ยึดชิดซ้ายคอลัมน์แรก */
-      w-[clamp(160px,26vw,240px)]  /* << คุมขนาด: ไม่เล็กเกิน/ไม่ใหญ่เกินคอลัมน์ */
-      h-auto
-      pointer-events-none select-none
-  "
-/>
-
+      <div className="max-w-6xl mx-auto px-4 relative">
+        {/* โลโก้ลอยเหนือคอลัมน์แรก */}
+        <img
+          src="https://qiyywaouaqpvojqeqxnv.supabase.co/storage/v1/object/public/public-images/logo%20wish%20you%20lucky%20090667-02.png"
+          alt="Wishyoulucky's Shop"
+          className="
+            absolute
+            -top-[72px]
+            left-0
+            w-[clamp(160px,26vw,240px)]
+            h-auto
+            pointer-events-none select-none
+          "
+        />
       </div>
 
       <div className="max-w-6xl mx-auto px-4 py-12">
@@ -26,10 +25,10 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
           {/* คำอธิบายร้าน — ดันลงมาให้อยู่ใต้โลโก้ */}
           <div className="pt-20 md:pt-24 text-center md:text-left">
-           <p className="pt-[20px] text-WHITE-300 text-sm leading-relaxed">
-    ✨Unleash the joy, Collect with Wishyoulucky! รวมสินค้าลิขสิทธิ์จากเกมและอนิเมะ ฟิกเกอร์, โมเดล, ของเล่นสะสม, กล่องสุ่ม Art Toys ได้ของชัวร์ ราคาเป็นมิตร
-  </p>
-</div>
+            <p className="pt-[20px] text-WHITE-300 text-sm leading-relaxed">
+              ✨Unleash the joy, Collect with Wishyoulucky! รวมสินค้าลิขสิทธิ์จากเกมและอนิเมะ ฟิกเกอร์, โมเดล, ของเล่นสะสม, กล่องสุ่ม Art Toys ได้ของชัวร์ ราคาเป็นมิตร
+            </p>
+          </div>
 
           {/* เมนูหลัก */}
           <div>
@@ -77,6 +76,12 @@ const Footer = () => {
                   ประกันสินค้า
                 </Link>
               </li>
+              {/* ➕ เพิ่มเมนู “สิทธิประโยชน์” ใต้ประกันสินค้า */}
+              <li>
+                <Link to="/privilege" className="text-WHITE-300 hover:text-gray-400 transition-colors text-sm">
+                  สิทธิประโยชน์
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -102,10 +107,7 @@ const Footer = () => {
                 >
                   Instagram
                 </a>
-                <a
-                  href="/contact"
-                  className="text-WHITE-300 hover:text-gray-400 transition-colors"
-                >
+                <a href="/contact" className="text-WHITE-300 hover:text-gray-400 transition-colors">
                   ติดต่อเรา
                 </a>
               </div>

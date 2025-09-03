@@ -3,7 +3,6 @@
   publish  = "dist"
 
 [build.environment]
-  NODE_VERSION = "20"
   VITE_SUPABASE_URL = "https://qiyywaouaqpvojqeqxnv.supabase.co"
   VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 
@@ -12,6 +11,11 @@
   node_bundler = "esbuild"
 
 [[redirects]]
+
+  from = "/send-order-received"
+  to = "/.netlify/functions/send-order-received"
+  status = 200
+
   from = "/*"
   to   = "/index.html"
   status = 200
