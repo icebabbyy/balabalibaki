@@ -12,8 +12,8 @@
 [functions]
   directory    = "netlify/functions"
   node_bundler = "esbuild"
-  # ❌ อย่าใส่ functions.node_version = "20"
-  # ถ้าจะกำหนดเวอร์ชันให้ Functions ด้วย ให้ตั้ง NODE_VERSION ที่ Environment variables ของไซต์แทน
+  external_node_modules = ["nodemailer"]
+  
 
 # ---- Redirects ต้องแยกเป็น 2 บล็อก ----
 [[redirects]]

@@ -1,200 +1,284 @@
 // netlify/functions/send-order-received.cjs
+// ===============================
+// Wishyoulucky - Order Received Mailer (Nodemailer)
+// ===============================
+
 const nodemailer = require("nodemailer");
 
-// ==== ENV ที่ต้องตั้งบน Netlify ====
-const SMTP_HOST = process.env.SMTP_HOST || "smtp.gmail.com";
-const SMTP_PORT = Number(process.env.SMTP_PORT || 465);
-const SMTP_SECURE = process.env.SMTP_SECURE
-  ? process.env.SMTP_SECURE === "true"
-  : SMTP_PORT === 465;
-const SMTP_USER = process.env.SMTP_USER;           // eg. wishyoulucky.shop@gmail.com
-const SMTP_PASS = process.env.SMTP_PASS;           // App Password ของ Gmail
-const FROM = process.env.MAIL_FROM
-  || `Wishyoulucky's Shop <${SMTP_USER}>`;
-
-const ORDER_STATUS_URL =
-  process.env.ORDER_STATUS_URL || "https://wishyoulucky.page/order-status";
-
-const transporter = nodemailer.createTransport({
-  host: SMTP_HOST,
-  port: SMTP_PORT,
-  secure: SMTP_SECURE,
-  auth: { user: SMTP_USER, pass: SMTP_PASS },
-});
+// ---------- Config & Utils ----------
+const {
+  SMTP_HOST,
+  SMTP_PORT,
+  SMTP_SECURE, // "true" | "false"
+  SMTP_USER,
+  SMTP_PASS,
+  MAIL_FROM = "Wishyoulucky <notify@wishyoulucky.page>",
+  ORDER_STATUS_URL = "https://wishyoulucky.page/order-status",
+  SITE_URL = "https://wishyoulucky.page",
+} = process.env;
 
 const cors = (origin) => ({
   "Access-Control-Allow-Origin": origin || "*",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Idempotency-Key",
+  "Access-Control-Allow-Headers":
+    "Content-Type, Authorization, X-Idempotency-Key",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Content-Type": "application/json; charset=utf-8",
 });
 
-const toNumber = (v, d = 0) => {
+const num = (v, d = 0) => {
   const n = Number(v);
   return Number.isFinite(n) ? n : d;
 };
 
 const thb = (n) =>
-  new Intl.NumberFormat("th-TH", { style: "currency", currency: "THB" })
-    .format(toNumber(n));
+  new Intl.NumberFormat("th-TH", {
+    style: "currency",
+    currency: "THB",
+    maximumFractionDigits: 2,
+  }).format(num(n));
 
 const paymentChannelText = (m) =>
   m === "truemoney" ? "TrueMoney Wallet" : "โอนผ่านธนาคาร (K SHOP QR)";
 
 const paymentTypeText = (total, deposit) => {
-  const dep = toNumber(deposit);
-  return dep > 0 && dep < toNumber(total) ? "มัดจำ" : "โอนเต็ม";
+  const dep = num(deposit);
+  if (dep > 0 && dep < num(total)) return "มัดจำ";
+  return "โอนเต็ม";
 };
 
-const buildItemsHTML = (items = []) =>
-  items.map((it) => {
-    const price = toNumber(it.price);
-    const qty = toNumber(it.quantity, 1);
-    const amount = price * qty;
-    const due =
-      it.due_date || it.eta || it.delivery_eta || it.ship_date || it.preorder_eta || "-";
-    const sku = it.sku ? String(it.sku) : null;
+const safe = (s) =>
+  String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 
-    return `
+// ---------- HTML Builders ----------
+const buildItemRows = (items = []) =>
+  items
+    .map((it) => {
+      const price = num(it.price) * num(it.quantity, 1);
+      const img =
+        it.image
+          ? `<img src="${it.image}" width="56" height="56" style="border-radius:8px;object-fit:cover;border:1px solid #eee;" alt=""/>`
+          : "";
+      const skuLine = it.sku ? `SKU: ${safe(it.sku)}` : "";
+      return `
 <tr>
-  <td style="padding:14px 0;border-bottom:1px solid #f0f0f0;">
-    <div style="display:flex;gap:12px;align-items:flex-start;">
-      ${it.image ? `<img src="${it.image}" width="72" height="72" style="border-radius:10px;object-fit:cover;border:1px solid #eee;flex:0 0 72px;" />` : ""}
-      <div style="min-width:0;flex:1;">
-        <div style="display:flex;justify-content:space-between;gap:12px;">
-          <div style="font-weight:700;line-height:1.35;word-break:break-word;">${it.name || "-"}</div>
-          <div style="white-space:nowrap;font-weight:700;">${amount ? thb(amount) : "-"}</div>
-        </div>
-        <div style="font-size:12px;color:#666;margin-top:4px;">
-          ${sku ? `SKU: ${sku} • ` : ""}QTY: ${qty} • กำหนดส่ง: ${due}
-        </div>
+  <td style="padding:10px 0;">
+    <div style="display:flex;gap:12px;align-items:center;">
+      ${img}
+      <div>
+        <div style="font-weight:600;line-height:1.35">${safe(it.name)}</div>
+        <div style="font-size:12px;color:#555;line-height:1.4">QTY: ${num(
+          it.quantity,
+          1
+        )}${skuLine ? ` • ${safe(skuLine)}` : ""}</div>
       </div>
     </div>
   </td>
+  <td style="text-align:right;white-space:nowrap;font-weight:600;">${thb(
+    price
+  )}</td>
 </tr>`;
-  }).join("");
+    })
+    .join("");
 
-const htmlTemplate = (p) => {
-  const orderNo = p.order_number || "-";
-  const link = `${ORDER_STATUS_URL}?order=${encodeURIComponent(orderNo)}&email=${encodeURIComponent(p.to)}`;
+const makeHtml = (p) => {
+  const {
+    to = "",
+    order_id,
+    order_number = "",
+    subtotal = 0,
+    shipping_fee = 0,
+    tax = 0,
+    total_price = 0,
+    deposit = 0,
+    paid_amount = 0,
+    payment_method = "kshop",
+    shipping_title,
+    customer = {},
+    items = [],
+  } = p;
 
-  const shippingFee = toNumber(p.shipping_fee ?? p.shipping ?? p.ship_cost ?? 0);
-  const tax = toNumber(p.tax ?? p.vat ?? 0);
-  const paid = toNumber(p.paid_amount ?? p.paid ?? 0);
+  const link = `${ORDER_STATUS_URL}?order=${encodeURIComponent(
+    order_number
+  )}&email=${encodeURIComponent(to)}`;
 
-  const itemsSubtotal = p.subtotal ?? (p.items || []).reduce((sum, it) =>
-    sum + toNumber(it.price) * toNumber(it.quantity, 1), 0);
+  const balance = Math.max(num(total_price) - num(paid_amount), 0);
 
-  const total = p.total_price ?? p.total ?? (itemsSubtotal + shippingFee + tax);
-  const balance = Math.max(total - paid, 0);
+  const subject = `Wishyoulucky's Shop Order Received (สรุปคำสั่งซื้อ) 🍀`;
 
-  const shippingInfo =
-    p.shipping_title || p.courier || p.shipping_method || p.delivery_method || "Shipping";
-
-  const billing = p.billing || p.customer || { name: "", address: "", phone: "" };
-  const shipping = p.shipping || p.customer || { name: "", address: "", phone: "" };
-
-  const subject = "Wishyoulucky's Shop Order Received (สรุปคำสั่งซื้อ) 🍀";
+  const orderSummaryRows = buildItemRows(items);
 
   const html = `
-<div style="font-family:Inter,Arial,Helvetica,sans-serif;max-width:720px;margin:0 auto;background:#ffffff;">
-  <div style="padding:24px;">
-    <h2 style="margin:0 0 8px;">🩰🎨 Thank you for shopping with Wishyoulucky's! 🌷🌟</h2>
-    <p style="margin:0 0 16px;color:#333;">💖 ขอบพระคุณที่ไว้วางใจสั่งสินค้ากับทางร้านนะคะ 💖</p>
+<div style="background:#f7f7fb;padding:16px 0;">
+  <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="width:100%;max-width:680px;background:#ffffff;margin:0 auto;border-radius:12px;overflow:hidden;">
+    <tr>
+      <td style="padding:24px 24px 8px 24px;">
+        <h2 style="margin:0 0 8px;font-family:Inter,Arial,Helvetica,sans-serif;">🩰🎨 Thank you for shopping with Wishyoulucky's! 🌷🌟</h2>
+        <p style="margin:0 0 16px;color:#333;font-family:Inter,Arial,Helvetica,sans-serif;">
+          💖 ขอบพระคุณที่ไว้วางใจสั่งสินค้ากับทางร้านนะคะ 💖
+        </p>
+        <div style="text-align:center;margin:14px 0 18px;">
+          <a href="${link}" style="display:inline-block;background:#8b5cf6;color:#fff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700;font-family:Inter,Arial,Helvetica,sans-serif;">
+            👉 คลิกที่นี่เพื่อดูรายละเอียดออเดอร์ของคุณ
+          </a>
+        </div>
+      </td>
+    </tr>
 
-    <div style="text-align:center;margin-top:16px;">
-      <a href="${link}" style="display:inline-block;background:#8b5cf6;color:#fff;text-decoration:none;padding:10px 16px;border-radius:10px;font-weight:600;">
-        👉 คลิกที่นี่เพื่อดูรายละเอียดออเดอร์ของคุณ
-      </a>
-    </div>
+    <!-- ORDER SUMMARY -->
+    <tr>
+      <td style="padding:0 24px 20px;">
+        <div style="border:1px solid #eee;border-radius:12px;padding:16px;">
+          <div style="font-family:Inter,Arial,Helvetica,sans-serif;font-weight:700;margin-bottom:6px;">
+            📋 สรุปรายการสั่งซื้อ • Order #${safe(order_number)}
+          </div>
 
-    <div style="border:1px solid #eee;border-radius:12px;padding:16px;margin-top:20px;">
-      <h3 style="margin:0 0 10px;color:#111;">ORDER SUMMARY</h3>
-      <div style="font-weight:700;margin-bottom:6px;">📋 สรุปรายการสั่งซื้อ Order #${orderNo}</div>
-      <table style="width:100%;border-collapse:collapse;">${buildItemsHTML(p.items || [])}</table>
-    </div>
+          <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width:100%;border-collapse:collapse;margin:8px 0 6px;">
+            <tbody>
+              ${orderSummaryRows || ""}
+            </tbody>
+          </table>
 
-    <div style="border:1px solid #eee;border-radius:12px;padding:16px;margin-top:16px;background:#fafafa;">
-      <div style="display:flex;gap:24px;flex-wrap:wrap;">
-        <div style="flex:1 1 260px;min-width:240px;">
-          <div style="font-weight:700;margin-bottom:6px;">Shipping Info</div>
-          <div style="color:#444;">${shippingInfo}</div>
-          <div style="margin-top:10px;color:#444;">
-            <div><strong>รูปแบบการชำระเงิน:</strong> ${paymentTypeText(total, p.deposit)}</div>
-            <div><strong>ช่องทางชำระเงิน:</strong> ${paymentChannelText(p.payment_method)}</div>
+          <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width:100%;border-collapse:collapse;margin-top:6px;">
+            <tbody>
+              <tr>
+                <td style="color:#444;">Item Subtotal</td>
+                <td style="text-align:right;">${thb(subtotal)}</td>
+              </tr>
+              <tr>
+                <td style="color:#444;">Shipping &amp; Handling</td>
+                <td style="text-align:right;">${thb(shipping_fee)}</td>
+              </tr>
+              <tr>
+                <td style="color:#444;">Tax</td>
+                <td style="text-align:right;">${thb(tax)}</td>
+              </tr>
+              <tr>
+                <td colspan="2" style="border-top:1px dashed #ddd;height:8px"></td>
+              </tr>
+              <tr>
+                <td style="font-weight:700;">Total</td>
+                <td style="text-align:right;font-weight:700;">${thb(
+                  total_price
+                )}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div style="margin-top:12px;font-family:Inter,Arial,Helvetica,sans-serif;">
+            <div><strong>รูปแบบการชำระเงิน:</strong> ${safe(
+              paymentTypeText(total_price, deposit)
+            )}</div>
+            <div><strong>ยอดชำระแล้ว:</strong> ${thb(paid_amount)}</div>
+            <div><strong>ยอดที่เหลือ:</strong> ${thb(balance)}</div>
+            <div><strong>ช่องทางการชำระเงิน:</strong> ${safe(
+              shipping_title || paymentChannelText(payment_method)
+            )}</div>
           </div>
         </div>
-        <div style="flex:1 1 260px;min-width:240px;">
-          <div style="font-weight:700;margin-bottom:6px;">สรุปยอด</div>
-          <div style="display:flex;justify-content:space-between;margin:4px 0;"><span>Item Subtotal:</span><span>${thb(itemsSubtotal)}</span></div>
-          <div style="display:flex;justify-content:space-between;margin:4px 0;"><span>Shipping &amp; Handling:</span><span>${thb(shippingFee)}</span></div>
-          <div style="display:flex;justify-content:space-between;margin:4px 0;"><span>Tax:</span><span>${thb(tax)}</span></div>
-          <div style="border-top:1px solid #e6e6e6;margin-top:6px;padding-top:8px;display:flex;justify-content:space-between;font-weight:700;">
-            <span>Total:</span><span>${thb(total)}</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;margin-top:6px;"><span>ยอดชำระแล้ว:</span><span>${thb(paid)}</span></div>
-          <div style="display:flex;justify-content:space-between;margin-top:2px;"><span>คงเหลือ:</span><span>${thb(balance)}</span></div>
-        </div>
-      </div>
-    </div>
+      </td>
+    </tr>
 
-    <div style="border:1px solid #eee;border-radius:12px;padding:16px;margin-top:16px;">
-      <h3 style="margin:0 0 10px;color:#111;">ORDER DETAILS</h3>
-      <div style="display:flex;gap:24px;flex-wrap:wrap;">
-        <div style="flex:1 1 300px;min-width:260px;">
-          <div style="font-weight:700;margin-bottom:6px;">Billing Address:</div>
-          <div style="color:#111;">${billing.name || "-"}</div>
-          <div style="color:#444;white-space:pre-line;">${billing.address || "-"}</div>
-          <div style="color:#444;">${billing.phone ? "+" + String(billing.phone) : "-"}</div>
+    <!-- ORDER DETAILS / ADDRESSES -->
+    <tr>
+      <td style="padding:0 24px 22px;">
+        <div style="border:1px solid #eee;border-radius:12px;padding:16px;">
+          <div style="font-weight:700;font-family:Inter,Arial,Helvetica,sans-serif;margin-bottom:8px;">ORDER DETAILS</div>
+          <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width:100%;border-collapse:collapse;">
+            <tr>
+              <td style="vertical-align:top;padding-right:16px;">
+                <div style="font-weight:600;margin-bottom:6px;">Billing Address</div>
+                <div style="font-size:14px;line-height:1.5;">
+                  ${safe(customer.name)}<br/>
+                  ${safe(customer.address).replace(/\n/g, "<br/>")}<br/>
+                  โทร: ${safe(customer.phone)}
+                </div>
+              </td>
+              <td style="vertical-align:top;">
+                <div style="font-weight:600;margin-bottom:6px;">Shipping Address</div>
+                <div style="font-size:14px;line-height:1.5;">
+                  ${safe(customer.name)}<br/>
+                  ${safe(customer.address).replace(/\n/g, "<br/>")}<br/>
+                  โทร: ${safe(customer.phone)}
+                </div>
+              </td>
+            </tr>
+          </table>
+          ${
+            customer.note
+              ? `<div style="margin-top:10px;"><strong>หมายเหตุจากลูกค้า:</strong> ${safe(
+                  customer.note
+                )}</div>`
+              : ""
+          }
         </div>
-        <div style="flex:1 1 300px;min-width:260px;">
-          <div style="font-weight:700;margin-bottom:6px;">Shipping Address:</div>
-          <div style="color:#111;">${shipping.name || "-"}</div>
-          <div style="color:#444;white-space:pre-line;">${shipping.address || "-"}</div>
-          <div style="color:#444;">${shipping.phone ? "+" + String(shipping.phone) : "-"}</div>
+      </td>
+    </tr>
+
+    <!-- INFO -->
+    <tr>
+      <td style="padding:0 24px 24px;">
+        <div style="border:1px solid #eee;border-radius:12px;padding:16px;font-family:Inter,Arial,Helvetica,sans-serif;">
+          <p style="margin:0 0 8px;color:#333;">ทางร้านจะทำการตรวจสอบยอดและยืนยันออเดอร์ของคุณภายใน 24 ชั่วโมง ค่ะ</p>
+          <ul style="margin:0 0 8px 18px;padding:0;color:#333;">
+            <li>✨ สินค้า Pre-Order / Pre-Sale → สถานะจะเปลี่ยนเป็น “รอโรงงานจัดส่งทันที”</li>
+            <li>📦 สินค้าพร้อมส่ง → สถานะจะเปลี่ยนเป็น “จัดส่งแล้ว” พร้อมเลข Tracking</li>
+          </ul>
+          <p style="margin:0;color:#333;">อีเมลนี้สำหรับแจ้งข้อมูลและอัปเดตเท่านั้น หากมีคำถามเพิ่มเติมสามารถติดต่อเพจ Wishyoulucky's Shop</p>
         </div>
-      </div>
-      ${p.customer?.note ? `<div style="margin-top:12px;padding-top:8px;border-top:1px dashed #e6e6e6;"><strong>หมายเหตุจากลูกค้า:</strong> ${p.customer.note}</div>` : ""}
-    </div>
-
-    <div style="border:1px solid #eee;border-radius:12px;padding:16px;margin-top:16px;">
-      <p style="margin:0 0 6px;">ทางร้านจะทำการตรวจสอบยอดและยืนยันออเดอร์ของคุณภายใน 24 ชั่วโมง ค่ะ</p>
-      <ul style="margin:0 0 8px 18px;padding:0;">
-        <li>✨ สินค้า Pre-Order / Pre-Sale → สถานะจะเปลี่ยนเป็น “รอโรงงานจัดส่งทันที”</li>
-        <li>📦 สินค้าพร้อมส่ง → สถานะจะเปลี่ยนเป็น “จัดส่งแล้ว” พร้อมเลข Tracking</li>
-      </ul>
-      <p style="margin:0;">อีเมลนี้สำหรับแจ้งข้อมูลและอัปเดตเท่านั้น หากมีคำถามเพิ่มเติมสามารถติดต่อเพจ Wishyoulucky's Shop</p>
-    </div>
-
-    <p style="margin-top:16px;color:#666;">ขอบคุณที่ไว้วางใจเราเสมอค่ะ 💖</p>
-    <p style="color:#666;margin:0;">Wishyoulucky's Shop</p>
-  </div>
+        <p style="margin:12px 0 4px;color:#666;font-family:Inter,Arial,Helvetica,sans-serif;">ขอบคุณที่ไว้วางใจเราเสมอค่ะ 💖</p>
+        <p style="color:#666;margin:0;font-family:Inter,Arial,Helvetica,sans-serif;">Wishyoulucky's Shop • <a href="${SITE_URL}" style="color:#8b5cf6;text-decoration:none;">${SITE_URL.replace(
+    /^https?:\/\//,
+    ""
+  )}</a></p>
+      </td>
+    </tr>
+  </table>
 </div>`;
 
-  const text = `ขอบพระคุณที่สั่งซื้อกับ Wishyoulucky's Shop
-📋 สรุปรายการสั่งซื้อ Order #${orderNo}
+  const text = `Thank you for shopping with Wishyoulucky's!
 
-ยอดรวมสินค้า: ${thb(itemsSubtotal)}
-ค่าจัดส่ง: ${thb(shippingFee)}
-ภาษี: ${thb(tax)}
-รวมทั้งสิ้น: ${thb(total)}
-ยอดชำระแล้ว: ${thb(paid)}  คงเหลือ: ${thb(balance)}
-รูปแบบการชำระเงิน: ${paymentTypeText(total, p.deposit)}
-ช่องทางชำระเงิน: ${paymentChannelText(p.payment_method)}
+ดูรายละเอียดออเดอร์ของคุณ: ${link}
 
-Billing Address: ${billing.name} / ${billing.phone || "-"}
-${billing.address || "-"}
+สรุปรายการสั่งซื้อ • Order #${order_number}
+${(items || [])
+  .map(
+    (it) =>
+      `- ${it.name} | QTY: ${num(it.quantity, 1)}${it.sku ? ` | SKU: ${it.sku}` : ""} | ${thb(
+        num(it.price) * num(it.quantity, 1)
+      )}`
+  )
+  .join("\n")}
 
-Shipping Address: ${shipping.name} / ${shipping.phone || "-"}
-${shipping.address || "-"}
+Item Subtotal: ${thb(subtotal)}
+Shipping & Handling: ${thb(shipping_fee)}
+Tax: ${thb(tax)}
+Total: ${thb(total_price)}
 
-หมายเหตุ: ${p.customer?.note || "-"}
+รูปแบบการชำระเงิน: ${paymentTypeText(total_price, deposit)}
+ยอดชำระแล้ว: ${thb(paid_amount)}
+ยอดที่เหลือ: ${thb(balance)}
+ช่องทางการชำระเงิน: ${shipping_title || paymentChannelText(payment_method)}
 
-ดูรายละเอียดออเดอร์: ${link}`;
+ที่อยู่จัดส่ง:
+${customer.name}
+${customer.address}
+โทร: ${customer.phone}
+หมายเหตุ: ${customer.note || "-"}
+
+ทางร้านจะตรวจสอบยอดและยืนยันออเดอร์ภายใน 24 ชั่วโมง
+• สินค้า Pre-Order / Pre-Sale → “รอโรงงานจัดส่งทันที”
+• สินค้าพร้อมส่ง → “จัดส่งแล้ว” พร้อมเลข Tracking
+
+Wishyoulucky's Shop
+${SITE_URL}`;
 
   return { subject, html, text };
 };
 
+// ---------- Netlify Handler ----------
 exports.handler = async (event) => {
   if (event.httpMethod === "OPTIONS") {
     return { statusCode: 200, headers: cors(event.headers?.origin) };
@@ -213,23 +297,42 @@ exports.handler = async (event) => {
       };
     }
 
-    const mail = htmlTemplate(payload);
+    // Create transporter
+    const transporter = nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: Number(SMTP_PORT || 587),
+      secure: String(SMTP_SECURE || "").toLowerCase() === "true",
+      auth: {
+        user: SMTP_USER,
+        pass: SMTP_PASS,
+      },
+    });
 
-    await transporter.sendMail({
-      from: FROM,
-      to: payload.to,
+    // Verify SMTP first (better error message)
+    await transporter.verify();
+
+    // Build email content
+    const mail = makeHtml(payload);
+
+    const info = await transporter.sendMail({
+      from: MAIL_FROM,
+      to: Array.isArray(payload.to) ? payload.to.join(",") : payload.to,
       subject: mail.subject,
       html: mail.html,
       text: mail.text,
     });
 
-    return { statusCode: 200, headers: cors(event.headers?.origin), body: JSON.stringify({ ok: true }) };
+    return {
+      statusCode: 200,
+      headers: cors(event.headers?.origin),
+      body: JSON.stringify({ ok: true, id: info.messageId }),
+    };
   } catch (e) {
-    console.error(e);
+    console.error("send-order-received error:", e);
     return {
       statusCode: 500,
       headers: cors(event.headers?.origin),
-      body: JSON.stringify({ error: e?.message || "Internal Error" }),
+      body: JSON.stringify({ ok: false, error: e?.message || "Internal Error" }),
     };
   }
 };
