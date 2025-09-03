@@ -3,19 +3,25 @@
   publish  = "dist"
 
 [build.environment]
+  # (ใช้ได้สำหรับ build-time) — ถ้าจะ pin Node เวอร์ชันให้ขั้น build
+  NODE_VERSION = "20"
+
   VITE_SUPABASE_URL = "https://qiyywaouaqpvojqeqxnv.supabase.co"
   VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 
 [functions]
   directory    = "netlify/functions"
   node_bundler = "esbuild"
+  # ❌ อย่าใส่ functions.node_version = "20"
+  # ถ้าจะกำหนดเวอร์ชันให้ Functions ด้วย ให้ตั้ง NODE_VERSION ที่ Environment variables ของไซต์แทน
 
+# ---- Redirects ต้องแยกเป็น 2 บล็อก ----
 [[redirects]]
-
   from = "/send-order-received"
-  to = "/.netlify/functions/send-order-received"
+  to   = "/.netlify/functions/send-order-received"
   status = 200
 
+[[redirects]]
   from = "/*"
   to   = "/index.html"
   status = 200
