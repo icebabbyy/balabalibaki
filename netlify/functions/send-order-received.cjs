@@ -54,21 +54,14 @@ const buildItemsHTML = (items) =>
     .map(
       (it) => `
 <tr>
-  <td style="padding:10px 0;">
-    <div style="display:flex;gap:12px;align-items:center;">
-      ${
-        safeImage(it)
-          ? `<img src="${safeImage(
-              it
-            )}" width="56" height="56" style="border-radius:8px;object-fit:cover;border:1px solid #eee;background:#fff;" />`
-          : ""
-      }
-      <div>
-        <div style="font-weight:600;color:#111;">${it.name || "-"}</div>
-        <div style="font-size:12px;color:#555;">จำนวน: ${it.quantity || 0}${
-        it.sku ? ` • SKU: ${it.sku}` : ""
-      }</div>
-      </div>
+  <div style="display:flex;align-items:center;">
+  ${it.image ? `<img src="${it.image}" width="56" height="56"
+    style="display:block;border-radius:8px;object-fit:cover;border:1px solid #eee;margin-right:12px;" />` : ""}
+  <div>
+    <div style="font-weight:600; line-height:1.35;">${it.name}</div>
+    <div style="font-size:12px;color:#555;">จำนวน: ${it.quantity}${it.sku ? ` • SKU: ${it.sku}` : ""}</div>
+  </div>
+</div>
     </div>
   </td>
   <td style="text-align:right;font-weight:600;color:#1a1a1a;">${
@@ -117,11 +110,11 @@ const htmlTemplate = (p) => {
   <style>${css}</style>
 
   <h2 style="margin:0 0 8px;">🩰🎨 Thank you for shopping with Wishyoulucky's! 🌷🌟</h2>
-  <p style="margin:0 0 16px;color:#333;">💖 ขอบพระคุณที่ไว้วางใจสั่งสินค้ากับทางร้านนะคะ 💖</p>
+  <p style="margin:0 0 16px;color:#333;">ขอบพระคุณที่ไว้วางใจสั่งสินค้ากับทางร้านนะคะ 💖</p>
 
   <div style="text-align:center;margin:16px 0 20px;">
     <a href="${link}" style="display:inline-block;background:#8b5cf6;color:#fff;text-decoration:none;padding:10px 16px;border-radius:10px;font-weight:600;">
-      👉 คลิกที่นี่เพื่อดูรายละเอียดออเดอร์ของคุณ
+      👉 คลิกที่นี่เพื่อดูรายละเอียดออเดอร์
     </a>
   </div>
 
@@ -161,11 +154,8 @@ const htmlTemplate = (p) => {
         p.deposit
       )}
     </p>
-    <p style="margin:6px 0 0;color:#222;">
-      <strong>ยอดชำระแล้ว:</strong> ${thb(paid)}
-      &nbsp;&nbsp;•&nbsp;&nbsp;
-      <strong>ยอดคงเหลือ:</strong> ${thb(balance)}
-    </p>
+<p style="margin:4px 0;"><strong>ยอดชำระ:</strong> ${thb(p.paid_amount)}</p>
+<p style="margin:4px 0;"><strong>ยอดคงเหลือ:</strong> ${thb(balance)}</p>
     <p style="margin:6px 0 12px;color:#222;">
       <strong>ช่องทางการชำระเงิน:</strong> ${paymentChannelText(
         p.payment_method
@@ -191,11 +181,9 @@ const htmlTemplate = (p) => {
         <li>✨ สินค้า Pre-Order / Pre-Sale → สถานะจะเปลี่ยนเป็น “รอโรงงานจัดส่งทันที”</li>
         <li>📦 สินค้าพร้อมส่ง → สถานะจะเปลี่ยนเป็น “จัดส่งแล้ว” พร้อมเลข Tracking</li>
       </ul>
-      <p style="margin:0;">อีเมลนี้สำหรับแจ้งข้อมูลและอัปเดตเท่านั้น หากมีคำถามเพิ่มเติมสามารถติดต่อเพจ Wishyoulucky's Shop</p>
+      <p style="margin:0;">อีเมลนี้สำหรับแจ้งข้อมูลและอัปเดตเท่านั้น หากมีคำถามเพิ่มเติมสามารถติดต่อเพจ Wishyoulucky's Shop นะคะ</p>
     </div>
   </div>
-
-  <p style="color:#666;margin:0;">Wishyoulucky's Shop</p>
 </div>
 `;
 
@@ -206,7 +194,8 @@ const htmlTemplate = (p) => {
     `ค่าจัดส่ง: ${thb(shippingFee)}`,
     `รวมทั้งสิ้น: ${thb(total)}`,
     `รูปแบบการชำระเงิน: ${paymentTypeText(total, p.deposit)}`,
-    `ยอดชำระแล้ว: ${thb(paid)} • ยอดคงเหลือ: ${thb(balance)}`,
+    `ยอดชำระ: ${thb(paid)}`,
+    `ยอดคงเหลือ: ${thb(balance)}`,
     `ช่องทางชำระเงิน: ${paymentChannelText(p.payment_method)}`,
     `ที่อยู่จัดส่ง: ${p.customer?.name || "-"} / ${p.customer?.phone || "-"}`,
     `${p.customer?.address || "-"}`,
