@@ -200,7 +200,7 @@ const Index = () => {
             const base = supabase
               .from("public_products")
               .select("*")
-              .eq("category", cat)
+              .eq("category_name", cat)
               .order("created_at", { ascending: false })
               .limit(12);
 

@@ -164,7 +164,7 @@ const Header = () => {
               to="/"
               className="text-2xl font-bold hover:text-purple-200 transition-colors shrink-0"
             >
-              LuckyShop
+              Wishyoulucky's Shop
             </Link>
 
             <NavigationMenu className="hidden md:block">

@@ -53,7 +53,7 @@ const App = () => (
                   <Suspense fallback={<PageLoader />}>
                     <Routes>
                       <Route path="/" element={<Index />} />
-                      <Route path="/products/tag/:tagName" element={<ProductsByTag />} />
+                      <Route path="/products/tag/:tag" element={<ProductsByTag />} />
                       <Route path="/categories" element={<Categories />} />
                       <Route path="/product/:slug" element={<ProductDetail />} />
                       <Route path="/tag/:tag" element={<ProductsByTag />} />

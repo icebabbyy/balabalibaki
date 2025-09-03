@@ -81,15 +81,26 @@ const Payment: React.FC = () => {
     setSlipImageUrl(URL.createObjectURL(file));
   };
 
+  /** base URL สำหรับ Netlify Functions (dev -> netlify.app, prod -> path ตรง) */
+  const getFnBase = () => {
+    const h = window.location.hostname;
+    if (h.endsWith("netlify.app") || h.endsWith("wishyoulucky.page")) return "";
+    return "https://wishyoulucky.netlify.app";
+  };
+
   /** ส่งอีเมลสรุปคำสั่งซื้อผ่าน Netlify Function */
-  const sendOrderMail = async (ord: OrderForMail, items: PendingOrder["items"], method: PaymentMethod) => {
+  const sendOrderMail = async (
+    ord: OrderForMail,
+    items: PendingOrder["items"],
+    method: PaymentMethod
+  ) => {
     try {
       const paidAmount =
         typeof ord.deposit === "number" && ord.deposit > 0 && ord.total_price
           ? Math.min(ord.deposit, ord.total_price)
           : Number(ord.total_price ?? 0);
 
-      await fetch("/.netlify/functions/send-order-received", {
+      const resp = await fetch(`${getFnBase()}/.netlify/functions/send-order-received`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -115,6 +126,10 @@ const Payment: React.FC = () => {
           })),
         }),
       });
+
+      if (!resp.ok) {
+        console.warn("[send-order-received] non-200:", await resp.text());
+      }
     } catch (err) {
       console.warn("[send-order-received] failed:", err);
     }
@@ -143,7 +158,7 @@ const Payment: React.FC = () => {
       const { data: urlData } = supabase.storage.from("payment-slips").getPublicUrl(filePath);
       const publicUrl = urlData.publicUrl;
 
-      // 2) อัปเดต order + ดึงฟิลด์ที่ต้องใช้
+      // 2) อัปเดต order + ดึงฟิลด์ที่ต้องใช้สำหรับอีเมล
       const { data: updated, error: updateError } = await supabase
         .from("orders")
         .update({
