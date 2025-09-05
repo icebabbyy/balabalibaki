@@ -8,14 +8,16 @@ import { AuthProvider } from "./hooks/useAuth";
 import { CartProvider } from "./hooks/useCart";
 import { WishlistProvider } from "./context/WishlistContext";
 import Footer from "./components/Footer";
+import AdminOnly from "@/pages/babbylovesbabbyadmin/AdminOnly";
+import BannerAdminPage from "@/pages/babbylovesbabbyadmin/BannerAdminPage";
 
-// 🔽 lazy imports ทั้งหมด (ใช้ไฟล์ relative)
+// lazy pages
 const Index = lazy(() => import("./pages/Index"));
 const Categories = lazy(() => import("./pages/Categories"));
 const ProductDetail = lazy(() => import("./pages/ProductDetail"));
 const Cart = lazy(() => import("./pages/Cart"));
 const Wishlist = lazy(() => import("./pages/Wishlist"));
-const Admin = lazy(() => import("./pages/Admin"));
+const Admin = lazy(() => import("./pages/Admin")); // keep if used elsewhere
 const Profile = lazy(() => import("./pages/Profile"));
 const OrderHistory = lazy(() => import("./pages/OrderHistory"));
 const Payment = lazy(() => import("./pages/Payment"));
@@ -28,14 +30,14 @@ const HowToOrder = lazy(() => import("./pages/HowToOrder"));
 const Shipping = lazy(() => import("./pages/Shipping"));
 const Warranty = lazy(() => import("./pages/Warranty"));
 const ThankYou = lazy(() => import("./pages/ThankYou"));
-const Privilege = lazy(() => import("./pages/privilege")); // ✅ สำคัญ
+const Privilege = lazy(() => import("./pages/privilege"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
 
 const PageLoader = () => (
   <div className="flex justify-center items-center h-screen">
-    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600" />
   </div>
 );
 
@@ -51,6 +53,7 @@ export default function App() {
                   <div className="flex-grow">
                     <Suspense fallback={<PageLoader />}>
                       <Routes>
+                        {/* Public */}
                         <Route path="/" element={<Index />} />
                         <Route path="/products/tag/:tag" element={<ProductsByTag />} />
                         <Route path="/categories" element={<Categories />} />
@@ -59,7 +62,6 @@ export default function App() {
                         <Route path="/qa" element={<QA />} />
                         <Route path="/reviews" element={<Reviews />} />
                         <Route path="/order-status" element={<OrderStatus />} />
-                        <Route path="/admin/*" element={<Admin />} />
                         <Route path="/auth" element={<Auth />} />
                         <Route path="/profile" element={<Profile />} />
                         <Route path="/cart" element={<Cart />} />
@@ -69,20 +71,51 @@ export default function App() {
                         <Route path="/shipping" element={<Shipping />} />
                         <Route path="/warranty" element={<Warranty />} />
                         <Route path="/thank-you" element={<ThankYou />} />
-                        {/* redirect ตัวใหญ่ -> ตัวเล็ก */}
-                        <Route path="/ThankYou" element={<Navigate to="/thank-you" replace />} />
-                        {/* returns -> warranty */}
-                        <Route path="/returns" element={<Navigate to="/warranty" replace />} />
-                        <Route path="/Return" element={<Navigate to="/warranty" replace />} />
-                        <Route path="/Warranty" element={<Navigate to="/warranty" replace />} />
                         <Route path="/wishlist" element={<Wishlist />} />
                         <Route path="/order-history" element={<OrderHistory />} />
+
+                        {/* Admin panel with custom path */}
+                        <Route
+                          path="/babbylovesbabbyadmin"
+                          element={
+                            <AdminOnly>
+                              <BannerAdminPage />
+                            </AdminOnly>
+                          }
+                        />
+                        {/* เผลอเข้าผ่าน /admin ให้รีไดเรกต์ */}
+                        <Route
+                          path="/admin"
+                          element={<Navigate to="/babbylovesbabbyadmin" replace />}
+                        />
+
+                        {/* Redirects */}
+                        <Route
+                          path="/ThankYou"
+                          element={<Navigate to="/thank-you" replace />}
+                        />
+                        <Route
+                          path="/returns"
+                          element={<Navigate to="/warranty" replace />}
+                        />
+                        <Route
+                          path="/Return"
+                          element={<Navigate to="/warranty" replace />}
+                        />
+                        <Route
+                          path="/Warranty"
+                          element={<Navigate to="/warranty" replace />}
+                        />
+
+                        {/* 404 */}
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                     </Suspense>
                   </div>
+
                   <Footer />
                 </div>
+
                 <Toaster />
                 <Sonner />
               </WishlistProvider>

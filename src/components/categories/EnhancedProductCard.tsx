@@ -14,21 +14,20 @@ interface EnhancedProductCardProps {
   onProductClick: (productId: number) => void;
 }
 
-/** helper ทำ URL รูปตามขนาด (พยายามใช้ proxy/transform ก่อน แล้วค่อย fallback เป็น raw) */
+/** สร้าง URL รูปด้วย proxy/transform ถ้าได้ */
 const srcW = (raw?: string, w = 700, q = 85) => {
   if (!raw) return "";
   const out = toDisplaySrc(raw, { w, q });
   return out || raw;
 };
 
-/** รวม URL รูปจากหลายฟิลด์ให้ครอบคลุม */
+/** รวม URL รูปจากหลายฟิลด์ */
 function collectImagesFlexible(p: any): string[] {
   const out: string[] = [];
   const push = (u?: string | null) => {
     if (typeof u === "string" && u.trim() && !out.includes(u)) out.push(u.trim());
   };
 
-  // ตัวหลัก
   push(p?.main_image_url);
   push(p?.main_image);
   push(p?.image_url);
@@ -37,22 +36,24 @@ function collectImagesFlexible(p: any): string[] {
   push(p?.thumbnail_url);
   push(p?.thumbnail);
 
-  // arrays
-  const collectFrom = (arr?: any[]) =>
+  const fromArr = (arr?: any[]) =>
     Array.isArray(arr)
       ? arr.forEach((im: any) =>
           push(typeof im === "string" ? im : im?.image_url || im?.url)
         )
       : undefined;
 
-  collectFrom(p?.all_images);
-  collectFrom(p?.product_images);
-  collectFrom(p?.images);
+  fromArr(p?.all_images);
+  fromArr(p?.product_images);
+  fromArr(p?.images);
 
   return out;
 }
 
-const EnhancedProductCard: React.FC<EnhancedProductCardProps> = ({ product, onProductClick }) => {
+const EnhancedProductCard: React.FC<EnhancedProductCardProps> = ({
+  product,
+  onProductClick,
+}) => {
   if (!product) return null;
 
   const navigate = useNavigate();
@@ -61,9 +62,7 @@ const EnhancedProductCard: React.FC<EnhancedProductCardProps> = ({ product, onPr
 
   const images = collectImagesFlexible(product as any);
 
-  // main
   const mainRaw = images[0];
-  // rollover (รูปถัดไปถ้ามี)
   const rolloverRaw = images.find((u) => u && u !== mainRaw);
 
   const wishlisted = isInWishlist((product as any).id);
@@ -76,13 +75,17 @@ const EnhancedProductCard: React.FC<EnhancedProductCardProps> = ({ product, onPr
   const price: number =
     Number((product as any).selling_price ?? (product as any).sellingPrice ?? 0) || 0;
 
-  const handleActionClick = (
-    e: React.MouseEvent,
-    action: "addToCart" | "buyNow"
-  ) => {
+  const disabled = status === "สินค้าหมด";
+
+  const onBuyNow = (e: React.MouseEvent) => {
     e.stopPropagation();
     addToCart(product as any);
-    if (action === "buyNow") navigate("/cart");
+    navigate("/cart");
+  };
+
+  const onAddToCart = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    addToCart(product as any);
   };
 
   return (
@@ -91,9 +94,8 @@ const EnhancedProductCard: React.FC<EnhancedProductCardProps> = ({ product, onPr
       onClick={() => onProductClick((product as any).id)}
     >
       <CardContent className="p-0 flex flex-col flex-grow">
+        {/* รูปสินค้า */}
         <div className="relative w-full aspect-square bg-gray-100">
-
-          {/* main image */}
           {mainRaw && (
             <img
               src={srcW(mainRaw, 700)}
@@ -114,7 +116,6 @@ const EnhancedProductCard: React.FC<EnhancedProductCardProps> = ({ product, onPr
             />
           )}
 
-          {/* rollover image */}
           {rolloverRaw && (
             <img
               src={srcW(rolloverRaw, 700)}
@@ -167,36 +168,39 @@ const EnhancedProductCard: React.FC<EnhancedProductCardProps> = ({ product, onPr
           </Button>
         </div>
 
+        {/* เนื้อหา */}
         <div className="p-4 flex flex-col flex-grow">
-          <h3 className="font-semibold mb-2 truncate text-sm">
+          <h3 className="font-semibold mb-2 line-clamp-2 min-h-[2.5rem] text-sm">
             {(product as any).name}
           </h3>
 
-          <div className="flex-grow">
-            <p className="text-lg font-bold text-purple-600">
-              ฿{price.toLocaleString()}
-            </p>
+          {/* แถวบน: ราคา */}
+          <div className="text-lg font-bold text-purple-600">
+            ฿{price.toLocaleString()}
           </div>
 
-          <div className="space-y-2 mt-4">
+          {/* แถวล่าง: ซื้อเลย + ตะกร้าขาว (outline) */}
+          <div className="mt-3 flex items-center gap-2">
             <Button
-              onClick={(e) => handleActionClick(e, "buyNow")}
+              onClick={onBuyNow}
+              disabled={disabled}
               size="sm"
-              className="w-full"
-              disabled={status === "สินค้าหมด"}
+              className="flex-1 h-10"
             >
               <CreditCard className="h-4 w-4 mr-2" />
-              ซื้อเดี๋ยวนี้
+              ซื้อเลย
             </Button>
+
             <Button
-              onClick={(e) => handleActionClick(e, "addToCart")}
+              onClick={onAddToCart}
+              disabled={disabled}
               variant="outline"
-              size="sm"
-              className="w-full"
-              disabled={status === "สินค้าหมด"}
+              size="icon"
+              aria-label="เพิ่มลงตะกร้า"
+              className="shrink-0 h-10 w-10"
+              title="เพิ่มลงตะกร้า"
             >
-              <ShoppingCart className="h-4 w-4 mr-2" />
-              เพิ่มลงตะกร้า
+              <ShoppingCart className="h-5 w-5" />
             </Button>
           </div>
         </div>

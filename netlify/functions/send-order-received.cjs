@@ -1,4 +1,3 @@
-// netlify/functions/send-order-received.cjs
 /* eslint-disable */
 
 const nodemailer = require("nodemailer");
@@ -45,30 +44,36 @@ const paymentTypeText = (total, deposit) => {
   return "โอนเต็ม";
 };
 
-// ป้องกัน items ไม่มีภาพ → ลองใช้ image_url แทน
 const safeImage = (it) => it.image || it.image_url || "";
 
 // ตารางสินค้า + รูปภาพ
 const buildItemsHTML = (items) =>
   (items || [])
-    .map(
-      (it) => `
+    .map((it) => {
+      const img = safeImage(it);
+      return `
 <tr>
-  <div style="display:flex;align-items:center;">
-  ${it.image ? `<img src="${it.image}" width="56" height="56"
-    style="display:block;border-radius:8px;object-fit:cover;border:1px solid #eee;margin-right:12px;" />` : ""}
-  <div>
-    <div style="font-weight:600; line-height:1.35;">${it.name}</div>
-    <div style="font-size:12px;color:#555;">จำนวน: ${it.quantity}${it.sku ? ` • SKU: ${it.sku}` : ""}</div>
-  </div>
-</div>
+  <td style="padding:10px 0;">
+    <div style="display:flex;align-items:center;gap:12px;">
+      ${
+        img
+          ? `<img src="${img}" width="56" height="56"
+               style="display:block;border-radius:8px;object-fit:cover;border:1px solid #eee;" />`
+          : ""
+      }
+      <div>
+        <div style="font-weight:600; line-height:1.35;">${it.name}</div>
+        <div style="font-size:12px;color:#555;">จำนวน: ${it.quantity}${
+        it.sku ? ` • SKU: ${it.sku}` : ""
+      }</div>
+      </div>
     </div>
   </td>
-  <td style="text-align:right;font-weight:600;color:#1a1a1a;">${
-    it.price ? thb(Number(it.price) * Number(it.quantity || 1)) : "-"
-  }</td>
-</tr>`
-    )
+  <td style="text-align:right;font-weight:600;color:#1a1a1a;">
+    ${it.price ? thb(Number(it.price) * Number(it.quantity || 1)) : "-"}
+  </td>
+</tr>`;
+    })
     .join("");
 
 // ====== Template ======
@@ -125,7 +130,7 @@ const htmlTemplate = (p) => {
       <thead>
         <tr>
           <th style="text-align:left;padding-bottom:8px;border-bottom:1px solid #eee;color:#666;font-weight:600">สินค้า</th>
-          <th style="text-align:right;padding-bottom:8px;border-bottom:1px solid #eee;color:#666;font-weight:600">ยอด</th>
+          <th style="text-align:right;padding-bottom:8px;border-bottom:1px solid #eee;color:#666;font-weight:600">ราคา</th>
         </tr>
       </thead>
       <tbody>
@@ -149,18 +154,11 @@ const htmlTemplate = (p) => {
     </table>
 
     <p style="margin:10px 0 0;color:#222;">
-      <strong>รูปแบบการชำระเงิน:</strong> ${paymentTypeText(
-        total,
-        p.deposit
-      )}
+      <strong>รูปแบบการชำระเงิน:</strong>
+      ${paymentTypeText(total, p.deposit)} ${paymentChannelText(p.payment_method)}
     </p>
-<p style="margin:4px 0;"><strong>ยอดชำระ:</strong> ${thb(p.paid_amount)}</p>
-<p style="margin:4px 0;"><strong>ยอดคงเหลือ:</strong> ${thb(balance)}</p>
-    <p style="margin:6px 0 12px;color:#222;">
-      <strong>ช่องทางการชำระเงิน:</strong> ${paymentChannelText(
-        p.payment_method
-      )}
-    </p>
+    <p style="margin:4px 0;"><strong>ยอดชำระ:</strong> ${thb(p.paid_amount)}</p>
+    <p style="margin:4px 0;"><strong>ยอดคงเหลือ:</strong> ${thb(balance)}</p>
 
     <!-- SHIPPING ADDRESS BLOCK -->
     <div style="padding:12px;background:#faf5ff;border:1px solid #eee;border-radius:10px;margin-top:8px;">
@@ -193,10 +191,9 @@ const htmlTemplate = (p) => {
     `ยอดรวมค่าสินค้า: ${thb(subtotal)}`,
     `ค่าจัดส่ง: ${thb(shippingFee)}`,
     `รวมทั้งสิ้น: ${thb(total)}`,
-    `รูปแบบการชำระเงิน: ${paymentTypeText(total, p.deposit)}`,
+    `รูปแบบการชำระเงิน: ${paymentTypeText(total, p.deposit)} ${paymentChannelText(p.payment_method)}`,
     `ยอดชำระ: ${thb(paid)}`,
     `ยอดคงเหลือ: ${thb(balance)}`,
-    `ช่องทางชำระเงิน: ${paymentChannelText(p.payment_method)}`,
     `ที่อยู่จัดส่ง: ${p.customer?.name || "-"} / ${p.customer?.phone || "-"}`,
     `${p.customer?.address || "-"}`,
     `หมายเหตุ: ${p.customer?.note || "-"}`,

@@ -80,6 +80,7 @@ const ProductCard = ({ product, isInWishlist, onToggleWishlist }: ProductCardPro
   };
 
   const status = (product as any).product_status || "พรีออเดอร์";
+  const disabled = status === "สินค้าหมด";
 
   return (
     <div
@@ -153,20 +154,27 @@ const ProductCard = ({ product, isInWishlist, onToggleWishlist }: ProductCardPro
           </div>
         )}
 
-        <div className="space-y-2 mt-auto pt-2 border-t">
-          <Button onClick={handleBuyNowClick} className="w-full" size="sm" disabled={status === "สินค้าหมด"}>
+        {/* แถวปุ่มใหม่: ซื้อเดี๋ยวนี้ + ไอคอนตะกร้า */}
+        <div className="mt-auto pt-2 border-t flex items-center gap-2">
+          <Button
+            onClick={handleBuyNowClick}
+            className="flex-1"
+            size="sm"
+            disabled={disabled}
+          >
             <CreditCard className="h-4 w-4 mr-2" />
             ซื้อเดี๋ยวนี้
           </Button>
           <Button
             onClick={handleAddToCartClick}
             variant="outline"
-            size="sm"
-            className="w-full"
-            disabled={status === "สินค้าหมด"}
+            size="icon"
+            aria-label="เพิ่มลงตะกร้า"
+            className="shrink-0"
+            disabled={disabled}
+            title="เพิ่มลงตะกร้า"
           >
-            <ShoppingCart className="h-4 w-4 mr-2" />
-            เพิ่มลงตะกร้า
+            <ShoppingCart className="h-4 w-4" />
           </Button>
         </div>
       </div>
