@@ -1,44 +1,31 @@
+import { supabase } from "@/integrations/supabase/client";
 
-import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+const BUCKET_ID = "banners"; // ✅ ใช้บัคเก็ต banners
+type UploadOpts = { folder?: string; fileName?: string };
 
 export const useImageUpload = () => {
-  const [uploading, setUploading] = useState(false);
+  const uploadImage = async (file: File, opts: UploadOpts = {}) => {
+    if (!file) throw new Error("No file to upload.");
 
-  const uploadImage = async (file: File, bucket: string = 'payment-slips') => {
-    try {
-      setUploading(true);
-      
-      // Create unique filename
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}.${fileExt}`;
-      
-      // Upload to Supabase storage
-      const { data, error } = await supabase.storage
-        .from(bucket)
-        .upload(fileName, file);
+    const folder = opts.folder ?? "category-banners";
+    const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+    const name = opts.fileName ?? crypto.randomUUID();
+    const path = `${folder}/${name}.${ext}`;
 
-      if (error) {
-        console.error('Upload error:', error);
-        toast.error('เกิดข้อผิดพลาดในการอัปโหลด');
-        return null;
-      }
+    const { error } = await supabase
+      .storage
+      .from(BUCKET_ID)
+      .upload(path, file, {
+        cacheControl: "3600",
+        upsert: true,
+        contentType: file.type || `image/${ext}`,
+      });
 
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(data.path);
+    if (error) throw error;
 
-      return urlData.publicUrl;
-    } catch (error) {
-      console.error('Upload error:', error);
-      toast.error('เกิดข้อผิดพลาดในการอัปโหลด');
-      return null;
-    } finally {
-      setUploading(false);
-    }
+    const { data } = supabase.storage.from(BUCKET_ID).getPublicUrl(path);
+    return data.publicUrl; // ส่ง URL สาธารณะกลับไปใช้แสดงผล
   };
 
-  return { uploadImage, uploading };
+  return { uploadImage };
 };

@@ -1,23 +1,28 @@
+// src/App.tsx
 import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
+import ProductExtraInfoAdmin from "@/pages/babbylovesbabbyadmin/product-extra-info/ProductExtraInfoAdmin";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./hooks/useAuth";
 import { CartProvider } from "./hooks/useCart";
 import { WishlistProvider } from "./context/WishlistContext";
+
 import Footer from "./components/Footer";
+import ElfsightChat from "@/components/ElfsightChat";
+
 import AdminOnly from "@/pages/babbylovesbabbyadmin/AdminOnly";
+import AdminLayout from "@/pages/babbylovesbabbyadmin/AdminLayout";
 import BannerAdminPage from "@/pages/babbylovesbabbyadmin/BannerAdminPage";
 
-// lazy pages
+// ---------- lazy pages ----------
 const Index = lazy(() => import("./pages/Index"));
 const Categories = lazy(() => import("./pages/Categories"));
 const ProductDetail = lazy(() => import("./pages/ProductDetail"));
 const Cart = lazy(() => import("./pages/Cart"));
 const Wishlist = lazy(() => import("./pages/Wishlist"));
-const Admin = lazy(() => import("./pages/Admin")); // keep if used elsewhere
 const Profile = lazy(() => import("./pages/Profile"));
 const OrderHistory = lazy(() => import("./pages/OrderHistory"));
 const Payment = lazy(() => import("./pages/Payment"));
@@ -29,6 +34,7 @@ const Auth = lazy(() => import("./pages/Auth"));
 const HowToOrder = lazy(() => import("./pages/HowToOrder"));
 const Shipping = lazy(() => import("./pages/Shipping"));
 const Warranty = lazy(() => import("./pages/Warranty"));
+const PrivacyCookiesPolicyPage = lazy(() => import("./pages/PrivacyCookiesPolicy"));
 const ThankYou = lazy(() => import("./pages/ThankYou"));
 const Privilege = lazy(() => import("./pages/privilege"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -73,39 +79,22 @@ export default function App() {
                         <Route path="/thank-you" element={<ThankYou />} />
                         <Route path="/wishlist" element={<Wishlist />} />
                         <Route path="/order-history" element={<OrderHistory />} />
+                        <Route path="/privacy-cookies-policy" element={<PrivacyCookiesPolicyPage />} />
 
-                        {/* Admin panel with custom path */}
+                        {/* Admin panel (custom path) */}
                         <Route
                           path="/babbylovesbabbyadmin"
                           element={
                             <AdminOnly>
-                              <BannerAdminPage />
+                              <AdminLayout>
+                                <BannerAdminPage />
+                                 <ProductExtraInfoAdmin />
+                              </AdminLayout>
                             </AdminOnly>
                           }
                         />
                         {/* เผลอเข้าผ่าน /admin ให้รีไดเรกต์ */}
-                        <Route
-                          path="/admin"
-                          element={<Navigate to="/babbylovesbabbyadmin" replace />}
-                        />
-
-                        {/* Redirects */}
-                        <Route
-                          path="/ThankYou"
-                          element={<Navigate to="/thank-you" replace />}
-                        />
-                        <Route
-                          path="/returns"
-                          element={<Navigate to="/warranty" replace />}
-                        />
-                        <Route
-                          path="/Return"
-                          element={<Navigate to="/warranty" replace />}
-                        />
-                        <Route
-                          path="/Warranty"
-                          element={<Navigate to="/warranty" replace />}
-                        />
+                        <Route path="/admin" element={<Navigate to="/babbylovesbabbyadmin" replace />} />
 
                         {/* 404 */}
                         <Route path="*" element={<NotFound />} />
@@ -113,6 +102,8 @@ export default function App() {
                     </Suspense>
                   </div>
 
+                  {/* วิดเจ็ตแชต (fixed) + ฟุตเตอร์ */}
+                  <ElfsightChat />
                   <Footer />
                 </div>
 

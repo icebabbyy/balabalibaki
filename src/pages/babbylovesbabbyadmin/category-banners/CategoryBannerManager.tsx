@@ -1,26 +1,32 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCategoryBanners, CategoryBanner } from "@/hooks/useCategoryBanners";
+
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import PhotoCopyPaste from "@/components/PhotoCopyPaste";
 
 type SimpleCategory = { id: number; name: string };
 
+// sentinel สำหรับ “ไม่เลือกหมวด”
+const NONE = "__none__";
+
 export default function CategoryBannerManager() {
   const { banners, loading, addBanner, updateBanner } = useCategoryBanners();
+
   const [categories, setCategories] = useState<SimpleCategory[]>([]);
-  const [filterActive, setFilterActive] = useState<"all" | "active" | "inactive">("all");
+  const [filterActive, setFilterActive] =
+    useState<"all" | "active" | "inactive">("all");
 
   const [editing, setEditing] = useState<CategoryBanner | null>(null);
   const [draft, setDraft] = useState<{
@@ -40,15 +46,17 @@ export default function CategoryBannerManager() {
   // โหลด categories (ไว้ให้เลือก id/name)
   useEffect(() => {
     (async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("categories")
-        .select("id,name")
-        .order("name");
-      setCategories((data || []) as SimpleCategory[]);
+        .select("id, name")
+        .order("name", { ascending: true });
+
+      if (!error) setCategories((data || []) as SimpleCategory[]);
+      else console.error("load categories error:", error);
     })();
   }, []);
 
-  // filter
+  // filter แสดงผล
   const shown = useMemo(() => {
     if (filterActive === "all") return banners;
     return banners.filter((b) => (filterActive === "active" ? b.active : !b.active));
@@ -84,18 +92,17 @@ export default function CategoryBannerManager() {
       alert("กรุณาใส่รูปแบนเนอร์");
       return;
     }
-    // ถ้าเลือก category_id จะเติมชื่อให้อัตโนมัติด้วย
-    let payload = { ...draft };
-    if (draft.category_id && !draft.category_name) {
-      const found = categories.find((c) => c.id === draft.category_id);
+
+    // ถ้าเลือก category_id แล้วไม่กรอกชื่อ จะเติมให้อัตโนมัติ
+    const payload = { ...draft };
+    if (payload.category_id && !payload.category_name) {
+      const found = categories.find((c) => c.id === payload.category_id);
       payload.category_name = found?.name ?? null;
     }
 
-    if (editing) {
-      await updateBanner(editing.id, payload);
-    } else {
-      await addBanner(payload);
-    }
+    if (editing) await updateBanner(editing.id, payload);
+    else await addBanner(payload);
+
     // reset
     setEditing(null);
     setDraft({
@@ -122,7 +129,7 @@ export default function CategoryBannerManager() {
               onValueChange={(v: "all" | "active" | "inactive") => setFilterActive(v)}
             >
               <SelectTrigger className="w-[160px]">
-                <SelectValue />
+                <SelectValue placeholder="เลือกตัวกรอง" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">ทั้งหมด</SelectItem>
@@ -160,7 +167,8 @@ export default function CategoryBannerManager() {
                     <div className="text-sm text-gray-600">
                       หมวด:{" "}
                       <span className="font-medium">
-                        {b.category_name || "-"} {b.category_id ? `(id: ${b.category_id})` : ""}
+                        {b.category_name || "-"}{" "}
+                        {b.category_id ? `(id: ${b.category_id})` : ""}
                       </span>
                     </div>
                     {b.link_url ? (
@@ -195,11 +203,11 @@ export default function CategoryBannerManager() {
             <div className="space-y-2">
               <Label>หมวด (เลือกจากตาราง)</Label>
               <Select
-                value={draft.category_id ? String(draft.category_id) : ""}
+                value={draft.category_id ? String(draft.category_id) : NONE}
                 onValueChange={(v) =>
                   setDraft((d) => ({
                     ...d,
-                    category_id: v ? Number(v) : null,
+                    category_id: v === NONE ? null : Number(v),
                   }))
                 }
               >
@@ -207,12 +215,15 @@ export default function CategoryBannerManager() {
                   <SelectValue placeholder="ไม่เลือกก็ได้ (จะใช้ชื่อหมวดแทน)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">— ไม่เลือก —</SelectItem>
-                  {categories.map((c) => (
-                    <SelectItem key={c.id} value={String(c.id)}>
-                      {c.name} (id: {c.id})
-                    </SelectItem>
-                  ))}
+                  {/* ❗ ห้ามใช้ value="" เด็ดขาด */}
+                  <SelectItem value={NONE}>— ไม่เลือก —</SelectItem>
+                  {categories
+                    .filter((c) => c && c.id != null)
+                    .map((c) => (
+                      <SelectItem key={c.id} value={String(c.id)}>
+                        {c.name} (id: {c.id})
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
@@ -227,20 +238,16 @@ export default function CategoryBannerManager() {
                 placeholder="เช่น Zenless Zone Zero"
               />
               <div className="text-xs text-gray-500">
-                ถ้าเลือก category id แล้วไม่ต้องกรอกชื่อนี้ก็ได้ ระบบจะเติมให้อัตโนมัติ
+                ถ้าเลือก category id แล้วไม่ต้องกรอกชื่อนี้ ระบบจะเติมให้อัตโนมัติ
               </div>
             </div>
 
             <div className="space-y-2 md:col-span-2">
               <Label>รูปภาพแบนเนอร์</Label>
-              {/* ใช้ตัวเลือกวางลิงก์ที่คุณมีแล้ว */}
               <PhotoCopyPaste
                 currentImage={draft.image_url}
                 onImageChange={(url) =>
-                  setDraft((d) => ({
-                    ...d,
-                    image_url: url,
-                  }))
+                  setDraft((d) => ({ ...d, image_url: url }))
                 }
                 label="เลือกรูป (หรือลงลิงก์)"
                 folder="category-banners"

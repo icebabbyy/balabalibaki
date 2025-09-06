@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { ProductPublic } from "@/types/product";
 import { toDisplaySrc } from "@/lib/imageUrl";
+import ElfsightChat from "@/components/ElfsightChat";
 
 import Header from "@/components/Header";
 import {

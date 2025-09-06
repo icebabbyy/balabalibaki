@@ -1,54 +1,38 @@
-import { ReactNode, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
 
-export default function AdminOnly({ children }: { children: ReactNode }) {
-  const [checking, setChecking] = useState(true);
-  const [ok, setOk] = useState(false);
-  const navigate = useNavigate();
+export default function AdminOnly({ children }: { children: React.ReactNode }) {
+  const [state, setState] = useState<"loading" | "allow" | "deny">("loading");
 
   useEffect(() => {
-    let mounted = true;
-
     (async () => {
-      const { data: userRes } = await supabase.auth.getUser();
-      const user = userRes?.user;
-      if (!user) {
-        setOk(false);
-        setChecking(false);
-        navigate("/login");
+      const { data: { session }, error: sErr } = await supabase.auth.getSession();
+      if (sErr || !session) {
+        setState("deny");
         return;
       }
+
+      const uid = session.user.id;
+
       const { data, error } = await supabase
         .from("profiles")
-        .select("is_admin")
-        .eq("id", user.id)
-        .single();
+        .select("role")     // ✅ ใช้ role
+        .eq("id", uid)      // ✅ filter ด้วย eq
+        .maybeSingle();
 
-      if (!mounted) return;
-
-      if (error || !data?.is_admin) {
-        setOk(false);
-        setChecking(false);
-        navigate("/"); // ไม่ใช่แอดมิน เตะกลับหน้าแรก
+      if (error) {
+        console.error("profiles error:", error);
+        setState("deny");
         return;
       }
-      setOk(true);
-      setChecking(false);
+
+      setState(data?.role === "admin" ? "allow" : "deny");
     })();
+  }, []);
 
-    return () => {
-      mounted = false;
-    };
-  }, [navigate]);
+  if (state === "loading") return <div className="p-10 text-center">กำลังตรวจสิทธิ์…</div>;
+  if (state === "deny") return <Navigate to="/auth" replace />;
 
-  if (checking) {
-    return (
-      <div className="min-h-[50vh] flex items-center justify-center">
-        <div className="animate-spin h-10 w-10 rounded-full border-b-2 border-purple-600" />
-      </div>
-    );
-  }
-  if (!ok) return null;
   return <>{children}</>;
 }

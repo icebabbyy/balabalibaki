@@ -1,3 +1,5 @@
+// src/pages/Wishlist.tsx
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,17 +8,19 @@ import { Heart, ShoppingCart } from "lucide-react";
 import { useWishlist } from "@/context/WishlistContext";
 import { useCart } from "@/hooks/useCart";
 import { toDisplaySrc } from "@/lib/imageUrl";
+import { supabase } from "@/integrations/supabase/client";
+import type { ProductPublic } from "@/types/product";
 
-/* ---------------- helpers: เลือกและแปลงรูป ---------------- */
-const imgW = (raw?: string, w = 700, q = 85) =>
+/* ---------------- helpers ---------------- */
+const imgW = (raw?: string, w = 800, q = 85) =>
   raw ? toDisplaySrc(raw, { w, q }) || raw : "";
 
-function pickPrimaryImage(p: any): string | undefined {
-  const list: string[] = [];
+/** รวมทุกฟิลด์รูป เท่าที่อาจเจอในแหล่งข้อมูลต่าง ๆ แล้วคืนรูปแรก */
+function pickPrimaryImageFlexible(p: any): string | undefined {
+  const out: string[] = [];
   const push = (u?: string | null) => {
-    if (typeof u === "string" && u.trim() && !list.includes(u)) list.push(u.trim());
+    if (typeof u === "string" && u.trim() && !out.includes(u)) out.push(u.trim());
   };
-
   // เดี่ยว
   push(p?.main_image_url);
   push(p?.main_image);
@@ -25,28 +29,133 @@ function pickPrimaryImage(p: any): string | undefined {
   push(p?.image);
   push(p?.thumbnail_url);
   push(p?.thumbnail);
-
-  // Array
+  // อาร์เรย์
   const collect = (arr?: any[]) =>
     Array.isArray(arr)
-      ? arr.forEach((im) =>
-          push(typeof im === "string" ? im : im?.image_url || im?.url)
+      ? arr.forEach((im: any) =>
+          push(typeof im === "string" ? im : im?.image_url || im?.url),
         )
       : null;
-
+  collect(p?.all_images);
   collect(p?.product_images);
   collect(p?.images);
-  collect(p?.all_images);
 
-  return list[0];
+  return out[0];
 }
 
+/** map row ของ view public_products -> ProductPublic */
+function mapFromView(row: any): ProductPublic {
+  const primary = pickPrimaryImageFlexible(row);
+
+  const allRaw: string[] = [
+    primary,
+    row?.image_url,
+    row?.image,
+    row?.imageUrl,
+    row?.main_image_url,
+    row?.main_image,
+    row?.thumbnail_url,
+    row?.thumbnail,
+    ...(Array.isArray(row?.product_images)
+      ? row.product_images.map((x: any) => x?.image_url || x?.url)
+      : []),
+    ...(Array.isArray(row?.images)
+      ? row.images.map((x: any) => x?.image_url || x?.url)
+      : []),
+    ...(Array.isArray(row?.all_images)
+      ? row.all_images.map((x: any) => x?.image_url || x?.url)
+      : []),
+  ].filter((u) => typeof u === "string" && u.trim());
+
+  const uniq = Array.from(new Set(allRaw));
+  const imagesNorm = uniq.map((u, i) => ({ id: i, image_url: u, order: i }));
+
+  return {
+    id: Number(row.id ?? 0),
+    name: String(row.name ?? ""),
+    selling_price: Number(row.selling_price ?? row.sellingPrice ?? 0),
+    description: String(row.description ?? ""),
+    image: primary,
+    image_url: row.image_url ?? row.imageUrl ?? undefined,
+    main_image_url: row.main_image_url ?? row.main_image ?? undefined,
+    product_status: String(row.product_status ?? row.status ?? "พรีออเดอร์"),
+    sku: String(row.sku ?? ""),
+    quantity: Number(row.quantity ?? 0),
+    shipment_date: row.shipment_date ?? null,
+    options: row.options ?? [],
+    product_type: String(row.product_type ?? "standard"),
+    created_at: row.created_at ?? null,
+    updated_at: row.updated_at ?? null,
+    slug: row.slug ?? String(row.id),
+    category: String(row.category ?? ""),
+    category_name: row.category_name ?? "",
+    tags: Array.isArray(row.tags) ? row.tags : [],
+    product_images: imagesNorm,
+    images: imagesNorm,
+    all_images: imagesNorm,
+  };
+}
+
+/* ---------------- page ---------------- */
 const Wishlist = () => {
   const navigate = useNavigate();
-  const { loading, wishlistItems, toggleWishlist } = useWishlist();
+  const { loading: wlLoading, wishlistItems, toggleWishlist } = useWishlist();
   const { addToCart } = useCart();
 
-  if (loading) {
+  const [fetching, setFetching] = useState(false);
+  const [items, setItems] = useState<ProductPublic[]>([]);
+
+  /** ดึงเฉพาะ id/slug ที่มีจาก context เพื่อยิงที่ view public_products เท่านั้น */
+  const idList = useMemo(() => {
+    const ids: number[] = [];
+    (wishlistItems || []).forEach((it: any) => {
+      const idNum =
+        typeof it?.id === "number"
+          ? it.id
+          : Number(it?.id || it?.product_id || it?.productId || 0);
+      if (idNum && !Number.isNaN(idNum) && !ids.includes(idNum)) ids.push(idNum);
+    });
+    return ids;
+  }, [wishlistItems]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      if (!idList || idList.length === 0) {
+        setItems([]);
+        return;
+      }
+      setFetching(true);
+      // ✅ ดึงจาก VIEW public_products เท่านั้น
+      const { data, error } = await supabase
+        .from("public_products")
+        .select("*")
+        .in("id", idList);
+
+      if (cancelled) return;
+      if (error) {
+        console.error("Fetch wishlist from public_products error:", error);
+        setItems([]);
+      } else {
+        const mapped = (data || []).map(mapFromView);
+        // จัดลำดับให้เหมือนลำดับใน wishlist
+        const orderMap = new Map(idList.map((id, idx) => [id, idx]));
+        mapped.sort(
+          (a, b) => (orderMap.get(a.id) ?? 9999) - (orderMap.get(b.id) ?? 9999),
+        );
+        setItems(mapped);
+      }
+      setFetching(false);
+    };
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [idList]);
+
+  const showLoading = wlLoading || fetching;
+
+  if (showLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
@@ -58,13 +167,15 @@ const Wishlist = () => {
     );
   }
 
+  const hasItems = items && items.length > 0;
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold text-gray-800 mb-8">รายการสินค้าที่ถูกใจ</h1>
 
-        {(!wishlistItems || wishlistItems.length === 0) ? (
+        {!hasItems ? (
           <div className="text-center py-12">
             <Heart className="h-16 w-16 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500 text-lg mb-4">ยังไม่มีสินค้าที่ถูกใจ</p>
@@ -72,9 +183,9 @@ const Wishlist = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {wishlistItems.map((product: any) => {
-              const raw = pickPrimaryImage(product);
-              const src = imgW(raw, 800);
+            {items.map((product) => {
+              const raw = pickPrimaryImageFlexible(product);
+              const src = imgW(raw, 900);
               const fallback = raw || "/placeholder.svg";
 
               return (
@@ -91,11 +202,8 @@ const Wishlist = () => {
                       decoding="async"
                       onError={(e) => {
                         const el = e.currentTarget as HTMLImageElement;
-                        if (fallback && el.src !== fallback) {
-                          el.src = fallback;
-                        } else {
-                          el.src = "/placeholder.svg";
-                        }
+                        if (fallback && el.src !== fallback) el.src = fallback;
+                        else el.src = "/placeholder.svg";
                       }}
                     />
                     <h3
@@ -118,10 +226,7 @@ const Wishlist = () => {
                         <Heart className="h-4 w-4 mr-2" />
                         นำออกจากรายการโปรด
                       </Button>
-                      <Button
-                        className="w-full"
-                        onClick={() => addToCart(product, 1)}
-                      >
+                      <Button className="w-full" onClick={() => addToCart(product, 1)}>
                         <ShoppingCart className="h-4 w-4 mr-2" />
                         เพิ่มลงตะกร้า
                       </Button>

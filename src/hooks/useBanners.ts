@@ -1,119 +1,94 @@
-
-import { useState, useEffect } from "react";
+// src/hooks/useBanners.ts
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { Banner, NewBannerForm } from "@/types/banner";
 
-export const useBanners = () => {
+export type Banner = {
+  id: string;          // uuid
+  image_url: string;
+  active: boolean;
+  position: number;
+  created_at?: string;
+  updated_at?: string;
+};
+
+type NewBanner = {
+  image_url: string;
+  active?: boolean;
+  position?: number;
+};
+
+export function useBanners() {
   const [banners, setBanners] = useState<Banner[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchBanners = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('banners')
-        .select('*')
-        .order('position');
+  const fetchAll = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("banners")
+      .select("*")
+      .order("position", { ascending: true })
+      .order("updated_at", { ascending: false });
 
-      if (error) throw error;
-      
-      // Transform the data to match our Banner interface
-      const transformedData: Banner[] = (data || []).map((item: any) => ({
-        id: String(item.id),
-        image_url: item.image_url,
-        position: item.position,
-        active: item.active,
-        created_at: item.created_at,
-        updated_at: item.updated_at
-      }));
-      
-      setBanners(transformedData);
-    } catch (error) {
-      console.error('Error fetching banners:', error);
-      toast.error('เกิดข้อผิดพลาดในการโหลดแบนเนอร์');
-    } finally {
-      setLoading(false);
+    if (error) {
+      console.error("fetch banners error:", error);
+    } else {
+      setBanners((data || []) as Banner[]);
     }
-  };
-
-  const addBanner = async (newBanner: NewBannerForm) => {
-    try {
-      // Generate a unique ID for the banner
-      const bannerId = `banner_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
-      const { error } = await supabase
-        .from('banners')
-        .insert([{
-          id: bannerId,
-          image_url: newBanner.image_url,
-          position: newBanner.position,
-          active: newBanner.active
-        }]);
-
-      if (error) {
-        console.error('Banner insert error:', error);
-        throw error;
-      }
-
-      toast.success('เพิ่มแบนเนอร์เรียบร้อยแล้ว');
-      fetchBanners();
-    } catch (error) {
-      console.error('Error adding banner:', error);
-      toast.error('เกิดข้อผิดพลาดในการเพิ่มแบนเนอร์: ' + (error as Error).message);
-    }
-  };
-
-  const updateBanner = async (banner: Banner) => {
-    try {
-      const updateData = {
-        image_url: banner.image_url,
-        position: banner.position,
-        active: banner.active
-      };
-
-      const { error } = await supabase
-        .from('banners')
-        .update(updateData)
-        .eq('id', banner.id);
-
-      if (error) throw error;
-
-      toast.success('อัพเดทแบนเนอร์เรียบร้อยแล้ว');
-      fetchBanners();
-    } catch (error) {
-      console.error('Error updating banner:', error);
-      toast.error('เกิดข้อผิดพลาดในการอัพเดทแบนเนอร์');
-    }
-  };
-
-  const deleteBanner = async (id: string) => {
-    if (!confirm('คุณต้องการลบแบนเนอร์นี้หรือไม่?')) return;
-
-    try {
-      const { error } = await supabase
-        .from('banners')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
-      toast.success('ลบแบนเนอร์เรียบร้อยแล้ว');
-      fetchBanners();
-    } catch (error) {
-      console.error('Error deleting banner:', error);
-      toast.error('เกิดข้อผิดพลาดในการลบแบนเนอร์');
-    }
+    setLoading(false);
   };
 
   useEffect(() => {
-    fetchBanners();
+    fetchAll();
   }, []);
 
-  return {
-    banners,
-    loading,
-    addBanner,
-    updateBanner,
-    deleteBanner
-  };
+const deleteBanner = async (id: string) => {
+  const { error } = await supabase.from("banners").delete().eq("id", id);
+  if (error) {
+    console.error("Banner delete error:", error);
+    throw error;
+  }
+  await fetchAll();
 };
+  // ⚠️ ปล่อยให้ DB gen UUID เอง และส่งเฉพาะคอลัมน์ที่มีจริงเท่านั้น
+  const addBanner = async (payload: NewBanner) => {
+    const insertRow = {
+      image_url: payload.image_url,
+      active: payload.active ?? true,
+      position: payload.position ?? 0,
+    };
+
+    const { data, error } = await supabase
+      .from("banners")
+      .insert(insertRow)   // ไม่มี id / ไม่มี link_url / ไม่มี title
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Banner insert error:", error);
+      throw error;
+    }
+    await fetchAll();
+    return data as Banner;
+  };
+
+  const updateBanner = async (id: string, changes: Partial<Omit<Banner, "id">>) => {
+    // ป้องกันการเผลอส่ง id กลับไป
+    const { id: _drop, ...safeChanges } = (changes || {}) as any;
+
+    const { data, error } = await supabase
+      .from("banners")
+      .update(safeChanges)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Banner update error:", error);
+      throw error;
+    }
+    await fetchAll();
+    return data as Banner;
+  };
+
+return { banners, loading, addBanner, updateBanner, deleteBanner, refetch: fetchAll };
+}

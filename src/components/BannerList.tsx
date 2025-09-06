@@ -13,10 +13,10 @@ interface BannerListProps {
 const BannerList = ({ banners, onEdit, onDelete }: BannerListProps) => {
   const getPositionLabel = (position: number) => {
     const positions = {
-      1: "แบนเนอร์หลัก - สไลด์โชว์ด้านบนสุด (หน้าแรก)",
-      2: "แบนเนอร์ที่ 2 - รูปภาพเดี่ยวใต้สินค้ามาใหม่",
-      3: "แบนเนอร์ที่ 3 - รูปภาพเดี่ยวใต้หมวดหมู่",
-      4: "แบนเนอร์ที่ 4 - รูปภาพเดี่ยวด้านล่างสุด"
+      1: "สไลด์ ใส่ได้ 4 รูปด้านบนสุด",
+      2: "ใช้ไม่ได้ไม่ต้องอัพโหลด",
+      3: "2. รูปภาพเดี่ยวใต้หมวดหมู่",
+      4: "4.ด้านล่างสุด"
     };
     return positions[position as keyof typeof positions] || `ตำแหน่ง ${position}`;
   };
